@@ -2,7 +2,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # The github-pages environment only accepts the repo's default branch,
+    # which is the feature branch, so deploy from both.
+    branches: [main, claude/bugame-perth-bug-game-gbetu5]
   workflow_dispatch:
 
 permissions:
