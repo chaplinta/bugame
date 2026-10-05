@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Bugame</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app">
+
+  <section id="menu" class="screen active">
+    <h1>Bugame</h1>
+    <p class="sub">Be a real bug in Perth, WA</p>
+    <div id="cards" class="cards"></div>
+  </section>
+
+  <section id="intro" class="screen">
+    <div class="panel">
+      <canvas id="introPic" width="160" height="160"></canvas>
+      <h2 id="introName"></h2>
+      <p class="sci" id="introSci"></p>
+      <p class="place" id="introPlace"></p>
+      <ul id="introFacts" class="facts"></ul>
+      <h3>How to play</h3>
+      <ul id="introHow" class="how"></ul>
+      <div class="buttons">
+        <button id="introBack" class="secondary">Back</button>
+        <button id="introStart">Start</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="play" class="screen">
+    <div id="stage">
+      <canvas id="game"></canvas>
+      <div id="hud">
+        <button id="menuBtn" aria-label="Back to menu">&#8962;</button>
+        <span id="hudGoal"></span>
+        <span id="hudExtra"></span>
+        <span id="hudLives"></span>
+      </div>
+      <div id="toast" aria-live="polite"></div>
+      <button id="actionBtn"></button>
+    </div>
+  </section>
+
+  <section id="end" class="screen">
+    <div class="panel">
+      <h2 id="endTitle"></h2>
+      <p id="endStars" class="stars"></p>
+      <h3>Facts you found</h3>
+      <ul id="endFacts" class="facts"></ul>
+      <div class="buttons">
+        <button id="endMenu" class="secondary">Pick a bug</button>
+        <button id="endAgain">Play again</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+<script src="js/sprites.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/missions.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
