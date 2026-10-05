@@ -527,7 +527,7 @@ const Missions = {
       // Pats dry out; eggs hatch into maggots; dung beetles arrive and bury them.
       for (const pt of g.pats) {
         pt.t = g.t;
-        pt.fresh = Math.max(0, pt.fresh - dt / 80);
+        pt.fresh = Math.max(0, pt.fresh - dt / 120);
         if (pt.eggs && pt.hatchT !== undefined) {
           pt.hatchT -= dt;
           if (pt.hatchT <= 0 && pt.maggots < pt.eggs) { pt.maggots = pt.eggs; if (dist(pt, p) < 600) Game.fact('maggots'); }
@@ -565,8 +565,13 @@ const Missions = {
       if (g.pats.length < 3) { const q = Game.spawnPoint(200); this.addPat(q.x, q.y, 1); }
 
       // Sip at a cow's face, lay on a fresh pat.
-      const cow = g.items.find(c => c.kind === 'cow' && dist(this.head(c), p) < 30);
-      const pat = g.pats.find(pt => dist(pt, p) < 22 * pt.size + 8);
+      const cow = g.items.find(c => c.kind === 'cow' && dist(this.head(c), p) < 45);
+      const pat = g.pats.find(pt => dist(pt, p) < 30 * pt.size + 6);
+      // Once full of protein, make sure there's a fresh pat not too far away.
+      if (p.protein >= 1 && !g.pats.some(pt => pt.fresh > 0.5 && dist(pt, p) < 700)) {
+        const c = nearest(g.items.filter(i => i.kind === 'cow'), p, 99999);
+        if (c && c.pooT > 1) c.pooT = 1;
+      }
       if (pat) {
         const ok = pat.fresh > 0.35 && p.protein >= 1;
         setAction('Lay', ok);
@@ -575,6 +580,7 @@ const Missions = {
           else if (p.protein < 1) Game.hint('You need protein first. Sip from a cow’s face.');
           else {
             p.landed = true;
+            p.x = pat.x; p.y = pat.y;
             p.layT += dt;
             if (p.layT >= 1) {
               p.layT = 0; p.protein = 0;
@@ -589,13 +595,21 @@ const Missions = {
       } else if (cow) {
         setAction('Sip', p.protein < 1);
         if (input.held && p.protein < 1) {
+          // Hang on to the cow's face while it moves.
+          const h = this.head(cow);
+          p.x = h.x; p.y = h.y;
           p.sip = true; p.landed = true;
-          p.angle = Math.atan2(cow.y - p.y, cow.x - p.x);
-          p.protein = Math.min(1, p.protein + dt / 1.6);
+          p.angle = cow.angle + Math.PI;
+          p.protein = Math.min(1, p.protein + dt / 1.2);
           if (Math.floor(g.t * 6) !== Math.floor((g.t - dt) * 6)) Sound.play('buzz');
           Game.fact('sip');
-          if (p.protein >= 1) { Sound.play('pick'); Game.fact('mouth'); }
-        } else if (p.protein >= 1) Game.hint('Full of protein! Now find a fresh cow pat.');
+          if (p.protein >= 1) {
+            Sound.play('pick');
+            Game.fact('mouth');
+            g.toasts.unshift({ text: 'Full of protein! Now follow the arrow to a fresh, shiny cow pat and hold Lay.', kind: 'hint' });
+            g.toastT = 0;
+          }
+        }
       } else setAction(p.protein >= 1 ? 'Lay' : 'Sip', false);
       if (g.score === 2) Game.fact('feet');
       if (g.score === 3) Game.fact('stripes');
