@@ -390,10 +390,12 @@ const Game = {
 
     for (const pr of g.preds) {
       // Shadow first so flyers look airborne.
-      ctx.fillStyle = 'rgba(0,0,0,.15)';
-      ctx.beginPath();
-      ctx.ellipse(pr.x + 10, pr.y + 14, pr.r, pr.r * 0.6, 0, 0, TAU);
-      ctx.fill();
+      if (!pr.ground) {
+        ctx.fillStyle = 'rgba(0,0,0,.15)';
+        ctx.beginPath();
+        ctx.ellipse(pr.x + 10, pr.y + 14, pr.r, pr.r * 0.6, 0, 0, TAU);
+        ctx.fill();
+      }
       this.drawSprite(pr.sprite, pr, pr.scale);
       if (pr.state === 'chase' || pr.state === 'alert') {
         ctx.fillStyle = '#c0392b';

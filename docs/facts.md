@@ -11,6 +11,17 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Echidnas eat ants and termites, dig into nests. AM.
 - Ants carry prey heavier than themselves. General.
 
+## Bull ant queen stage
+- Colonies are founded by a single queen. AM.
+- Young queens (and males) are winged; workers are wingless. AM.
+- Queens are larger than workers and lay the eggs. AM.
+- Nuptial flights happen on warm days, often after rain. AM; general ant biology.
+- After mating, queens remove their wings. General ant biology (Hölldobler & Wilson, *The Ants*).
+- Queen digs a founding chamber and lays her first eggs. Hölldobler & Wilson.
+- *Myrmecia* founding queens are semi-claustral: they leave the nest to forage for their first brood; many other ants found claustrally (sealed in). Hölldobler & Wilson; Haskins & Haskins.
+- Once workers emerge they forage; the queen lays eggs for years. General.
+- Willie wagtail (*Rhipidura leucophrys*) takes flying insects and forages on the ground. BirdLife Australia.
+
 ## Blue-banded bee (*Amegilla*, e.g. *A. chlorocyanea* in SW WA)
 - Solitary; female digs a nest burrow in soil or clay banks. AM, Aussie Bee.
 - Buzz pollination via flight-muscle vibration; honey bees can't. AM.
@@ -19,6 +30,15 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Males sleep clamped to stems by their mandibles. AM.
 - Kangaroo paws (*Anigozanthos*) are mainly bird-pollinated; pollen goes on the bird's head. Kings Park / WA Herbarium.
 - Rainbow bee-eaters migrate south to Perth in spring; catch bees in flight and rub off the sting on a perch. BirdLife Australia.
+
+## Peacock spider spiderling stage
+- Eggs are laid in a silk sac; jumping spider mothers guard eggs in a silk retreat. AM; general salticid biology.
+- Spiderlings hunt from hatching (after the first moult out of the sac). General.
+- Spiderlings disperse from the mother's retreat. General.
+- Springtails (Collembola) are hexapods but not insects; they jump using a folded spring (furcula). AM.
+- Ants prey on small spiders; spiderling mortality is high. General.
+- Spiders moult to grow (ecdysis). AM.
+- Juvenile *Maratus* males are drab like females; colours appear at the final moult. Otto & Hill.
 
 ## Coastal peacock spider (*Maratus speciosus*)
 - Lives in coastal dunes around Perth. WAM; Otto & Hill.
@@ -63,4 +83,5 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - The bee mission plays a female; the male sleeping fact is shown at the end.
 - Predators give up a chase in the safe home area, and pause before chasing so young players can react.
 - The nymph stage is a few minutes; real nymphs take months.
+- Spider jumps follow a target that hops mid-air; real jumps are ballistic.
 - Emergence happens on the water's surface in the game; in reality the nymph climbs well up the stem first.

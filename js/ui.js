@@ -42,7 +42,7 @@ function portrait(canvas, sprite, size) {
   Sprites[sprite](ctx, { moving: false, load: 0 }, 0.4);
 }
 
-function bugSprite(bug) { const m = Missions[bug.stages[bug.stages.length - 1]]; return m.sprite || m.id; }
+function bugSprite(bug) { return bug.sprite; }
 function bugStars(bug) { return bug.stages.reduce((n, id) => n + Progress.stars(id), 0); }
 
 function fillList(el, items) {

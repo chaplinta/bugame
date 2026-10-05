@@ -376,6 +376,83 @@ const Sprites = {
     ell(ctx, 0, 0, 2.5, 2.5, '#d84c3a');
   },
 
+  // --- spiderling stage ---
+  // Young peacock spider: plain brown like the female; colours come at the last moult.
+  spiderling(ctx, o, t) {
+    const w = o.moving ? Math.sin(t * 16) * 0.2 : 0;
+    for (let i = 0; i < 4; i++) {
+      for (const s of [-1, 1]) leg(ctx, 3, 0, s * [0.55, 1.15, 1.9, 2.5][i] + (i % 2 ? w : -w) * s, 6, 5, s * 0.4, '#7a5f40', 1.3);
+    }
+    ell(ctx, -7, 0, 6.5, 5.5, '#a5865e');
+    ell(ctx, -8, 0, 3, 2, '#c4a47a');
+    ell(ctx, 4, 0, 6, 5, '#7a5f40');
+    ell(ctx, 8.8, -2.2, 2.1, 2.1, '#0b0b0b');
+    ell(ctx, 8.8, 2.2, 2.1, 2.1, '#0b0b0b');
+    ell(ctx, 9.3, -2.6, 0.6, 0.6, '#fff');
+    if (o.moult > 0) {
+      ctx.globalAlpha = Math.min(1, o.moult);
+      ctx.save();
+      ctx.translate(-22, 0);
+      for (let i = 0; i < 4; i++) for (const s of [-1, 1]) leg(ctx, 3, 0, s * [0.55, 1.15, 1.9, 2.5][i], 6, 5, s * 0.4, 'rgba(255,255,255,.8)', 1);
+      ell(ctx, -7, 0, 6.5, 5.5, 'rgba(255,255,255,.55)');
+      ell(ctx, 4, 0, 6, 5, 'rgba(255,255,255,.55)');
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+  },
+  // Springtail: tiny six-legged hexapod with a forked spring folded underneath.
+  springtail(ctx, o, t) {
+    for (let i = 0; i < 3; i++) for (const s of [-1, 1]) leg(ctx, 1 - i * 2, 0, s * (1.2 + i * 0.4), 3, 3, 0, '#6d6480', 0.8);
+    ell(ctx, -2, 0, 6, 2.6, '#8a7fa3');
+    ell(ctx, 4.5, 0, 2.6, 2.4, '#6d6480');
+    line(ctx, [6, -1, 10, -4], '#6d6480', 0.9);
+    line(ctx, [6, 1, 10, 4], '#6d6480', 0.9);
+    if (o.hop > 0) line(ctx, [-8, 0, -13, -2, -13, 2], '#6d6480', 1);
+  },
+  // Small black ant, a danger to spiderlings.
+  smallAnt(ctx, o, t) {
+    insectLegs(ctx, 1, 11, '#1b1b1b', 1.3, t, true);
+    ell(ctx, -8, 0, 5.5, 4.5, '#262626');
+    ell(ctx, -2.5, 0, 1.6, 1.4, '#262626');
+    ell(ctx, 2, 0, 4, 2.6, '#333');
+    ell(ctx, 8, 0, 3.8, 3.6, '#262626');
+    line(ctx, [10, -2, 14, -6, 18, -5], '#1b1b1b', 0.9);
+    line(ctx, [10, 2, 14, 6, 18, 5], '#1b1b1b', 0.9);
+  },
+
+  // --- bull ant queen stage ---
+  queenAnt(ctx, o, t) {
+    Sprites.ant(ctx, o, t);
+    if (o.wings) {
+      const flap = o.flying ? Math.sin(t * 50) * 0.3 : 0.5;
+      wings(ctx, 2, 3, 15, 5, flap, 'rgba(240,235,220,.65)');
+    }
+  },
+  // Willie wagtail: black above, white eyebrow, fanned tail.
+  wagtail(ctx, o, t) {
+    const flap = Math.sin(t * 16) * 4;
+    const fan = Math.sin(t * 9) * 0.35;
+    for (const k of [-1, 0, 1]) {
+      ctx.save();
+      ctx.rotate(Math.PI + k * 0.25 + fan * k);
+      ell(ctx, 18, 0, 12, 3.2, '#1a1a1a');
+      ctx.restore();
+    }
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(6, s * 3);
+      ctx.quadraticCurveTo(0, s * (24 + flap), -12, s * (22 + flap));
+      ctx.lineTo(-6, s * 3);
+      ctx.fillStyle = '#222';
+      ctx.fill();
+    }
+    ell(ctx, 0, 0, 11, 7, '#1d1d1d');
+    ell(ctx, 10, 0, 6, 5.5, '#151515');
+    ell(ctx, 11, -3.4, 2.6, 0.9, '#fff');
+    ell(ctx, 11, 3.4, 2.6, 0.9, '#fff');
+    line(ctx, [15, 0, 19, 0], '#111', 1.6);
+  },
+
   // --- dragonfly nymph stage ---
   // Dragonfly nymph: stocky, wing pads on its back, folded labium under the head.
   nymph(ctx, o, t) {
