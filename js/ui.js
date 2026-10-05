@@ -244,3 +244,8 @@ window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && Game.runni
 Game.init($('game'));
 drawMap();
 buildMap();
+
+// Cache the game for offline play. Service workers need http(s); opening the file directly already works offline.
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* not allowed here */ }));
+}
