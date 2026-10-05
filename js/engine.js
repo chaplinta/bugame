@@ -1,7 +1,8 @@
 'use strict';
 // Shared game engine: loop, input, movement, predators, facts.
 
-const W = 960, H = 600;
+const W = 960, H = 600;          // screen (view) size
+const World = { w: W, h: H };    // size of the current mission's world, set in Game.start
 
 // Settings remembered between visits.
 const Settings = {
@@ -89,8 +90,8 @@ function wander(e, dt, speed) {
   if (e.wt <= 0 || e.dir === undefined) { e.dir = Math.random() * TAU; e.wt = 0.8 + Math.random() * 2; }
   e.x += Math.cos(e.dir) * speed * dt;
   e.y += Math.sin(e.dir) * speed * dt;
-  if (e.x < 30 || e.x > W - 30) { e.dir = Math.PI - e.dir; e.x = clamp(e.x, 30, W - 30); }
-  if (e.y < 50 || e.y > H - 30) { e.dir = -e.dir; e.y = clamp(e.y, 50, H - 30); }
+  if (e.x < 30 || e.x > World.w - 30) { e.dir = Math.PI - e.dir; e.x = clamp(e.x, 30, World.w - 30); }
+  if (e.y < 30 || e.y > World.h - 30) { e.dir = -e.dir; e.y = clamp(e.y, 30, World.h - 30); }
   e.angle = e.dir;
   e.moving = true;
 }
@@ -161,18 +162,24 @@ const Game = {
   },
 
   start(mission) {
+    World.w = mission.world ? mission.world.w : W;
+    World.h = mission.world ? mission.world.h : H;
     const home = Object.assign({}, mission.home);
     const g = {
       mission, home, t: 0, score: 0, lives: 3, done: false,
       player: { x: home.x, y: home.y, r: mission.radius, angle: -0.6, speed: mission.speed, invuln: 0, moving: false },
-      items: [], preds: [], fx: [], timers: [],
+      items: [], preds: [], fx: [], timers: [], cam: { x: 0, y: 0 },
+      predCfg: null, predT: 0,
       seen: new Set(), learned: [], toasts: [], toastT: 0, hintT: 0,
     };
+    g.finds = (mission.discoveries || []).map(d => Object.assign({ found: false, angle: 0 }, d,
+      { x: d.fx * World.w, y: d.fy * World.h }));
     this.g = g;
     mission.setup(g);
+    this.updateCamera();
     this.bg = document.createElement('canvas');
-    this.bg.width = W; this.bg.height = H;
-    Backgrounds[mission.bg || mission.id](this.bg.getContext('2d'), W, H, home);
+    this.bg.width = World.w; this.bg.height = World.h;
+    Backgrounds[mission.bg || mission.id](this.bg.getContext('2d'), World.w, World.h, home);
     Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false;
     const btn = document.getElementById('actionBtn');
     btn.textContent = mission.action;
@@ -206,18 +213,55 @@ const Game = {
 
   inHome() { const g = this.g; return dist(g.player, g.home) < g.home.r; },
 
-  spawnPoint(minFromHome) {
+  spawnPoint(minFromHome, near, radius) {
     const g = this.g;
-    for (let i = 0; i < 50; i++) {
-      const p = { x: 50 + Math.random() * (W - 100), y: 70 + Math.random() * (H - 110) };
+    for (let i = 0; i < 60; i++) {
+      const p = near
+        ? { x: clamp(near.x + (Math.random() * 2 - 1) * radius, 50, World.w - 50), y: clamp(near.y + (Math.random() * 2 - 1) * radius, 50, World.h - 50) }
+        : { x: 50 + Math.random() * (World.w - 100), y: 50 + Math.random() * (World.h - 100) };
       if (dist(p, g.home) > (minFromHome || 140) && dist(p, g.player) > 90) return p;
     }
-    return { x: W / 2, y: H / 2 };
+    return { x: World.w / 2, y: World.h / 2 };
   },
 
+  // Predators don't live in the world: one visits now and then, stays a while, then leaves.
   addPred(cfg) {
-    const p = this.spawnPoint(300);
-    this.g.preds.push(Object.assign({ x: p.x, y: p.y, angle: 0, state: 'rest', timer: 3, moving: true }, cfg));
+    const g = this.g;
+    g.predCfg = cfg;
+    g.predT = 40 + Math.random() * 20;
+  },
+
+  predArrive() {
+    const g = this.g, cfg = g.predCfg, p = g.player;
+    // Enter from just outside the view, on the side away from home.
+    const a = Math.atan2(p.y - g.home.y, p.x - g.home.x) + (Math.random() - 0.5) * 1.5;
+    const x = clamp(p.x + Math.cos(a) * (W * 0.6), 40, World.w - 40);
+    const y = clamp(p.y + Math.sin(a) * (H * 0.6), 40, World.h - 40);
+    g.preds.push(Object.assign({ x, y, angle: a + Math.PI, state: 'wander', timer: 0, stay: 22, moving: true }, cfg));
+    g.toasts.unshift({ text: 'Look out! ' + (/^[aeiou]/i.test(cfg.name) ? 'An ' : 'A ') + cfg.name + ' is coming past. Keep clear, or hide at home.', kind: 'hint' });
+    g.toastT = 0;
+    Sound.play('caught');
+  },
+
+  updateCamera() {
+    const g = this.g, p = g.player;
+    g.cam.x = clamp(p.x - W / 2, 0, World.w - W);
+    g.cam.y = clamp(p.y - H / 2, 0, World.h - H);
+  },
+
+  // Discoveries: hidden things to find while exploring. Each one is a fact for the Bug Book.
+  updateFinds() {
+    const g = this.g;
+    for (const d of g.finds) {
+      if (!d.found && dist(d, g.player) < 45) {
+        d.found = true;
+        Sound.play('score');
+        this.pop(d.x, d.y - 24, 'Discovery!', '#ffd23f');
+        this.fact(d.key);
+      }
+    }
+    const el = document.getElementById('hudFind');
+    if (el) el.textContent = g.finds.length ? '\u{1F50D} ' + g.finds.filter(d => d.found).length + ' / ' + g.finds.length : '';
   },
 
   update(dt) {
@@ -235,22 +279,33 @@ const Game = {
     if (k.has('arrowup') || k.has('w')) dy -= 1;
     if (k.has('arrowdown') || k.has('s')) dy += 1;
     if (!dx && !dy && Input.target) {
-      const tx = Input.target.x - p.x, ty = Input.target.y - p.y, d = Math.hypot(tx, ty);
+      // Pointer is in screen space; the world scrolls under it.
+      const tx = Input.target.x + g.cam.x - p.x, ty = Input.target.y + g.cam.y - p.y, d = Math.hypot(tx, ty);
       if (d > 8) { dx = tx / d; dy = ty / d; }
     }
     p.moving = false;
     if ((dx || dy) && !(m.locked && m.locked(g))) {
       const len = Math.hypot(dx, dy);
-      p.x = clamp(p.x + dx / len * p.speed * dt, 20, W - 20);
-      p.y = clamp(p.y + dy / len * p.speed * dt, 20, H - 20);
+      p.x = clamp(p.x + dx / len * p.speed * dt, 20, World.w - 20);
+      p.y = clamp(p.y + dy / len * p.speed * dt, 20, World.h - 20);
       p.angle = Math.atan2(dy, dx);
       p.moving = true;
     }
     p.invuln = Math.max(0, p.invuln - dt);
 
     m.update(g, dt, Input);
+    this.updateCamera();
+    this.updateFinds();
 
+    if (g.predCfg && !g.preds.length && !g.frozen) {
+      g.predT -= dt;
+      if (g.predT <= 0) this.predArrive();
+    }
     for (const pr of g.preds) this.updatePred(pr, dt);
+    if (g.preds.some(pr => pr.gone)) {
+      g.preds = g.preds.filter(pr => !pr.gone);
+      g.predT = 50 + Math.random() * 40;
+    }
 
     for (const f of g.fx) f.life -= dt;
     g.fx = g.fx.filter(f => f.life > 0);
@@ -276,6 +331,21 @@ const Game = {
     const safe = this.inHome() || p.invuln > 0;
     const d = dist(pr, p);
     pr.timer -= dt;
+    pr.stay -= dt;
+    if (pr.stay <= 0 && pr.state !== 'chase' && pr.state !== 'leave') pr.state = 'leave';
+    if (pr.state === 'leave') {
+      // Head for the nearest edge of the world and disappear.
+      if (pr.exitA === undefined) {
+        const ex = [[-1, 0, pr.x], [1, 0, World.w - pr.x], [0, -1, pr.y], [0, 1, World.h - pr.y]].sort((a, b) => a[2] - b[2])[0];
+        pr.exitA = Math.atan2(ex[1], ex[0]);
+      }
+      pr.angle = pr.exitA;
+      pr.moving = true;
+      pr.x += Math.cos(pr.exitA) * pr.wanderSpeed * 2 * dt;
+      pr.y += Math.sin(pr.exitA) * pr.wanderSpeed * 2 * dt;
+      if (pr.x < -60 || pr.y < -60 || pr.x > World.w + 60 || pr.y > World.h + 60) pr.gone = true;
+      return;
+    }
     if (pr.state === 'chase') {
       const a = Math.atan2(p.y - pr.y, p.x - pr.x);
       pr.angle = a;
@@ -289,6 +359,8 @@ const Game = {
       if (safe) { pr.state = 'wander'; }
       else if (pr.timer <= 0) { pr.state = 'chase'; pr.timer = pr.chaseTime; }
     } else {
+      // Wander around the player's part of the world rather than the whole map.
+      if (dist(pr, p) > 450) pr.dir = Math.atan2(p.y - pr.y, p.x - pr.x);
       wander(pr, dt, pr.state === 'rest' ? pr.wanderSpeed * 0.6 : pr.wanderSpeed);
       if (pr.state === 'rest' && pr.timer <= 0) pr.state = 'wander';
       if (pr.state === 'wander' && !safe && d < pr.sight) {
@@ -311,7 +383,8 @@ const Game = {
     const g = this.g, p = g.player;
     g.lives--;
     // First stages are gentle: you can't run out of hearts.
-    if (g.lives <= 0 && g.mission.gentle) g.lives = 1;
+    // Also after the goal is done: exploring on can't end in a loss.
+    if (g.lives <= 0 && (g.mission.gentle || g.done)) g.lives = 1;
     Sound.play('caught');
     if (g.mission.onCaught) g.mission.onCaught(g);
     g.toasts.unshift({ text: 'Caught by the ' + pr.name + '! Back home you go.', kind: 'hint' });
@@ -319,9 +392,7 @@ const Game = {
     if (g.lives <= 0) { this.finish(false); return; }
     p.x = g.home.x; p.y = g.home.y;
     p.invuln = 3;
-    const far = this.spawnPoint(350);
-    pr.x = far.x; pr.y = far.y;
-    pr.state = 'rest'; pr.timer = pr.restTime;
+    pr.state = 'leave';   // a predator that caught you moves on
   },
 
   finish(won) {
@@ -331,6 +402,13 @@ const Game = {
     this.showToast(null);
     if (won) { Sound.play('win'); this.fact('win'); }
     setTimeout(() => this.onEnd && this.onEnd(won, g), won ? 400 : 900);
+  },
+
+  // Carry on exploring after finishing the mission goal.
+  resume() {
+    Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false;
+    this.g.frozen = false;
+    this.running = true;
   },
 
   showToast(tst) {
@@ -354,6 +432,8 @@ const Game = {
   draw() {
     const ctx = this.ctx, g = this.g, m = g.mission, p = g.player;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.save();
+    ctx.translate(-Math.round(g.cam.x), -Math.round(g.cam.y));
     ctx.drawImage(this.bg, 0, 0);
 
     // Home marker
@@ -369,6 +449,17 @@ const Game = {
     ctx.textAlign = 'center';
     ctx.fillText(g.home.label, g.home.x, g.home.y + g.home.r + 16);
 
+    if (m.drawBuild) m.drawBuild(ctx, g);
+    for (const d of g.finds) {
+      this.drawSprite(d.sprite, d, d.scale || 1.4);
+      if (!d.found) {
+        const s = 0.5 + Math.sin(g.t * 4 + d.x) * 0.5;
+        ctx.fillStyle = 'rgba(255,240,150,' + (0.4 + s * 0.5) + ')';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('\u2726', d.x + 18, d.y - 16 - s * 4);
+      }
+    }
     for (const it of g.items) this.drawSprite(it.sprite, it, it.scale);
     if (m.drawExtra) m.drawExtra(ctx, g);
 
@@ -413,6 +504,26 @@ const Game = {
       ctx.fillText(f.text, f.x, f.y - (1 - f.life) * 30);
       ctx.globalAlpha = 1;
     }
+    ctx.restore();
+    if (World.w > W || World.h > H) this.drawMiniMap(ctx);
+  },
+
+  drawMiniMap(ctx) {
+    const g = this.g, mw = 150, mh = mw * World.h / World.w, x0 = W - mw - 12, y0 = 52;
+    const sx = mw / World.w, sy = mh / World.h;
+    ctx.fillStyle = 'rgba(255,250,240,.75)';
+    ctx.fillRect(x0 - 3, y0 - 3, mw + 6, mh + 6);
+    ctx.drawImage(this.bg, 0, 0, World.w, World.h, x0, y0, mw, mh);
+    ctx.strokeStyle = 'rgba(43,33,24,.8)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x0 + g.cam.x * sx, y0 + g.cam.y * sy, W * sx, H * sy);
+    const dot = (e, c, r) => { ctx.beginPath(); ctx.arc(x0 + e.x * sx, y0 + e.y * sy, r, 0, TAU); ctx.fillStyle = c; ctx.fill(); };
+    dot(g.home, '#fff', 4);
+    for (const d of g.finds) if (d.found) dot(d, '#2f7d5b', 2.5);
+    const goal = g.mission.goalPoint && g.mission.goalPoint(g);
+    if (goal) dot(goal, '#ffd23f', 3.5);
+    for (const pr of g.preds) dot(pr, '#c0392b', 4);
+    dot(g.player, '#c8501e', 3.5);
   },
 
   pop(x, y, text, color) { this.g.fx.push({ x, y, text, color, life: 1 }); },

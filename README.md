@@ -15,6 +15,10 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 
 ## How it works
 
+- **Open worlds**: each place is a big area (four screens) to explore, with a mini-map. Sparkles mark discoveries, and each one adds a fact to the Bug Book.
+- **Building**: homes grow as you bring things back (the ant nest gets more entrances, the bee fills burrow cells).
+- **Predators are rare**: one passes through about once a minute, gives a warning, then leaves.
+- **Keep exploring**: after finishing a goal you can carry on playing.
 - **Map**: a map of Perth. Tap a bug's place to open its page.
 - **Life stages**: the bull ant, peacock spider and blue skimmer have two stages each. Finishing a stage unlocks the next.
 - **Gentle first stages**: on a bug's first stage you can't run out of hearts. Later stages end when all 3 hearts are gone.
@@ -27,6 +31,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 |---|---|---|
 | Bull ant: worker (*Myrmecia*) | Kings Park banksia woodland | sting and carry prey home; avoid the echidna |
 | Bull ant: queen | Kings Park | fly to clear sand, land and drop your wings, dig a nest, hunt for your first larvae; dodge the willie wagtail |
+| Bush fly (*Musca vetustissima*) | Swan Valley paddock | sip protein from cows' faces, lay eggs in fresh cow pats before they dry or dung beetles bury them |
 | Blue-banded bee (*Amegilla*) | Backyard | buzz-pollinate Dianella and Hibbertia; avoid the rainbow bee-eater |
 | Peacock spider: spiderling | Cottesloe dunes | jump on springtails, avoid ants, go home to moult |
 | Peacock spider: adult male (*Maratus speciosus*) | Cottesloe dunes | stalk and jump on flies, then dance; avoid the spider wasp |

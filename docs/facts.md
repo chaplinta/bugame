@@ -22,6 +22,39 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Once workers emerge they forage; the queen lays eggs for years. General.
 - Willie wagtail (*Rhipidura leucophrys*) takes flying insects and forages on the ground. BirdLife Australia.
 
+## Bush fly (*Musca vetustissima*)
+- Bush flies seek moisture and protein from sweat, tears, saliva and other secretions; hence flies on faces. CSIRO.
+- Females need protein to mature eggs; they feed on animal secretions (eyes, nose, wounds) of cattle and other animals. CSIRO; Hughes et al.
+- Flies have sponging mouthparts and cannot bite or chew (muscid house/bush flies). AM.
+- Flies taste with chemoreceptors on their feet (tarsi). General insect physiology.
+- Bush fly thorax has two dark stripes; house fly (*M. domestica*) has four. CSIRO / AM fly ID guides.
+- Flies (Diptera) have one pair of wings. General.
+- Breed mainly in fresh cattle dung; eggs hatch into maggots that feed in the dung; dung that dries out is unsuitable. CSIRO.
+- Cattle defecate roughly 10–15 times a day. General livestock references.
+- Larvae pupate in soil; egg to adult in about 1–2 weeks in warm weather. CSIRO.
+- CSIRO's Australian Dung Beetle Project (1965–1985) introduced dung beetles to bury cattle dung and reduce bush fly breeding. CSIRO.
+- Native Australian dung beetles are mostly adapted to dry marsupial pellets, not large wet cattle pats. CSIRO.
+- Western grey kangaroos graze paddocks at dawn and dusk. DBCA.
+- Willie wagtails catch flies in flight and on the ground. BirdLife Australia.
+
+## Discoveries
+- Many banksias are serotinous: seeds held in cones until fire. Kings Park / WA Herbarium.
+- Quendas (southern brown bandicoots) dig conical foraging holes; present in Kings Park. DBCA; Kings Park.
+- Carnaby's black cockatoo feeds on banksia seeds; listed as endangered. DBCA.
+- Australian magpies forage on the ground for invertebrates. BirdLife Australia.
+- Echidnas open ant and termite nests with their front claws. AM.
+- Bobtails (*Tiliqua rugosa*) eat snails, flowers and insects; the stumpy tail resembles the head. WAM.
+- Resin bees and other solitary bees nest in pre-made holes such as bee hotels. Aussie Bee.
+- Bees drink and collect water. General.
+- The common garden snail (*Cornu aspersum*) and the white Italian snail (*Theba pisana*) are introduced from Europe; *Theba* climbs vegetation in summer. DPIRD.
+- Silver gulls are generalist scavengers. BirdLife Australia.
+- Gilgies (*Cherax quinquecarinatus*) are endemic to south-west WA. WAM.
+- Diving beetles carry an air store under the elytra. AM.
+- Freshwater snails graze algae. General.
+- Motorbike frog (*Litoria moorei*) call resembles a motorbike changing gears. WAM.
+- Most damselflies rest with wings folded along the body; dragonflies hold them flat. AM.
+- The black swan is WA's bird emblem. WA Government.
+
 ## Blue-banded bee (*Amegilla*, e.g. *A. chlorocyanea* in SW WA)
 - Solitary; female digs a nest burrow in soil or clay banks. AM, Aussie Bee.
 - Buzz pollination via flight-muscle vibration; honey bees can't. AM.
@@ -81,6 +114,8 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Time is compressed: a few minutes stands in for days of foraging.
 - Ant workers carry one prey at a time; real ants sometimes cooperate.
 - The bee mission plays a female; the male sleeping fact is shown at the end.
+- Predators only visit now and then (about once a minute) and leave after about 20 seconds.
+- Bush fly eggs hatch in seconds in the game; really it takes hours.
 - Predators give up a chase in the safe home area, and pause before chasing so young players can react.
 - The nymph stage is a few minutes; real nymphs take months.
 - Spider jumps follow a target that hops mid-air; real jumps are ballistic.

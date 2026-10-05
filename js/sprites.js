@@ -453,6 +453,180 @@ const Sprites = {
     line(ctx, [15, 0, 19, 0], '#111', 1.6);
   },
 
+  // --- bush fly stage ---
+  // Bush fly (Musca vetustissima): small grey fly, two dark stripes on the thorax.
+  bushFly(ctx, o, t) {
+    const flap = o.landed ? 0.25 : Math.sin(t * 80) * 0.45;
+    insectLegs(ctx, 0, 7, '#2a2a2a', 0.9, t, o.moving && o.landed);
+    wings(ctx, 0, 2.5, 8, 3.2, flap + 0.15, 'rgba(225,232,240,.7)');
+    ell(ctx, -5, 0, 5, 3.4, '#6b6b5e');
+    ell(ctx, -5, 0, 3.5, 1, '#3d3d35');
+    ell(ctx, 1, 0, 3.6, 3.3, '#8a8a7a');
+    line(ctx, [-1.5, -1.2, 3.5, -1.2], '#2e2e28', 1);
+    line(ctx, [-1.5, 1.2, 3.5, 1.2], '#2e2e28', 1);
+    ell(ctx, 5, -2, 1.9, 2, '#8b2a1e');
+    ell(ctx, 5, 2, 1.9, 2, '#8b2a1e');
+    if (o.sip) line(ctx, [6, 0, 9, 0], '#4a4a40', 1.2);
+  },
+  // Dairy cow from above.
+  cow(ctx, o, t) {
+    const sw = Math.sin(t * 3 + (o.x || 0)) * 0.5;
+    line(ctx, [-44, 0, -60, sw * 14], '#3a2a1e', 2.5);
+    ell(ctx, -61, sw * 14, 3, 3, '#1a1a1a');
+    for (const [x, y] of [[26, -22], [26, 22], [-30, -22], [-30, 22]]) ell(ctx, x, y, 6, 4, '#2a2a2a');
+    ell(ctx, 0, 0, 46, 26, '#f4f1ea');
+    ell(ctx, -16, -10, 14, 10, '#2a2a2a', 0.4);
+    ell(ctx, 14, 12, 12, 8, '#2a2a2a', -0.3);
+    ell(ctx, -30, 12, 8, 6, '#2a2a2a');
+    ell(ctx, 52, 0, 15, 12, '#f4f1ea');
+    ell(ctx, 56, 0, 8, 10, '#2a2a2a');
+    ell(ctx, 66, 0, 6, 8, '#e8b4a6');
+    ell(ctx, 48, -14, 6, 3, '#2a2a2a', -0.5);
+    ell(ctx, 48, 14, 6, 3, '#2a2a2a', 0.5);
+  },
+  // Cow pat: glossy when fresh, pale and cracked when dry. o.fresh 1 → 0, o.size 1 → 0 as beetles bury it.
+  pat(ctx, o) {
+    const s = o.size === undefined ? 1 : o.size, f = o.fresh === undefined ? 1 : o.fresh;
+    const c = (a, b) => Math.round(a + (b - a) * (1 - f));
+    const col = 'rgb(' + c(74, 150) + ',' + c(52, 128) + ',' + c(30, 96) + ')';
+    ell(ctx, 0, 0, 22 * s, 18 * s, col);
+    ell(ctx, -3, -2, 15 * s, 12 * s, 'rgb(' + c(60, 140) + ',' + c(42, 118) + ',' + c(24, 88) + ')');
+    if (f > 0.5) ell(ctx, -6 * s, -6 * s, 5 * s, 3 * s, 'rgba(255,255,255,.35)');
+    else { line(ctx, [-10 * s, -2, 0, 3 * s, 8 * s, -4 * s], 'rgba(60,45,25,.6)', 1); }
+    if (o.eggs) for (let i = 0; i < o.eggs * 5; i++) ell(ctx, Math.cos(i * 2.4) * 9 * s, Math.sin(i * 2.4) * 7 * s, 1.6, 0.9, '#fbf7ea', i);
+    if (o.maggots) {
+      for (let i = 0; i < o.maggots * 3; i++) {
+        const w = Math.sin((o.t || 0) * 6 + i) * 2;
+        ell(ctx, Math.cos(i * 1.7) * 11 * s + w, Math.sin(i * 1.7) * 8 * s, 3, 1.4, '#f2ead0', i + w * 0.2);
+      }
+    }
+  },
+  // Dung beetle (introduced Onthophagus/Digitonthophagus type): shiny black, broad front legs for digging.
+  dungBeetle(ctx, o, t) {
+    insectLegs(ctx, 2, 10, '#1a1a1a', 1.6, t, o.moving);
+    line(ctx, [8, -4, 13, -9], '#1a1a1a', 2.4);
+    line(ctx, [8, 4, 13, 9], '#1a1a1a', 2.4);
+    ell(ctx, -4, 0, 9, 7.5, '#1d1b17');
+    line(ctx, [-12, 0, 4, 0], '#3a362e', 0.8);
+    ell(ctx, 6, 0, 5, 6, '#24221d');
+    ell(ctx, 11, 0, 3, 5, '#2a2822');
+    ell(ctx, -6, -3, 3, 1.2, 'rgba(255,255,255,.3)');
+  },
+  // Dead insect on its back (for scavenging ants).
+  deadBeetle(ctx, o) {
+    for (let i = 0; i < 3; i++) for (const s of [-1, 1]) line(ctx, [-2 + i * 4, s * 3, -1 + i * 4, s * 8, i * 4 + 2, s * 7], '#3a2a1a', 1.2);
+    ell(ctx, -2, 0, 9, 6.5, '#6a4a2a');
+    ell(ctx, 8, 0, 4, 4, '#4a3420');
+    line(ctx, [-9, 0, 5, 0], '#4a3420', 0.8);
+  },
+  deadMoth(ctx, o) {
+    ell(ctx, -2, -7, 9, 6, '#b7a27a', -0.3);
+    ell(ctx, -2, 7, 9, 6, '#b7a27a', 0.3);
+    ell(ctx, -2, -7, 4, 2.5, '#8f7a52', -0.3);
+    ell(ctx, -2, 7, 4, 2.5, '#8f7a52', 0.3);
+    ell(ctx, 0, 0, 7, 2.6, '#7a6644');
+    line(ctx, [6, -1, 11, -5], '#5a4a30', 0.8);
+    line(ctx, [6, 1, 11, 5], '#5a4a30', 0.8);
+  },
+
+  // --- discoveries ---
+  cone(ctx) {
+    ell(ctx, 0, 0, 14, 6, '#6e5236');
+    for (let i = -3; i <= 3; i++) for (const s of [-1, 1]) ell(ctx, i * 3.6, s * 3, 1.6, 1.2, '#3e2c1a');
+    line(ctx, [14, 0, 19, 0], '#5a4028', 2);
+  },
+  feather(ctx, o) {
+    line(ctx, [-14, 0, 14, 0], '#444', 1);
+    ell(ctx, 1, 0, 13, 4, o.color || '#1c1c1c');
+    if (o.band) ell(ctx, -5, 0, 3, 4, o.band);
+  },
+  dig(ctx) {
+    ell(ctx, 4, 0, 13, 10, '#c9a868');
+    ell(ctx, -2, 0, 7, 6, '#2a1a0c');
+  },
+  shell(ctx, o) {
+    ell(ctx, 0, 0, 8, 8, o.color || '#8a6a44');
+    ctx.beginPath();
+    for (let a = 0; a < 12; a += 0.2) ctx.lineTo(Math.cos(a) * a * 0.6, Math.sin(a) * a * 0.6);
+    ctx.strokeStyle = '#4a3420';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  },
+  beeHotel(ctx) {
+    ctx.fillStyle = '#9a7048';
+    ctx.fillRect(-14, -12, 28, 24);
+    for (let i = 0; i < 3; i++) for (let k = 0; k < 3; k++) ell(ctx, -8 + i * 8, -6 + k * 6, 2, 2, '#3a2412');
+  },
+  birdbath(ctx) {
+    ell(ctx, 0, 0, 16, 16, '#b5b0a5');
+    ell(ctx, 0, 0, 12, 12, '#8cc8e0');
+  },
+  bobtail(ctx, o, t) {
+    for (const [x, s] of [[8, -1], [8, 1], [-8, -1], [-8, 1]]) ell(ctx, x, s * 8, 3, 3, '#4a3a28');
+    ell(ctx, 0, 0, 13, 7, '#6b5434');
+    for (let i = -2; i <= 2; i++) line(ctx, [i * 4, -6, i * 4, 6], '#4a3a22', 1);
+    ell(ctx, -16, 0, 6, 5, '#6b5434');
+    ell(ctx, 16, 0, 6, 5, '#7a6244');
+    if (Math.sin(t * 2) > 0.7) line(ctx, [21, 0, 26, 0], '#2f4f8f', 2);
+  },
+  seashell(ctx) {
+    ctx.beginPath();
+    ctx.moveTo(0, 10);
+    ctx.arc(0, 0, 11, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.closePath();
+    ctx.fillStyle = '#f2d6c2';
+    ctx.fill();
+    for (let i = -3; i <= 3; i++) line(ctx, [0, 10, i * 3, -9], '#d9a88a', 0.8);
+  },
+  frog(ctx) {
+    for (const s of [-1, 1]) { ell(ctx, -6, s * 7, 7, 3, '#4f8f3a', s * 0.5); ell(ctx, 6, s * 6, 4, 2, '#4f8f3a', -s * 0.5); }
+    ell(ctx, 0, 0, 9, 7, '#5fa046');
+    ell(ctx, 6, -3, 2, 2, '#d8c040');
+    ell(ctx, 6, 3, 2, 2, '#d8c040');
+  },
+  damselfly(ctx) {
+    for (let k = 0; k < 9; k++) ell(ctx, -4 - k * 3, 0, 1.4, 1.2, k % 2 ? '#2a6fb0' : '#58a8e0');
+    ell(ctx, -8, -1.5, 12, 1.6, 'rgba(235,245,255,.7)');
+    ell(ctx, -8, 1.5, 12, 1.6, 'rgba(235,245,255,.7)');
+    ell(ctx, 1, 0, 3, 2, '#2a6fb0');
+    ell(ctx, 4, -2.4, 1.6, 1.6, '#1a3f6a');
+    ell(ctx, 4, 2.4, 1.6, 1.6, '#1a3f6a');
+  },
+  gilgie(ctx, o, t) {
+    for (let i = 0; i < 4; i++) for (const s of [-1, 1]) line(ctx, [-2 + i * 3, s * 3, -1 + i * 3, s * 8], '#5a4630', 1);
+    for (const s of [-1, 1]) { line(ctx, [6, s * 3, 12, s * 7], '#5a4630', 2); ell(ctx, 15, s * 8, 4, 2.4, '#6a5238', s * 0.4); }
+    ell(ctx, 2, 0, 8, 5, '#6a5238');
+    for (let k = 0; k < 5; k++) ell(ctx, -8 - k * 3.2, 0, 3.4 - k * 0.3, 3.6 - k * 0.3, '#6a5238');
+    ell(ctx, -25, 0, 3, 5, '#5a4630');
+  },
+  divingBeetle(ctx, o, t) {
+    for (const s of [-1, 1]) line(ctx, [-2, s * 4, -12, s * 10 + Math.sin(t * 8) * 2], '#2a2a1a', 1.8);
+    ell(ctx, -1, 0, 9, 6.5, '#2f3a1e');
+    ell(ctx, -1, 0, 9, 6.5, 'rgba(0,0,0,0)');
+    line(ctx, [-9, 0, 5, 0], '#1a2010', 0.8);
+    ell(ctx, 8, 0, 3.5, 4.5, '#2a3418');
+    ell(ctx, -10, 0, 2.5, 2, 'rgba(220,240,255,.8)');
+  },
+  kangaroo(ctx, o, t) {
+    line(ctx, [-20, 0, -48, 2], '#8a6a4a', 6);
+    ell(ctx, -4, 0, 20, 13, '#9a7a58');
+    for (const s of [-1, 1]) ell(ctx, -10, s * 13, 10, 4, '#8a6a4a', s * 0.2);
+    ell(ctx, 16, 0, 8, 6, '#a88a66');
+    ell(ctx, 26, 0, 7, 4, '#9a7a58');
+    for (const s of [-1, 1]) ell(ctx, 20, s * 6, 4, 2, '#7a5a3a', s * 0.6);
+  },
+  rooPoo(ctx) {
+    for (let i = 0; i < 6; i++) ell(ctx, Math.cos(i * 1.3) * 7, Math.sin(i * 1.3) * 5, 3, 2.6, '#4a3a26');
+  },
+  magpie(ctx, o, t) {
+    line(ctx, [-10, 0, -22, 0], '#151515', 6);
+    ell(ctx, 0, 0, 12, 7, '#151515');
+    for (const s of [-1, 1]) ell(ctx, -4, s * 5, 8, 3, '#f2f2f2', s * 0.1);
+    ell(ctx, -16, 0, 4, 4, '#f2f2f2');
+    ell(ctx, 11, 0, 5.5, 5, '#151515');
+    line(ctx, [15, 0, 21, 0], '#c8c0b0', 2.5);
+  },
+
   // --- dragonfly nymph stage ---
   // Dragonfly nymph: stocky, wing pads on its back, folded labium under the head.
   nymph(ctx, o, t) {
@@ -558,42 +732,72 @@ function drawHole(ctx, x, y, r, rim) {
   ell(ctx, x, y, r * 0.55, r * 0.5, '#2a1a0c');
 }
 
+// Scatter n things over the world, keeping clear of the home area.
+function scatter(r, W, H, n, home, clear, fn) {
+  for (let i = 0; i < n; i++) {
+    const x = 40 + r() * (W - 80), y = 40 + r() * (H - 80);
+    if (home && Math.hypot(x - home.x, y - home.y) < clear) continue;
+    fn(x, y);
+  }
+}
+
 const Backgrounds = {
   ant(ctx, W, H, home) {
-    const r = rng(11);
+    const r = rng(11), A = W * H / (960 * 600);
     ctx.fillStyle = '#e3cc96';
     ctx.fillRect(0, 0, W, H);
-    speckle(ctx, W, H, 500, ['#d4b77a', '#ecd9ab', '#c9a868'], r, 3);
-    speckle(ctx, W, H, 160, ['#8a6a3a', '#a0783e', '#6e5a35'], r, 5);
-    for (const [x, y, s] of [[300, 90, 50], [820, 470, 60], [560, 300, 40], [80, 220, 45], [920, 120, 45]]) drawBanksia(ctx, x, y, s, r);
-    for (const [x, y] of [[420, 520, 34], [700, 200, 30], [200, 360, 28]].map(a => a)) drawGrassTree(ctx, x, y, 30);
+    speckle(ctx, W, H, 500 * A, ['#d4b77a', '#ecd9ab', '#c9a868'], r, 3);
+    speckle(ctx, W, H, 160 * A, ['#8a6a3a', '#a0783e', '#6e5a35'], r, 5);
+    // Sandy track through the bush
+    ctx.beginPath();
+    ctx.moveTo(0, H * 0.3);
+    ctx.bezierCurveTo(W * 0.3, H * 0.1, W * 0.6, H * 0.7, W, H * 0.55);
+    ctx.strokeStyle = 'rgba(245,232,200,.7)';
+    ctx.lineWidth = 46;
+    ctx.stroke();
+    scatter(r, W, H, 7 * A, home, 140, (x, y) => drawBanksia(ctx, x, y, 38 + r() * 25, r));
+    scatter(r, W, H, 5 * A, home, 120, (x, y) => drawGrassTree(ctx, x, y, 28 + r() * 8));
     drawHole(ctx, home.x, home.y, home.r * 0.6, '#c9a868');
   },
   bee(ctx, W, H, home) {
-    const r = rng(23);
+    const r = rng(23), A = W * H / (960 * 600);
     ctx.fillStyle = '#9bbf6a';
     ctx.fillRect(0, 0, W, H);
-    speckle(ctx, W, H, 900, ['#8bb05c', '#a8c97a', '#86a656'], r, 4);
+    speckle(ctx, W, H, 900 * A, ['#8bb05c', '#a8c97a', '#86a656'], r, 4);
+    // Paths, a veggie patch and a shed, so it reads as a backyard
+    ctx.fillStyle = '#d8c7a0';
+    ctx.fillRect(W * 0.45, 0, 34, H);
+    ctx.fillRect(0, H * 0.62, W, 30);
+    ctx.fillStyle = '#7a5a3a';
+    ctx.fillRect(W * 0.7, H * 0.12, 220, 120);
+    for (let i = 0; i < 5; i++) for (let k = 0; k < 9; k++) ell(ctx, W * 0.7 + 20 + k * 22, H * 0.12 + 18 + i * 22, 7, 6, '#4f8f3a');
+    ctx.fillStyle = '#a3a9ad';
+    ctx.fillRect(W * 0.08, H * 0.75, 170, 120);
+    ctx.fillStyle = '#8b9195';
+    for (let i = 0; i < 8; i++) ctx.fillRect(W * 0.08 + i * 21, H * 0.75, 3, 120);
     ell(ctx, home.x, home.y, 110, 90, '#c9a26b');
-    speckle(ctx, 220, 200, 80, ['#b48e58', '#d6b47f'], r, 3);
     drawHole(ctx, home.x, home.y, home.r * 0.5, '#a8804c');
-    for (const [x, y] of [[480, 300], [850, 520], [880, 120]]) drawGrassTree(ctx, x, y, 34);
+    scatter(r, W, H, 4 * A, home, 160, (x, y) => drawGrassTree(ctx, x, y, 34));
   },
   spider(ctx, W, H, home) {
-    const r = rng(37);
+    const r = rng(37), A = W * H / (960 * 600);
     const g = ctx.createLinearGradient(0, 0, W, 0);
     g.addColorStop(0, '#f6ead0');
     g.addColorStop(1, '#ecdcb6');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
-    speckle(ctx, W, H, 700, ['#e6d4a8', '#f9f0dc', '#d9c393'], r, 2.5);
-    for (let i = 0; i < 9; i++) {
-      const x = 120 + r() * 760, y = 60 + r() * 480;
+    // Ocean along the west edge
+    ctx.fillStyle = '#7cc3e0';
+    ctx.fillRect(0, 0, 70, H);
+    ctx.fillStyle = 'rgba(255,255,255,.6)';
+    for (let y = 0; y < H; y += 26) ell(ctx, 74, y, 10, 5, 'rgba(255,255,255,.7)');
+    speckle(ctx, W, H, 700 * A, ['#e6d4a8', '#f9f0dc', '#d9c393'], r, 2.5);
+    scatter(r, W, H, 10 * A, home, 100, (x, y) => {
       for (let k = 0; k < 26; k++) {
         const a = r() * TAU, l = 18 + r() * 22;
         line(ctx, [x, y, x + Math.cos(a) * l, y + Math.sin(a) * l], k % 2 ? '#9aa85a' : '#b7b86e', 1.6);
       }
-    }
+    });
     ctx.globalAlpha = 0.8;
     for (let i = 0; i < 30; i++) {
       const a = r() * TAU;
@@ -603,24 +807,24 @@ const Backgrounds = {
     ctx.globalAlpha = 1;
   },
   dragonfly(ctx, W, H, home) {
-    const r = rng(51);
+    const r = rng(51), A = W * H / (960 * 600);
     const g = ctx.createRadialGradient(W / 2, H / 2, 50, W / 2, H / 2, W * 0.7);
     g.addColorStop(0, '#5aa7c7');
     g.addColorStop(1, '#3a7f9e');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 60 * A; i++) {
       const x = r() * W, y = r() * H;
       line(ctx, [x, y, x + 20 + r() * 30, y], 'rgba(255,255,255,.18)', 2);
     }
-    for (let i = 0; i < 14; i++) {
-      const x = r() * W, y = r() * H, s = 14 + r() * 12;
+    scatter(r, W, H, 14 * A, home, 90, (x, y) => {
+      const s = 14 + r() * 12;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.arc(x, y, s, 0.12, TAU - 0.12);
       ctx.fillStyle = '#4f8f3a';
       ctx.fill();
-    }
+    });
     const reeds = (cx, cy, n, spread) => {
       for (let i = 0; i < n; i++) {
         const x = cx + (r() - 0.5) * spread, y = cy + (r() - 0.5) * spread;
@@ -632,43 +836,61 @@ const Backgrounds = {
       }
     };
     reeds(home.x, home.y, 30, home.r * 2.2);
-    reeds(60, 60, 14, 120);
-    reeds(900, 80, 12, 120);
+    // Reedy shore round the edges
+    for (let x = 0; x < W; x += 140) { reeds(x, 20, 6, 60); reeds(x, H - 20, 6, 60); }
+    for (let y = 0; y < H; y += 140) { reeds(20, y, 6, 60); reeds(W - 20, y, 6, 60); }
   },
-  nymph(ctx, W, H, home, extra) {
-    const r = rng(77);
+  nymph(ctx, W, H, home) {
+    const r = rng(77), A = W * H / (960 * 600);
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, '#6d8f5a');
     g.addColorStop(1, '#3f5a35');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
-    speckle(ctx, W, H, 400, ['rgba(70,55,30,.35)', 'rgba(110,90,50,.3)', 'rgba(40,60,30,.3)'], r, 6);
-    for (let i = 0; i < 40; i++) {
-      const x = r() * W, y = r() * H;
-      ell(ctx, x, y, 1.5, 1.5, 'rgba(255,255,255,.25)');
+    speckle(ctx, W, H, 400 * A, ['rgba(70,55,30,.35)', 'rgba(110,90,50,.3)', 'rgba(40,60,30,.3)'], r, 6);
+    for (let i = 0; i < 40 * A; i++) ell(ctx, r() * W, r() * H, 1.5, 1.5, 'rgba(255,255,255,.25)');
+    const weeds = (cx, cy, rad, n) => {
+      for (let i = 0; i < n; i++) {
+        const a = r() * TAU, d = r() * rad;
+        const x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d;
+        const l = 14 + r() * 18, b = r() * TAU;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(x + Math.cos(b + 0.6) * l, y + Math.sin(b + 0.6) * l, x + Math.cos(b) * l * 1.6, y + Math.sin(b) * l * 1.6);
+        ctx.strokeStyle = i % 2 ? '#2f6b2a' : '#3f8236';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+    };
+    weeds(home.x, home.y, home.r * 1.4, 60);
+    scatter(r, W, H, 6 * A, home, 200, (x, y) => weeds(x, y, 50, 18));
+  },
+  // Swan Valley paddock: dry summer grass, a fence line, a big shady gum.
+  paddock(ctx, W, H, home) {
+    const r = rng(91), A = W * H / (960 * 600);
+    ctx.fillStyle = '#d9c27a';
+    ctx.fillRect(0, 0, W, H);
+    speckle(ctx, W, H, 1200 * A, ['#cdb46a', '#e4cf8e', '#bfa75e', '#a9b86a'], r, 4);
+    // Fence
+    line(ctx, [0, 30, W, 30], '#7a5a3a', 3);
+    for (let x = 10; x < W; x += 80) ell(ctx, x, 30, 5, 5, '#5a4028');
+    // Water trough
+    ctx.fillStyle = '#9aa3a8';
+    ctx.fillRect(W * 0.5, H * 0.08, 120, 40);
+    ctx.fillStyle = '#7cc3e0';
+    ctx.fillRect(W * 0.5 + 6, H * 0.08 + 6, 108, 28);
+    // Shady gum tree (home)
+    ell(ctx, home.x + 14, home.y + 18, home.r * 1.5, home.r * 1.3, 'rgba(0,0,0,.18)');
+    for (let i = 0; i < 12; i++) {
+      const a = r() * TAU, d = r() * home.r * 0.9;
+      ell(ctx, home.x + Math.cos(a) * d, home.y + Math.sin(a) * d, home.r * 0.6, home.r * 0.55, i % 2 ? '#6b8f4a' : '#7ea35a');
     }
-    // Weed bed (safe home)
-    for (let i = 0; i < 60; i++) {
-      const a = r() * TAU, d = r() * home.r * 1.4;
-      const x = home.x + Math.cos(a) * d, y = home.y + Math.sin(a) * d;
-      const l = 14 + r() * 18, b = r() * TAU;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.quadraticCurveTo(x + Math.cos(b + 0.6) * l, y + Math.sin(b + 0.6) * l, x + Math.cos(b) * l * 1.6, y + Math.sin(b) * l * 1.6);
-      ctx.strokeStyle = i % 2 ? '#2f6b2a' : '#3f8236';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-    // Reed stems poking up through the water (top-down circles)
-    for (const [x, y] of [[890, 90], [860, 140], [920, 160], [840, 70], [905, 125]]) {
-      ell(ctx, x + 4, y + 4, 9, 9, 'rgba(0,0,0,.2)');
-      ell(ctx, x, y, 9, 9, '#a3b45a');
-      ell(ctx, x, y, 5, 5, '#c8d47a');
-    }
-    ctx.fillStyle = 'rgba(255,255,255,.85)';
-    ctx.font = 'bold 15px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Reed stems', 880, 190);
+    scatter(r, W, H, 6 * A, home, 200, (x, y) => {
+      for (let k = 0; k < 18; k++) {
+        const a = r() * TAU, l = 10 + r() * 14;
+        line(ctx, [x, y, x + Math.cos(a) * l, y + Math.sin(a) * l], '#9a9a4a', 1.5);
+      }
+    });
   },
 };
 

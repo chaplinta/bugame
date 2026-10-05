@@ -31,6 +31,9 @@ function show(id) {
   window.scrollTo(0, 0);
 }
 
+// Small bugs need a bigger icon to match the others.
+const ICON_SCALE = { bushFly: 2.2 };
+
 function portrait(canvas, sprite, size) {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
@@ -38,7 +41,8 @@ function portrait(canvas, sprite, size) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.translate(size / 2, size / 2);
   ctx.rotate(-Math.PI / 2);
-  ctx.scale(size / 55, size / 55);
+  const k = size / 55 * (ICON_SCALE[sprite] || 1);
+  ctx.scale(k, k);
   Sprites[sprite](ctx, { moving: false, load: 0 }, 0.4);
 }
 
@@ -160,7 +164,9 @@ Game.onEnd = (won, g) => {
   $('endUnlock').textContent = won && wasLocked ? 'New stage unlocked: ' + Missions[next].stage + '!' : '';
   fillList($('endFacts'), g.learned);
   $('endNext').style.display = won && next ? '' : 'none';
-  $('endAgain').classList.toggle('secondary', !!(won && next));
+  $('endExplore').style.display = won ? '' : 'none';
+  $('endExplore').classList.toggle('secondary', !!next);
+  $('endAgain').classList.toggle('secondary', !!won);
   show('end');
   if (won) Speech.say($('endTitle').textContent + ' ' + m.factText.win);
 };
@@ -231,6 +237,7 @@ $('bugBack').addEventListener('click', () => { Speech.stop(); buildMap(); });
 $('readBtn').addEventListener('click', readStage);
 $('bugStart').addEventListener('click', startGame);
 $('endAgain').addEventListener('click', startGame);
+$('endExplore').addEventListener('click', () => { show('play'); Game.resume(); });
 $('endNext').addEventListener('click', () => {
   const next = currentBug.stages[currentBug.stages.indexOf(currentMission.id) + 1];
   openBug(currentBug, next);
