@@ -3,6 +3,70 @@
 
 const W = 960, H = 600;
 
+// Settings remembered between visits.
+const Settings = {
+  sound: true, speech: false,
+  load() {
+    try { Object.assign(this, JSON.parse(localStorage.getItem('bugame.settings') || '{}')); } catch (e) { /* storage off */ }
+  },
+  save() {
+    try { localStorage.setItem('bugame.settings', JSON.stringify({ sound: this.sound, speech: this.speech })); } catch (e) { /* storage off */ }
+  },
+};
+Settings.load();
+
+// Small synthesised sound effects, no audio files.
+const Sound = {
+  ac: null,
+  tone(freq, dur, type, vol, slideTo, delay) {
+    if (!Settings.sound) return;
+    try {
+      if (!this.ac) this.ac = new (window.AudioContext || window.webkitAudioContext)();
+      const ac = this.ac, t0 = ac.currentTime + (delay || 0);
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(freq, t0);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.15, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      o.connect(g).connect(ac.destination);
+      o.start(t0);
+      o.stop(t0 + dur + 0.02);
+    } catch (e) { /* audio unavailable */ }
+  },
+  play(name) {
+    switch (name) {
+      case 'pick': this.tone(660, 0.12, 'triangle', 0.15, 990); break;
+      case 'score': this.tone(523, 0.12, 'triangle', 0.15); this.tone(784, 0.18, 'triangle', 0.15, 0, 0.1); break;
+      case 'jump': this.tone(300, 0.2, 'sine', 0.15, 900); break;
+      case 'dart': this.tone(200, 0.3, 'sawtooth', 0.06, 600); break;
+      case 'buzz': this.tone(180, 0.12, 'sawtooth', 0.05, 200); break;
+      case 'sting': this.tone(900, 0.08, 'square', 0.06, 400); break;
+      case 'caught': this.tone(400, 0.5, 'square', 0.08, 100); break;
+      case 'win': [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.15, 0, i * 0.12)); break;
+      case 'tap': this.tone(500, 0.06, 'sine', 0.1); break;
+    }
+  },
+};
+
+// Read text aloud for kids who can't read yet.
+const Speech = {
+  say(text, force) {
+    if (!(Settings.speech || force) || !window.speechSynthesis) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text.replace(/<[^>]+>/g, ''));
+      const voices = speechSynthesis.getVoices();
+      const v = voices.find(v => v.lang === 'en-AU') || voices.find(v => v.lang && v.lang.startsWith('en'));
+      if (v) u.voice = v;
+      u.lang = 'en-AU';
+      u.rate = 0.92;
+      speechSynthesis.speak(u);
+    } catch (e) { /* speech unavailable */ }
+  },
+  stop() { try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) { /* ignore */ } },
+};
+
 const Input = {
   keys: new Set(),
   target: null,      // pointer position the player moves toward
@@ -36,6 +100,7 @@ const Game = {
   g: null,          // current game state
   running: false,
   onEnd: null,      // callback(won, game)
+  onFact: null,     // callback(missionId, key) when a fact is found
 
   init(canvas) {
     this.canvas = canvas;
@@ -107,25 +172,26 @@ const Game = {
     mission.setup(g);
     this.bg = document.createElement('canvas');
     this.bg.width = W; this.bg.height = H;
-    Backgrounds[mission.id](this.bg.getContext('2d'), W, H, home);
+    Backgrounds[mission.bg || mission.id](this.bg.getContext('2d'), W, H, home);
     Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false;
     const btn = document.getElementById('actionBtn');
     btn.textContent = mission.action;
     btn.classList.remove('ready');
     this.showToast(null);
     this.running = true;
-    this.fact('start', mission.startFact);
+    this.fact('start');
   },
 
-  stop() { this.running = false; },
+  stop() { this.running = false; this.showToast(null); Speech.stop(); },
 
-  // Show a bug fact once per game.
-  fact(key, text) {
-    const g = this.g;
+  // Show a bug fact (from mission.factText) once per game.
+  fact(key) {
+    const g = this.g, text = g.mission.factText[key];
     if (!text || g.seen.has(key)) return;
     g.seen.add(key);
     g.learned.push(text);
     g.toasts.push({ text, kind: 'fact' });
+    if (this.onFact) this.onFact(g.mission.id, key);
   },
 
   // Short how-to-play reminder, rate limited.
@@ -216,17 +282,23 @@ const Game = {
       pr.x += Math.cos(a) * pr.chaseSpeed * dt;
       pr.y += Math.sin(a) * pr.chaseSpeed * dt;
       if (safe || pr.timer <= 0 || d > pr.sight * 1.7) { pr.state = 'rest'; pr.timer = pr.restTime; }
+    } else if (pr.state === 'alert') {
+      // Short warning pause before a chase so players can react.
+      pr.angle = Math.atan2(p.y - pr.y, p.x - pr.x);
+      pr.moving = false;
+      if (safe) { pr.state = 'wander'; }
+      else if (pr.timer <= 0) { pr.state = 'chase'; pr.timer = pr.chaseTime; }
     } else {
       wander(pr, dt, pr.state === 'rest' ? pr.wanderSpeed * 0.6 : pr.wanderSpeed);
       if (pr.state === 'rest' && pr.timer <= 0) pr.state = 'wander';
       if (pr.state === 'wander' && !safe && d < pr.sight) {
-        pr.state = 'chase';
-        pr.timer = pr.chaseTime;
-        this.fact(pr.sprite, pr.fact);
+        pr.state = 'alert';
+        pr.timer = 0.7;
+        this.fact(pr.sprite);
       }
     }
-    // Predators never enter the safe home.
-    const hd = dist(pr, g.home), minD = g.home.r + pr.r;
+    // Predators never enter the safe home, and don't hang about near it unless chasing.
+    const hd = dist(pr, g.home), minD = g.home.r + pr.r + (pr.state === 'chase' ? 0 : 70);
     if (hd < minD) {
       const a = Math.atan2(pr.y - g.home.y, pr.x - g.home.x);
       pr.x = g.home.x + Math.cos(a) * minD;
@@ -238,12 +310,15 @@ const Game = {
   caught(pr) {
     const g = this.g, p = g.player;
     g.lives--;
+    Sound.play('caught');
     if (g.mission.onCaught) g.mission.onCaught(g);
     g.toasts.unshift({ text: 'Caught by the ' + pr.name + '! Back home you go.', kind: 'hint' });
     g.toastT = 0;
     if (g.lives <= 0) { this.finish(false); return; }
     p.x = g.home.x; p.y = g.home.y;
-    p.invuln = 2.5;
+    p.invuln = 3;
+    const far = this.spawnPoint(350);
+    pr.x = far.x; pr.y = far.y;
     pr.state = 'rest'; pr.timer = pr.restTime;
   },
 
@@ -252,6 +327,7 @@ const Game = {
     g.done = true;
     this.running = false;
     this.showToast(null);
+    if (won) { Sound.play('win'); this.fact('win'); }
     setTimeout(() => this.onEnd && this.onEnd(won, g), won ? 400 : 900);
   },
 
@@ -260,6 +336,7 @@ const Game = {
     if (!tst) { el.className = ''; return; }
     el.className = 'show' + (tst.kind === 'hint' ? ' hint' : '');
     el.innerHTML = (tst.kind === 'fact' ? '<b>Bug fact:</b> ' : '') + tst.text;
+    Speech.say(tst.text);
   },
 
   drawSprite(name, e, scale) {
@@ -307,7 +384,9 @@ const Game = {
       ctx.restore();
     }
 
-    if (!(p.invuln > 0 && Math.floor(g.t * 10) % 2)) this.drawSprite(m.id, p, m.scale * (1 + (p.hop || 0) * 0.5));
+    if (p.invuln > 0 && Math.floor(g.t * 10) % 2) ctx.globalAlpha = 0.4;
+    this.drawSprite(m.playerSprite ? m.playerSprite(g) : (m.sprite || m.id), p, m.scale * (1 + (p.hop || 0) * 0.5));
+    ctx.globalAlpha = 1;
 
     for (const pr of g.preds) {
       // Shadow first so flyers look airborne.
@@ -316,7 +395,7 @@ const Game = {
       ctx.ellipse(pr.x + 10, pr.y + 14, pr.r, pr.r * 0.6, 0, 0, TAU);
       ctx.fill();
       this.drawSprite(pr.sprite, pr, pr.scale);
-      if (pr.state === 'chase') {
+      if (pr.state === 'chase' || pr.state === 'alert') {
         ctx.fillStyle = '#c0392b';
         ctx.font = 'bold 22px sans-serif';
         ctx.fillText('!', pr.x, pr.y - pr.r - 8);

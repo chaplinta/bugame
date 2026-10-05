@@ -9,24 +9,39 @@
 <body>
 <main id="app">
 
-  <section id="menu" class="screen active">
-    <h1>Bugame</h1>
-    <p class="sub">Be a real bug in Perth, WA</p>
-    <div id="cards" class="cards"></div>
+  <section id="map" class="screen active">
+    <header class="top">
+      <h1>Bugame</h1>
+      <div class="toggles">
+        <button class="toggle" data-setting="sound" aria-pressed="true">Sound</button>
+        <button class="toggle" data-setting="speech" aria-pressed="false">Read to me</button>
+      </div>
+    </header>
+    <p class="sub">Be a real bug in Perth, WA. Tap a place on the map.</p>
+    <div id="mapWrap">
+      <canvas id="mapCanvas"></canvas>
+      <div id="pins"></div>
+    </div>
+    <div id="placeList"></div>
+    <div class="buttons">
+      <button id="bookBtn">Bug Book</button>
+    </div>
   </section>
 
-  <section id="intro" class="screen">
+  <section id="bug" class="screen">
     <div class="panel">
-      <canvas id="introPic" width="160" height="160"></canvas>
-      <h2 id="introName"></h2>
-      <p class="sci" id="introSci"></p>
-      <p class="place" id="introPlace"></p>
-      <ul id="introFacts" class="facts"></ul>
+      <canvas id="bugPic" width="160" height="160"></canvas>
+      <h2 id="bugName"></h2>
+      <p class="sci" id="bugSci"></p>
+      <div id="stages" class="stages"></div>
+      <p class="place" id="stagePlace"></p>
+      <ul id="stageFacts" class="facts"></ul>
       <h3>How to play</h3>
-      <ul id="introHow" class="how"></ul>
+      <ul id="stageHow" class="how"></ul>
       <div class="buttons">
-        <button id="introBack" class="secondary">Back</button>
-        <button id="introStart">Start</button>
+        <button id="bugBack" class="secondary">Map</button>
+        <button id="readBtn" class="secondary">Read to me</button>
+        <button id="bugStart">Start</button>
       </div>
     </div>
   </section>
@@ -35,27 +50,39 @@
     <div id="stage">
       <canvas id="game"></canvas>
       <div id="hud">
-        <button id="menuBtn" aria-label="Back to menu">&#8962;</button>
+        <button id="menuBtn" aria-label="Back to map">&#8962;</button>
         <span id="hudGoal"></span>
         <span id="hudExtra"></span>
+        <button id="hudSound" class="hudToggle" aria-label="Sound on or off"></button>
         <span id="hudLives"></span>
       </div>
       <div id="toast" aria-live="polite"></div>
       <button id="actionBtn"></button>
     </div>
+    <p class="rotate">Turn your phone sideways for a bigger view.</p>
   </section>
 
   <section id="end" class="screen">
     <div class="panel">
       <h2 id="endTitle"></h2>
       <p id="endStars" class="stars"></p>
+      <p id="endUnlock" class="unlock"></p>
       <h3>Facts you found</h3>
       <ul id="endFacts" class="facts"></ul>
       <div class="buttons">
-        <button id="endMenu" class="secondary">Pick a bug</button>
-        <button id="endAgain">Play again</button>
+        <button id="endMap" class="secondary">Map</button>
+        <button id="endAgain" class="secondary">Play again</button>
+        <button id="endNext">Next stage</button>
       </div>
     </div>
+  </section>
+
+  <section id="book" class="screen">
+    <header class="top">
+      <h1>Bug Book</h1>
+      <button id="bookBack" class="secondary">Map</button>
+    </header>
+    <div id="bookList"></div>
   </section>
 
 </main>

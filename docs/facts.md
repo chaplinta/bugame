@@ -32,6 +32,18 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Spider wasps (Pompilidae) paralyse spiders and lay an egg on them. AM.
 - Almost all *Maratus* species are Australian; new species still being described. Otto & Hill.
 
+## Blue skimmer nymph stage
+- Dragonflies start life as aquatic nymphs (larvae). AM.
+- Nymphs are ambush predators. AM.
+- Wing pads develop on the back; no functional wings until the final moult. General odonate biology.
+- Labium: hinged, hooked lower lip that shoots out to seize prey in a fraction of a second. AM; Corbet, *Dragonflies: Behaviour and Ecology of Odonata*.
+- Dragonfly (Anisoptera) nymphs breathe through gills inside the rectum and can jet forward by expelling water. Corbet.
+- Larger nymphs take tadpoles and small fish. Corbet.
+- Nymphs moult many times (about 9–17 instars across species). Corbet.
+- Mosquito larvae ("wrigglers") hang at the surface and breathe through a siphon. CSIRO / health department mosquito guides.
+- Oblong turtle (*Chelodina oblonga*, also listed as *C. colliei*) is endemic to south-west WA wetlands, including Herdsman Lake; eats aquatic invertebrates, tadpoles and fish. WAM; DBCA.
+- Final-instar nymph climbs a stem, the skin splits, and the adult emerges; the cast skin is an exuvia. AM.
+
 ## Blue skimmer (*Orthetrum caledonicum*)
 - Common in Perth wetlands. ALA records.
 - Males powder-blue, females yellow-brown. AM.
@@ -41,6 +53,7 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Some dragonflies catch over 90% of prey they chase. Combes et al. 2012 (J Exp Biol).
 - Nymphs live underwater for months; extendable labium. AM.
 - Nymphs eat mosquito larvae. General.
+- Female libellulids such as *Orthetrum* lay eggs by dipping the abdomen tip into water in flight. Corbet.
 - Australian hobby (*Falco longipennis*) takes dragonflies in flight. BirdLife Australia.
 
 ## Simplifications (allowed)
@@ -48,4 +61,6 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Time is compressed: a few minutes stands in for days of foraging.
 - Ant workers carry one prey at a time; real ants sometimes cooperate.
 - The bee mission plays a female; the male sleeping fact is shown at the end.
-- Predators give up a chase in the safe home area.
+- Predators give up a chase in the safe home area, and pause before chasing so young players can react.
+- The nymph stage is a few minutes; real nymphs take months.
+- Emergence happens on the water's surface in the game; in reality the nymph climbs well up the stem first.

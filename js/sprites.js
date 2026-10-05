@@ -280,28 +280,53 @@ const Sprites = {
     line(ctx, [10, 4.5, 16, 2.5], '#111', 1.6);
     line(ctx, [17, 0, 27, 0], '#111', 1.8);
   },
+  // Australian hobby: small dark falcon with long pointed wings.
   hobby(ctx, o, t) {
-    const flap = Math.sin(t * 12) * 0.2;
+    const flap = Math.sin(t * 12) * 3;
     ctx.beginPath();
-    ctx.moveTo(-10, -4); ctx.lineTo(-30, -6); ctx.lineTo(-30, 6); ctx.lineTo(-10, 4);
+    ctx.moveTo(-10, -4); ctx.lineTo(-30, -7); ctx.lineTo(-32, 0); ctx.lineTo(-30, 7); ctx.lineTo(-10, 4);
     ctx.fillStyle = '#3d4450';
     ctx.fill();
     for (const s of [-1, 1]) {
-      ctx.save();
-      ctx.rotate(s * (0.2 + flap));
       ctx.beginPath();
-      ctx.moveTo(6, 0);
-      ctx.quadraticCurveTo(2, s * 24, -22, s * 44);
-      ctx.quadraticCurveTo(-8, s * 18, -10, 0);
+      ctx.moveTo(8, s * 3);
+      ctx.lineTo(2, s * (26 + flap));
+      ctx.lineTo(-16, s * (46 + flap));
+      ctx.lineTo(-8, s * (24 + flap * 0.5));
+      ctx.lineTo(-8, s * 3);
+      ctx.closePath();
       ctx.fillStyle = '#4a5260';
       ctx.fill();
-      ctx.restore();
+      line(ctx, [4, s * 10, -12, s * (40 + flap)], '#2d333d', 2);
     }
     ell(ctx, 0, 0, 14, 7, '#555e6b');
     ell(ctx, 13, 0, 6.5, 6, '#2a2f38');
+    ell(ctx, 13, -4.5, 2.2, 1.2, '#d9d0b8');
+    ell(ctx, 13, 4.5, 2.2, 1.2, '#d9d0b8');
     ell(ctx, 15, -2.6, 1.4, 1.4, '#e0a020');
     ell(ctx, 15, 2.6, 1.4, 1.4, '#e0a020');
     line(ctx, [19, 0, 22, 0], '#e0b040', 2.5);
+  },
+  // Oblong turtle (Chelodina oblonga): long-necked turtle of Perth wetlands.
+  turtle(ctx, o, t) {
+    const pad = o.moving ? Math.sin(t * 5) * 0.4 : 0;
+    for (const [x, s, k] of [[12, -1, 1], [12, 1, -1], [-14, -1, -1], [-14, 1, 1]]) {
+      ctx.save();
+      ctx.translate(x, s * 14);
+      ctx.rotate(s * (0.5 + pad * k));
+      ell(ctx, 0, s * 4, 4, 8, '#5d5a3a');
+      ctx.restore();
+    }
+    line(ctx, [-24, 0, -32, 0], '#5d5a3a', 3);
+    ell(ctx, 0, 0, 25, 18, '#4a3f2a');
+    ell(ctx, 0, 0, 20, 14, '#5c4d32');
+    line(ctx, [-16, 0, 16, 0], '#3e3422', 1.2);
+    for (const x of [-8, 6]) line(ctx, [x, -13, x, 13], '#3e3422', 1.2);
+    const nk = Math.sin(t * 2) * 4;
+    line(ctx, [22, 0, 34, nk * 0.5, 46, nk], '#6b6844', 6);
+    ell(ctx, 50, nk, 6, 5, '#6b6844');
+    ell(ctx, 53, nk - 3, 1.2, 1.2, '#111');
+    ell(ctx, 53, nk + 3, 1.2, 1.2, '#111');
   },
   wasp(ctx, o, t) {
     const flap = Math.sin(t * 70) * 0.3;
@@ -336,17 +361,89 @@ const Sprites = {
     }
     ell(ctx, 0, 0, 5, 5, full ? '#e0a000' : '#cbb978');
   },
+  // Kangaroo paw (Anigozanthos manglesii): red woolly stem, green claw-tipped flowers.
   paw(ctx) {
-    ell(ctx, 0, 0, 5, 5, '#b3261e');
     for (let i = 0; i < 6; i++) {
       ctx.save();
       ctx.rotate(i * TAU / 6 + 0.3);
-      ell(ctx, 6, 0, 3, 2.4, '#b3261e');
-      ell(ctx, 14, 0, 7, 3.2, '#4c9a2a');
-      line(ctx, [20, -2, 23, -3], '#4c9a2a', 1.2);
-      line(ctx, [20, 2, 23, 3], '#4c9a2a', 1.2);
+      line(ctx, [0, 0, 10, 0], '#b3261e', 4);
+      ell(ctx, 10, 0, 3.5, 3.5, '#c0392b');
+      ell(ctx, 17, 0, 7, 3.4, '#58a832');
+      for (const s of [-1, 0, 1]) line(ctx, [23, s * 1.5, 27, s * 3.5], '#3e8a1e', 1.4);
       ctx.restore();
     }
+    ell(ctx, 0, 0, 5, 5, '#b3261e');
+    ell(ctx, 0, 0, 2.5, 2.5, '#d84c3a');
+  },
+
+  // --- dragonfly nymph stage ---
+  // Dragonfly nymph: stocky, wing pads on its back, folded labium under the head.
+  nymph(ctx, o, t) {
+    insectLegs(ctx, 0, 14, '#4a3a22', 1.6, t, o.moving);
+    for (let k = 0; k < 6; k++) ell(ctx, -6 - k * 3.4, 0, 6 - k * 0.7, 6.5 - k * 0.8, k % 2 ? '#6b5530' : '#7a6238');
+    line(ctx, [-25, 0, -29, -2], '#4a3a22', 1.5);
+    line(ctx, [-25, 0, -29, 2], '#4a3a22', 1.5);
+    ell(ctx, 0, 0, 6, 5.5, '#7a6238');
+    ell(ctx, -6, -3, 7, 2.2, '#5b4a2a', 0.15);
+    ell(ctx, -6, 3, 7, 2.2, '#5b4a2a', -0.15);
+    ell(ctx, 8, 0, 5, 6.5, '#806840');
+    ell(ctx, 9, -5, 2.6, 2.4, '#2b2418');
+    ell(ctx, 9, 5, 2.6, 2.4, '#2b2418');
+    if (o.grab) {
+      const L = o.grab.len;
+      line(ctx, [10, 0, 10 + L * 0.5, 2, 10 + L, 0], '#a08050', 2.6);
+      line(ctx, [10 + L, 0, 14 + L, -3], '#5b4a2a', 1.6);
+      line(ctx, [10 + L, 0, 14 + L, 3], '#5b4a2a', 1.6);
+    }
+    if (o.jet > 0) {
+      for (let i = 0; i < 4; i++) {
+        const r = 2 + i * 1.5;
+        ctx.beginPath();
+        ctx.arc(-32 - i * 8 - (t * 60) % 8, (i % 2 ? 3 : -3), r, 0, TAU);
+        ctx.strokeStyle = 'rgba(255,255,255,.6)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  },
+  // Mosquito larva ("wriggler"): head, fat thorax, thin body, breathing tube.
+  wriggler(ctx, o, t) {
+    const w = Math.sin(t * 14 + (o.x || 0)) * 3;
+    ell(ctx, 6, 0, 2.6, 2.6, '#3b3b2c');
+    ell(ctx, 2, 0, 3.4, 3.4, '#5b5b44');
+    ctx.beginPath();
+    ctx.moveTo(-1, 0);
+    ctx.quadraticCurveTo(-7, w, -13, 0);
+    ctx.strokeStyle = '#5b5b44';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    line(ctx, [-13, 0, -17, w * 0.5 - 2], '#3b3b2c', 1.2);
+  },
+  tadpole(ctx, o, t) {
+    const w = Math.sin(t * 10 + (o.x || 0)) * 4;
+    ctx.beginPath();
+    ctx.moveTo(-4, -3);
+    ctx.quadraticCurveTo(-12, w, -22, w * 1.4);
+    ctx.quadraticCurveTo(-12, w + 1, -4, 3);
+    ctx.fillStyle = '#4e4636';
+    ctx.fill();
+    ell(ctx, 0, 0, 7, 6, '#3a3428');
+    ell(ctx, 4, -3, 1.2, 1.2, '#c8b878');
+    ell(ctx, 4, 3, 1.2, 1.2, '#c8b878');
+  },
+  // Adult pulling out of the nymph skin (o.k from 0 to 1).
+  emerge(ctx, o, t) {
+    ctx.globalAlpha = 0.85;
+    ctx.save();
+    ctx.translate(-14 * o.k, 0);
+    Sprites.nymph(ctx, {}, 0);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.translate(18 * o.k, 0);
+    ctx.scale(0.5 + o.k * 0.5, 0.5 + o.k * 0.5);
+    Sprites.dragonfly(ctx, { dart: 0 }, o.k > 0.8 ? t : 0);
+    ctx.restore();
   },
 };
 
@@ -461,4 +558,108 @@ const Backgrounds = {
     reeds(60, 60, 14, 120);
     reeds(900, 80, 12, 120);
   },
+  nymph(ctx, W, H, home, extra) {
+    const r = rng(77);
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#6d8f5a');
+    g.addColorStop(1, '#3f5a35');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    speckle(ctx, W, H, 400, ['rgba(70,55,30,.35)', 'rgba(110,90,50,.3)', 'rgba(40,60,30,.3)'], r, 6);
+    for (let i = 0; i < 40; i++) {
+      const x = r() * W, y = r() * H;
+      ell(ctx, x, y, 1.5, 1.5, 'rgba(255,255,255,.25)');
+    }
+    // Weed bed (safe home)
+    for (let i = 0; i < 60; i++) {
+      const a = r() * TAU, d = r() * home.r * 1.4;
+      const x = home.x + Math.cos(a) * d, y = home.y + Math.sin(a) * d;
+      const l = 14 + r() * 18, b = r() * TAU;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + Math.cos(b + 0.6) * l, y + Math.sin(b + 0.6) * l, x + Math.cos(b) * l * 1.6, y + Math.sin(b) * l * 1.6);
+      ctx.strokeStyle = i % 2 ? '#2f6b2a' : '#3f8236';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+    // Reed stems poking up through the water (top-down circles)
+    for (const [x, y] of [[890, 90], [860, 140], [920, 160], [840, 70], [905, 125]]) {
+      ell(ctx, x + 4, y + 4, 9, 9, 'rgba(0,0,0,.2)');
+      ell(ctx, x, y, 9, 9, '#a3b45a');
+      ell(ctx, x, y, 5, 5, '#c8d47a');
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Reed stems', 880, 190);
+  },
 };
+
+// Stylised map of the Perth area for the hub screen. Coordinates in a 960x600 box.
+function drawPerthMap(ctx, W, H) {
+  const r = rng(3);
+  ctx.fillStyle = '#7cc3e0';
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 50; i++) {
+    const x = r() * 260, y = r() * H;
+    line(ctx, [x, y, x + 18, y], 'rgba(255,255,255,.35)', 2);
+  }
+  // Land with a wavy west coast
+  ctx.beginPath();
+  ctx.moveTo(W, 0);
+  ctx.lineTo(250, 0);
+  for (let y = 0; y <= H; y += 30) ctx.lineTo(250 + Math.sin(y / 70) * 14 - (y > 420 ? (y - 420) * 0.15 : 0), y);
+  ctx.lineTo(W, H);
+  ctx.closePath();
+  ctx.fillStyle = '#e9dcae';
+  ctx.fill();
+  // Beach strip
+  ctx.strokeStyle = '#f7efcf';
+  ctx.lineWidth = 10;
+  ctx.stroke();
+  speckle(ctx, W, H, 300, ['rgba(140,170,90,.25)', 'rgba(120,150,80,.2)'], r, 10);
+  // Rottnest Island
+  ell(ctx, 80, 430, 55, 16, '#e9dcae', -0.15);
+  ctx.fillStyle = '#5a4a32';
+  ctx.font = 'bold 15px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Rottnest', 80, 462);
+  // Kings Park bush
+  ell(ctx, 455, 330, 48, 34, '#8fb06a');
+  // Herdsman Lake
+  ell(ctx, 430, 185, 40, 28, '#7cc3e0');
+  ell(ctx, 430, 185, 48, 34, 'rgba(110,150,80,.35)');
+  // Swan River from Fremantle to the hills
+  ctx.beginPath();
+  ctx.moveTo(240, 490);
+  ctx.bezierCurveTo(330, 470, 340, 380, 420, 370);
+  ctx.bezierCurveTo(480, 362, 500, 340, 540, 345);
+  ctx.bezierCurveTo(600, 352, 640, 320, 700, 300);
+  ctx.bezierCurveTo(780, 270, 860, 240, W, 210);
+  ctx.strokeStyle = '#7cc3e0';
+  ctx.lineWidth = 22;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ell(ctx, 380, 400, 40, 22, '#7cc3e0', -0.5);
+  ell(ctx, 560, 352, 34, 14, '#7cc3e0');
+  // City
+  ctx.fillStyle = '#9a9a9a';
+  for (let i = 0; i < 7; i++) ctx.fillRect(520 + i * 9, 300 - (i % 3) * 8, 7, 22 + (i % 3) * 8);
+  ctx.fillStyle = '#5a4a32';
+  ctx.fillText('Perth city', 552, 290);
+  ctx.fillText('Fremantle', 300, 520);
+  ctx.fillText('Swan River', 760, 300);
+  ctx.fillText('Indian Ocean', 130, 120);
+  // Suburb houses
+  for (let i = 0; i < 12; i++) {
+    const x = 640 + (i % 4) * 30, y = 420 + Math.floor(i / 4) * 28;
+    ctx.fillStyle = '#d8c7a0';
+    ctx.fillRect(x, y, 16, 12);
+    ctx.fillStyle = '#b5523a';
+    ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x + 8, y - 8); ctx.lineTo(x + 18, y); ctx.fill();
+  }
+  // North arrow
+  line(ctx, [910, 70, 910, 30], '#5a4a32', 3);
+  line(ctx, [902, 40, 910, 28, 918, 40], '#5a4a32', 3);
+  ctx.fillText('N', 910, 88);
+}
