@@ -20,7 +20,22 @@ Stylised Perth: coast, river, Kings Park, a suburb, wetlands. Tap a location to 
 | Suburban backyard | Blue-banded bee (*Amegilla*) | Garden, native flowers, soil bank |
 | Cottesloe dunes | Coastal peacock spider (*Maratus speciosus*) | Dunes, spinifex |
 | Herdsman Lake | Blue skimmer dragonfly (*Orthetrum caledonicum*) | Lake, reeds |
-| Later | Jewel beetle, Christmas beetle, cicada, stick insect, Perth's native snails (not bugs, maybe skip) | — |
+| Later | See "Later bugs" below | — |
+
+## Scope of "bugs"
+"Bug" means any small invertebrate kids would call a bug: insects, spiders, snails and slugs, worms, slaters, centipedes, freshwater crayfish. The game teaches the groups as it goes (6 legs = insect, 8 legs = arachnid, one foot and a shell = gastropod, many segments and no legs = worm).
+
+## Later bugs (Perth candidates)
+| Bug | Group | Mission idea | Accuracy notes |
+|---|---|---|---|
+| Golden orb-weaver (*Trichonephila edulis*) | Spider | Build a web strand by strand, repair it, wrap prey | Common in Perth gardens and bush |
+| Redback (*Latrodectus hasselti*) | Spider | Tangle web under a ledge, catch walking prey | Venomous: teaches "look, don't touch" |
+| Native land snail (*Bothriembryon*) | Gastropod | Leave a slime trail, seal the shell to survive the dry summer | Native to SW WA; the common garden snail is introduced (a good fact) |
+| Earthworm | Worm | Tunnel, drag leaves down, make castings that feed plants | Most Perth garden worms are introduced; native SW WA species exist. Predator: Australian magpie. Not kookaburra, which is introduced in WA |
+| Gilgie (*Cherax quinquecarinatus*) | Crustacean | Burrow down as the wetland dries in summer | Native to SW WA wetlands |
+| Slater | Crustacean | Roll up or hide under bark, stay damp | Many in gardens are introduced; native species exist |
+| Christmas or jewel beetle | Insect | Larva in wood or soil, adult on flowers | Pick a species with Perth records |
+| Cicada | Insect | Years underground as a nymph, then climb out and moult | Use the life-cycle structure |
 
 ## Bugs: life stages and missions
 Each bug gets 2–3 short stages (2–4 min each). Verbs stay to two at most: **move** plus **one action button**.
