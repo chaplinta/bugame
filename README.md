@@ -13,6 +13,7 @@ Open `index.html` in a browser. No install or build needed. To host it, turn on 
 
 - **Map**: a map of Perth. Tap a bug's place to open its page.
 - **Life stages**: the bull ant, peacock spider and blue skimmer have two stages each. Finishing a stage unlocks the next.
+- **Gentle first stages**: on a bug's first stage you can't run out of hearts. Later stages end when all 3 hearts are gone.
 - **Bug Book**: every fact you've found, plus "???" for the ones still to find. Progress is saved in the browser.
 - **Sound** and **Read to me** (reads facts aloud) can be turned on or off on the map.
 

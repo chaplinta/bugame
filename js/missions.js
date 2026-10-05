@@ -734,3 +734,6 @@ const Missions = {
     won(g) { return g.score >= this.goal; },
   },
 };
+
+// A bug's first stage is gentle: getting caught never ends the game.
+for (const bug of Bugs) Missions[bug.stages[0]].gentle = true;

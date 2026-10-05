@@ -129,7 +129,7 @@ function selectStage(id) {
   });
   $('stagePlace').textContent = (bug.stages.length > 1 ? '' : m.stage + ' · ') + m.place;
   fillList($('stageFacts'), m.facts);
-  fillList($('stageHow'), m.how);
+  fillList($('stageHow'), m.gentle ? m.how.concat('You can\u2019t lose this one. If you get caught you just go home.') : m.how);
 }
 
 function readStage() {

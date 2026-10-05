@@ -310,6 +310,8 @@ const Game = {
   caught(pr) {
     const g = this.g, p = g.player;
     g.lives--;
+    // First stages are gentle: you can't run out of hearts.
+    if (g.lives <= 0 && g.mission.gentle) g.lives = 1;
     Sound.play('caught');
     if (g.mission.onCaught) g.mission.onCaught(g);
     g.toasts.unshift({ text: 'Caught by the ' + pr.name + '! Back home you go.', kind: 'hint' });
