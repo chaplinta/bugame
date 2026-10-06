@@ -327,7 +327,8 @@ const Game = {
       if (d > 8) { dx = tx / d; dy = ty / d; }
     }
     p.moving = false;
-    if ((dx || dy) && !(m.locked && m.locked(g))) {
+    if (m.move) m.move(g, dt, (m.locked && m.locked(g)) ? 0 : dx, (m.locked && m.locked(g)) ? 0 : dy);   // side-on and other custom movement
+    else if ((dx || dy) && !(m.locked && m.locked(g))) {
       const len = Math.hypot(dx, dy);
       p.x = clamp(p.x + dx / len * p.speed * dt, 20, World.w - 20);
       p.y = clamp(p.y + dy / len * p.speed * dt, 20, World.h - 20);
@@ -368,6 +369,7 @@ const Game = {
   updatePred(pr, dt) {
     const g = this.g, p = g.player;
     if (g.frozen) return;
+    if (pr.update) { pr.update(pr, dt); return; }   // a mission's own predator
     const safe = this.inHome() || p.invuln > 0;
     const d = dist(pr, p);
     pr.timer -= dt;

@@ -50,6 +50,23 @@
     } else if (id === 'nymph') {
       if (g.score >= m.goal) goal = m.reed;
       else { const f = near(g.items); goal = f; if (f && dist(f, p) < 55) act = true; }
+    } else if (id === 'sandhopper') {
+      if (g.score >= m.goal) { goal = { x: Beach.bx, y: Beach.ground(Beach.bx) + 60 }; }
+      else {
+        const w = near(g.items.filter(i => i.kind === 'wrack' && i.amount > 0));
+        if (w && Math.abs(w.x - p.x) < 24 && p.onGround) { hold = true; goal = null; } else goal = w;
+        if (m.inBurrow(g) && p.onGround) act = true;
+      }
+      // Hop away from a chasing plover or a diving gull
+      if (pr && (pr.state === 'chase' || pr.state === 'alert') && dist(pr, p) < 200 && p.onGround) act = true;
+    } else if (id === 'mosquito') {
+      const threat = m.people(g).find(pp => pp.swat > 0);
+      if (threat) goal = { x: p.x + (p.x - threat.sx) * 3 + 60, y: p.y + (p.y - threat.sy) * 3 + 60 };
+      else {
+        const t = m.goalPoint(g);
+        if (t && dist(t, p) < 22 && !(t.pp && t.pp.look)) { hold = true; goal = null; } else goal = t;
+        if (t && t.pp && t.pp.look) goal = null;
+      }
     } else if (id === 'dragonfly') {
       goal = near(g.items);
     }

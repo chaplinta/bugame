@@ -34,7 +34,8 @@ function show(id) {
 }
 
 // Small bugs need a bigger icon to match the others.
-const ICON_SCALE = { bushFly: 2.2, termiteWorker: 1.6, butterfly: 1.3 };
+const ICON_SCALE = { bushFly: 2.2, termiteWorker: 1.6, butterfly: 1.3, mosquito: 2.4, sandhopper: 1.5 };
+const SIDE_VIEW = { sandhopper: true };   // drawn from the side, so not turned to face up
 
 function portrait(canvas, sprite, size) {
   const ctx = canvas.getContext('2d');
@@ -42,7 +43,7 @@ function portrait(canvas, sprite, size) {
   canvas.width = size * dpr; canvas.height = size * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.translate(size / 2, size / 2);
-  ctx.rotate(-Math.PI / 2);
+  if (!SIDE_VIEW[sprite]) ctx.rotate(-Math.PI / 2);
   const k = size / 55 * (ICON_SCALE[sprite] || 1);
   ctx.scale(k, k);
   Sprites[sprite](ctx, { moving: false, load: 0 }, 0.4);
