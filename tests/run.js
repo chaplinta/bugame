@@ -242,6 +242,25 @@ test('night falls after 10 minutes: bugs sleep, night screen, new day', async (b
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+test('3D butterfly flight: three.js loads, renders, and falls back without WebGL', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'flight', { noNet: true, noPred: true });
+  await p.waitForFunction(() => Game.g.fl3d || Game.g.noGL, null, { timeout: 15000 });
+  check(await p.evaluate(() => !!Game.g.fl3d), 'no 3D scene');
+  await p.click('#actionBtn');
+  await p.waitForTimeout(500);
+  check(await p.evaluate(() => Game.g.fl.flying), 'did not take off');
+  check(await p.isVisible('#game3d'), '3D canvas hidden');
+  // Leaving the stage hides the 3D canvas
+  await p.click('#menuBtn');
+  check(!(await p.isVisible('#game3d')), '3D canvas still showing on the map');
+  // No WebGL: a message, then the stage completes by itself
+  await p.evaluate(() => { Flight3D.supported = () => false; });
+  await startMission(p, 'flight', { noNet: true, noPred: true });
+  await p.waitForSelector('#end.active', { timeout: 10000 });
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('messages do not pile up', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'ant', { noNet: true, noPred: true });

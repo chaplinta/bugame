@@ -67,6 +67,21 @@
         if (t && dist(t, p) < 22 && !(t.pp && t.pp.look)) { hold = true; goal = null; } else goal = t;
         if (t && t.pp && t.pp.look) goal = null;
       }
+    } else if (id === 'flight') {
+      const fl = g.fl;
+      if (!fl || g.noGL) return { goal: null };
+      if (!fl.flying) act = true;
+      else if (fl.landed) hold = true;
+      else {
+        const left = fl.flowers.filter(f => !f.visited);
+        const f = left.reduce((a, c) => Math.hypot(c.x - fl.x, c.z - fl.z) < Math.hypot(a.x - fl.x, a.z - fl.z) ? c : a);
+        let rel = Math.atan2(f.x - fl.x, f.z - fl.z) - fl.yaw;
+        while (rel > Math.PI) rel -= 2 * Math.PI; while (rel < -Math.PI) rel += 2 * Math.PI;
+        const turn = clamp(-rel * 2, -1, 1);
+        const want = f.y + 6, dyv = fl.y > want + 1 ? 0.5 : 0;
+        goal = { x: p.x + turn * 200, y: p.y + dyv * 200 };
+        if (fl.y < want - 1 && fl.vy < 2) act = true;
+      }
     } else if (id === 'dragonfly') {
       goal = near(g.items);
     }

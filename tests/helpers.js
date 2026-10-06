@@ -65,6 +65,6 @@ function serve(dir) {
   }));
 }
 
-const MISSIONS = ['ant', 'queen', 'bee', 'fly', 'caterpillar', 'butterfly', 'termite', 'snail', 'spiderling', 'spider', 'nymph', 'dragonfly', 'sandhopper', 'mosquito'];
+const MISSIONS = ['ant', 'queen', 'bee', 'fly', 'caterpillar', 'butterfly', 'termite', 'snail', 'spiderling', 'spider', 'nymph', 'dragonfly', 'sandhopper', 'mosquito', 'flight'];
 
 module.exports = { launch, openGame, startMission, forceWin, serve, ROOT, FILE_URL, MISSIONS };

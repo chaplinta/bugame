@@ -172,6 +172,7 @@ const Game = {
   },
 
   start(mission) {
+    if (this.g && this.g.mission.teardown) this.g.mission.teardown(this.g);
     World.w = mission.world ? mission.world.w : W;
     World.h = mission.world ? mission.world.h : H;
     const home = Object.assign({}, mission.home);
@@ -206,7 +207,10 @@ const Game = {
     this.fact('start');
   },
 
-  stop() { this.running = false; this.showToast(null); Speech.stop(); },
+  stop() {
+    this.running = false; this.showToast(null); Speech.stop();
+    if (this.g && this.g.mission.teardown) this.g.mission.teardown(this.g);
+  },
 
   // Show a bug fact (from mission.factText) once per game.
   fact(key) {
@@ -533,6 +537,11 @@ const Game = {
     const ctx = this.ctx, g = this.g;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (g.event && g.event.phase === 'tank') { this.drawTank(ctx); return; }
+    if (g.mission.render) {   // a mission with its own renderer (the 3D flight)
+      g.mission.render(ctx, g);
+      if (typeof Night !== 'undefined') Night.drawSky(ctx);
+      return;
+    }
     this.drawWorld(ctx);
     if (g.event) this.drawSwoop(ctx);
     if (typeof Night !== 'undefined') Night.drawSky(ctx);
