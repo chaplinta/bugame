@@ -666,7 +666,7 @@ const Missions = {
       'Crawl with the arrow keys, or touch and drag.',
       'Find pink everlastings or yellow capeweed and hold or tap Munch to eat the leaves.',
       'You’ll moult (shed your skin) as you grow. Eat 12 times.',
-      'Then press Pupate on any plant to turn into a chrysalis.',
+      'Then press Pupate to turn into a chrysalis.',
     ],
     discoveries: [
       { key: 'd_paw', sprite: 'paw', fx: 0.7, fy: 0.25 },
@@ -711,12 +711,15 @@ const Missions = {
       if (g.pupated) return;
 
       if (g.score >= this.goal) {
-        // Caterpillars wander off to pupate on a stem: any plant will do.
-        const stem = g.items.some(i => dist(i, p) < 34) || Game.inHome();
-        setAction('Pupate', stem);
-        if (stem && working(input)) {
-          g.pupating = 1.5; g.frozen = true;
+        // Fully grown caterpillars wander off and pupate on whatever they find: a stem, a twig, a rock.
+        g.grownT = (g.grownT || 0) + dt;
+        setAction('Pupate', true);
+        if (input.pressed || (input.held && g.grownT > 0.8)) {
+          g.pupating = 2; g.frozen = true;
           p.angle = -Math.PI / 2;
+          Sound.play('score');
+          Game.pop(p.x, p.y - 30, 'Pupating…', '#ffd23f');
+          Game.burst(p.x, p.y, '#f2f2e0', 18);
         }
         return;
       }
@@ -746,7 +749,7 @@ const Missions = {
               Game.pop(p.x, p.y - 34, 'Moult!', '#ffd23f');
               Game.fact('moult');
             }
-            if (g.score === this.goal) g.toasts.push({ text: 'You’re fully grown! Find a plant stem and press Pupate.', kind: 'hint' });
+            if (g.score === this.goal) g.toasts.push({ text: 'You’re fully grown! Press Pupate to turn into a chrysalis.', kind: 'hint' });
           }
         }
       }
@@ -765,10 +768,10 @@ const Missions = {
       }
     },
     playerSprite(g) { return g.pupated || g.pupating > 0 ? 'chrysalis' : 'plCaterpillar'; },
-    goalPoint(g) { return g.score >= this.goal && !g.pupated ? nearest(g.items, g.player, 99999) : null; },
+    goalPoint(g) { return null; },
     hud(g) {
       if (g.pupated) setHud('You’re a chrysalis!', '');
-      else if (g.score >= this.goal) setHud('Find a stem and pupate!', '');
+      else if (g.score >= this.goal) setHud('Fully grown! Press Pupate', '');
       else setHud('Munches: ' + g.score + ' / ' + this.goal, g.score >= 6 ? 'Big!' : g.score >= 3 ? 'Growing' : 'Tiny');
     },
     won(g) { return !!g.pupated; },
@@ -1212,7 +1215,7 @@ const Missions = {
     how: [
       'Move with the arrow keys, or touch and drag.',
       'Flies spot you if you walk too close. Stop a little way off, then press Jump.',
-      'Catch 7 flies, then find the female and press Dance.',
+      'Catch 7 flies. Then walk up to the female and tap Dance each time the ring turns green.',
       'Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
@@ -1266,29 +1269,56 @@ const Missions = {
       }
 
       if (g.score >= this.goal && !g.female) {
-        const s = Game.spawnPoint(300, p, 700);
-        g.female = { sprite: 'femaleSpider', kind: 'female', x: s.x, y: s.y, r: 14, angle: Math.random() * TAU, scale: 1.7 };
+        const s = Game.spawnPoint(250, p, 450);
+        g.female = { sprite: 'femaleSpider', kind: 'female', x: s.x, y: s.y, r: 14, angle: Math.random() * TAU, scale: 1.9 };
         g.items.push(g.female);
-        g.toasts.push({ text: 'A female is nearby! Follow the arrow, walk to her and press Dance.', kind: 'hint' });
+        Sound.play('win');
+        g.toasts.unshift({ text: 'A female! Follow the arrow and walk right up to her.', kind: 'hint' });
+        g.toastT = 0;
       }
 
+      // Courtship: a dance in time with a beat. The ring shrinks; tap Dance when it turns green.
+      // Three good beats wins her over. Misses just wait for the next beat.
       if (p.dance > 0) {
         p.dance -= dt;
-        p.angle = Math.atan2(g.female.y - p.y, g.female.x - p.x);
-        g.female.angle = p.angle + Math.PI;
         if (p.dance <= 0) { g.danced = true; g.frozen = false; }
         return;
       }
-
-      const nearFemale = g.female && !g.danced && dist(p, g.female) < 60;
-      if (nearFemale) {
-        setAction('Dance', true);
-        if (input.pressed) {
-          p.dance = 4;
-          g.frozen = true;
-          g.female.heart = true;
-          Sound.play('win');
-          Game.fact('dance');
+      const c = g.court;
+      if (g.female && !g.danced && !c && dist(p, g.female) < 80) {
+        g.court = { t: 0, good: 0, hit: false, fan: 0 };
+        Game.fact('dance');
+        g.toasts.unshift({ text: 'Dance for her! Tap Dance when the ring turns green.', kind: 'hint' });
+        g.toastT = 0;
+      }
+      if (c) {
+        if (dist(p, g.female) > 160) { g.court = null; p.fan = 0; return; }
+        c.t += dt;
+        c.fan = Math.max(0, c.fan - dt);
+        p.fan = c.fan;
+        const BEAT = 1.4, ph = (c.t % BEAT) / BEAT;
+        if (ph < (c.lastPh || 0)) c.hit = false;   // new beat
+        c.lastPh = ph;
+        c.green = ph > 0.62 && ph < 0.95;
+        p.angle = Math.atan2(g.female.y - p.y, g.female.x - p.x);
+        g.female.angle = p.angle + Math.PI;
+        setAction('Dance', c.green && !c.hit);
+        if (input.pressed && !c.hit) {
+          if (c.green) {
+            c.hit = true; c.good++; c.fan = 0.7;
+            Sound.play('score');
+            Game.pop(p.x, p.y - 34, ['Nice!', 'Wiggle!', 'Wow!'][c.good - 1] || 'Wow!', '#ffd23f');
+            Game.burst(p.x, p.y, '#5aa0e0', 10);
+            if (c.good >= 3) {
+              g.female.heart = true; p.dance = 2.5; p.fan = 0; g.frozen = true; g.court = null;
+              Sound.play('win');
+              Game.pop(g.female.x, g.female.y - 40, '♥', '#e8506a');
+              Game.burst(g.female.x, g.female.y, '#e8506a', 24);
+            }
+          } else {
+            c.hit = true;
+            Game.pop(p.x, p.y - 34, 'Wait for green', '#fff');
+          }
         }
         return;
       }
@@ -1301,10 +1331,36 @@ const Missions = {
         Game.later(2, () => this.addFly());
       }
     },
-    drawExtra(ctx, g) { drawSilk(ctx, g.player); },
-    goalPoint(g) { return g.female && !g.danced && !(g.player.dance > 0) ? g.female : null; },
+    drawExtra(ctx, g) {
+      drawSilk(ctx, g.player);
+      const f = g.female, c = g.court;
+      if (!f || g.danced) return;
+      // She glows so she's easy to spot.
+      const pulse = 0.5 + 0.5 * Math.sin(g.t * 4);
+      ctx.beginPath(); ctx.arc(f.x, f.y, 34 + pulse * 6, 0, TAU);
+      ctx.fillStyle = 'rgba(255,210,80,' + (0.18 + pulse * 0.12) + ')'; ctx.fill();
+      if (!c) {
+        ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#e8506a';
+        ctx.fillText('♥', f.x, f.y - 40 - pulse * 6);
+        return;
+      }
+      // Beat ring around the male: shrinks to the target circle, green when it's time.
+      const p = g.player, ph = (c.t % 1.4) / 1.4;
+      const rr = 30 + (1 - ph) * 50;
+      ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 34, 0, TAU); ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, TAU);
+      ctx.strokeStyle = c.green && !c.hit ? '#3fd06a' : 'rgba(255,255,255,.85)'; ctx.stroke();
+      for (let i = 0; i < 3; i++) {
+        ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = i < c.good ? '#e8506a' : 'rgba(255,255,255,.6)';
+        ctx.fillText('♥', p.x - 24 + i * 24, p.y + 62);
+      }
+    },
+    goalPoint(g) { return g.female && !g.danced && !g.court && !(g.player.dance > 0) ? g.female : null; },
     hud(g) {
-      if (g.female && !g.danced) setHud('Find the female and dance!', '');
+      if (g.court) setHud('Dance! ' + g.court.good + ' / 3', 'Tap on green');
+      else if (g.female && !g.danced) setHud('Walk up to the female', '');
       else setHud('Flies: ' + g.score + (g.danced ? '' : ' / ' + this.goal), '');
     },
     won(g) { return !!g.danced; },

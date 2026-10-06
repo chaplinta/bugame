@@ -122,7 +122,7 @@ const Sprites = {
 
   // Coastal peacock spider (Maratus speciosus) male.
   spider(ctx, o, t) {
-    const dance = o.dance > 0;
+    const dance = o.dance > 0 || o.fan > 0;
     const w = o.moving ? Math.sin(t * 16) * 0.2 : 0;
     const angles = [0.55, 1.15, 1.9, 2.5];
     for (let i = 0; i < 4; i++) {

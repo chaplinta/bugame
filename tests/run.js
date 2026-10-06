@@ -105,6 +105,39 @@ test('tapping Munch makes the caterpillar eat', async (b) => {
   check(await tapUntil(p, () => Game.g.score >= 1), 'no munch from taps');
 });
 
+test('Pupate button works anywhere once the caterpillar is grown', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'caterpillar', { noNet: true, noPred: true });
+  await p.evaluate(() => { const g = Game.g; g.score = 12; g.items = []; g.player.x = 1500; g.player.y = 300; });
+  await p.waitForTimeout(1000);
+  check(await p.evaluate(() => document.getElementById('actionBtn').classList.contains('ready')), 'Pupate not ready');
+  await p.click('#actionBtn');
+  await p.waitForSelector('#end.active', { timeout: 8000 });
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('peacock spider courtship: tap on the green beat three times', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'spider', { noNet: true, noPred: true });
+  await p.evaluate(() => { Game.g.score = 7; });
+  await p.waitForFunction(() => !!Game.g.female);
+  await p.evaluate(() => { const g = Game.g; g.player.x = g.female.x - 50; g.player.y = g.female.y; });
+  await p.waitForFunction(() => !!Game.g.court);
+  // A press off the beat does nothing bad.
+  await p.waitForFunction(() => !Game.g.court.green);
+  await p.click('#actionBtn');
+  check(await p.evaluate(() => Game.g.court.good === 0 && !Game.g.done), 'off-beat press counted');
+  for (let i = 0; i < 8; i++) {
+    await p.waitForFunction(() => !Game.g.court || (Game.g.court.green && !Game.g.court.hit), null, { timeout: 5000 });
+    if (await p.evaluate(() => !Game.g.court)) break;
+    await p.click('#actionBtn');
+    await p.waitForTimeout(100);
+  }
+  check(await p.evaluate(() => Game.g.player.dance > 0 || Game.g.danced), 'three good beats did not win her');
+  await p.waitForSelector('#end.active', { timeout: 8000 });
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('tapping Chew makes the termite take wood', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'termite', { noNet: true, noPred: true });

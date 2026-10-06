@@ -30,7 +30,7 @@
       if (p.protein < 1) { const c = near(g.items.filter(i => i.kind === 'cow')); if (c) { const h = m.head(c); goal = h; if (dist(h, p) < 30) { hold = true; goal = null; } } }
       else { const pt = near(g.pats.filter(q => q.fresh > 0.4)); goal = pt; if (pt && dist(pt, p) < 22) { hold = true; goal = null; } }
     } else if (id === 'caterpillar') {
-      if (g.score >= m.goal) { const st = near(g.items); goal = st; if (st && dist(st, p) < 30) { hold = true; goal = null; } }
+      if (g.score >= m.goal) act = true;
       else { const f = near(g.items.filter(i => i.kind !== 'grevillea' && i.leaf > 0.1)); goal = f; if (f && dist(f, p) < 24) { hold = true; goal = null; } }
     } else if (id === 'butterfly') {
       const want = p.energy >= 1 ? g.items.filter(i => i.kind === 'everlasting' || i.kind === 'capeweed') : g.items.filter(i => i.nectar);
@@ -44,7 +44,8 @@
       if (g.score >= m.goal) goal = g.home;
       else { const f = near(g.items); if (f) { if (dist(f, p) < 130) act = true; else goal = f; } }
     } else if (id === 'spider') {
-      if (g.female && !g.danced) { goal = g.female; if (dist(p, g.female) < 55) act = true; }
+      if (g.court) act = g.court.green && !g.court.hit;
+      else if (g.female && !g.danced) goal = g.female;
       else { const f = near(g.items.filter(i => i.kind === 'fly' && i.state === 'sit')); if (f) { if (dist(f, p) < 150) act = true; else goal = f; } }
     } else if (id === 'nymph') {
       if (g.score >= m.goal) goal = m.reed;
