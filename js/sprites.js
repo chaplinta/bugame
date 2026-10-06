@@ -879,10 +879,12 @@ function drawBanksia(ctx, x, y, r, rand) {
 }
 
 function speckle(ctx, W, H, n, colors, rand, size) {
+  const sh = Shade.on; Shade.on = false;
   for (let i = 0; i < n; i++) {
     ell(ctx, rand() * W, rand() * H, size * (0.5 + rand()), size * (0.3 + rand() * 0.5),
       colors[(rand() * colors.length) | 0], rand() * TAU);
   }
+  Shade.on = sh;
 }
 
 function drawHole(ctx, x, y, r, rim) {

@@ -191,8 +191,12 @@ const Game = {
     this.updateZoom();
     this.updateCamera();
     this.bg = document.createElement('canvas');
-    this.bg.width = World.w; this.bg.height = World.h;
-    Backgrounds[mission.bg || mission.id](this.bg.getContext('2d'), World.w, World.h, home);
+    // Painted at a higher resolution so it stays sharp when zoomed in.
+    const k = Math.min(1.8, Math.sqrt(8e6 / (World.w * World.h)), (this.zoom || 1) * (window.devicePixelRatio || 1));
+    this.bg.width = Math.round(World.w * k); this.bg.height = Math.round(World.h * k);
+    const bctx = this.bg.getContext('2d');
+    bctx.scale(k, k);
+    Backgrounds[mission.bg || mission.id](bctx, World.w, World.h, home);
     Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false;
     const btn = document.getElementById('actionBtn');
     btn.textContent = mission.action;
@@ -263,7 +267,7 @@ const Game = {
   // Small screens (phones) see a zoomed-in part of the world so bugs aren't tiny.
   updateZoom() {
     const w = this.canvas.getBoundingClientRect().width;
-    this.zoom = w > 0 && w < 700 && World.w > W ? 1.4 : 1;
+    this.zoom = World.w > W ? (w > 0 && w < 700 ? 1.6 : 1.3) : 1;
   },
 
   updateCamera() {
@@ -499,6 +503,10 @@ const Game = {
 
   drawSprite(name, e, scale) {
     const ctx = this.ctx;
+    if (e.r && !e.flat && typeof softShadow === 'function') {
+      const k = (scale || 1) / 1.7;
+      softShadow(ctx, e.x + 3, e.y + 6, e.r * 1.5 * Math.max(1, k), e.r * 1.0 * Math.max(1, k), 0.26);
+    }
     ctx.save();
     ctx.translate(e.x, e.y);
     ctx.rotate(e.angle || 0);
@@ -533,7 +541,7 @@ const Game = {
     const z = this.zoom || 1;
     ctx.scale(z, z);
     ctx.translate(-Math.round(g.cam.x) + (Math.random() - 0.5) * sh, -Math.round(g.cam.y) + (Math.random() - 0.5) * sh);
-    ctx.drawImage(this.bg, 0, 0);
+    ctx.drawImage(this.bg, 0, 0, World.w, World.h);
 
     // Home marker
     ctx.beginPath();
@@ -635,7 +643,7 @@ const Game = {
     const sx = mw / World.w, sy = mh / World.h;
     ctx.fillStyle = 'rgba(255,250,240,.75)';
     ctx.fillRect(x0 - 3, y0 - 3, mw + 6, mh + 6);
-    ctx.drawImage(this.bg, 0, 0, World.w, World.h, x0, y0, mw, mh);
+    ctx.drawImage(this.bg, 0, 0, this.bg.width, this.bg.height, x0, y0, mw, mh);
     ctx.strokeStyle = 'rgba(43,33,24,.8)';
     ctx.lineWidth = 1.5;
     const z = this.zoom || 1;

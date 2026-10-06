@@ -6,8 +6,11 @@
   --panel: #fffaf0;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
-  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; }
+html, body { margin: 0; height: 100%; color: var(--ink);
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  background: radial-gradient(ellipse at 30% 0%, #fbf3dc 0%, var(--bg) 55%, #e8d8b0 100%) fixed; }
+h1, h2 { font-family: Georgia, "Times New Roman", serif; }
+h1 { text-shadow: 0 2px 0 #fff6e0, 0 4px 8px rgba(120,60,20,.25); }
 #app { max-width: 1000px; margin: 0 auto; padding: 12px 16px; }
 .screen { display: none; }
 .screen.active { display: block; }
@@ -24,8 +27,8 @@ h1 { font-size: 3.2rem; margin: 8px 0 0; color: var(--accent); text-align: cente
 .card p { margin: 2px 0; font-size: .95rem; }
 .card .done { color: var(--accent2); font-weight: bold; }
 
-.panel { background: var(--panel); border-radius: 18px; padding: 18px 22px; max-width: 640px; margin: 0 auto;
-  border: 3px solid #e2d3ae; }
+.panel { background: linear-gradient(#fffcf4, var(--panel)); border-radius: 18px; padding: 18px 22px; max-width: 640px; margin: 0 auto;
+  border: 3px solid #e2d3ae; box-shadow: 0 6px 18px rgba(90,60,20,.15); }
 .panel canvas { display: block; margin: 0 auto; width: 120px; height: 120px; }
 .panel h2 { text-align: center; margin: 4px 0; font-size: 1.8rem; }
 .sci { text-align: center; font-style: italic; margin: 0; }
@@ -35,15 +38,17 @@ h1 { font-size: 3.2rem; margin: 8px 0 0; color: var(--accent); text-align: cente
 
 .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 button { font: inherit; font-size: 1.2rem; font-weight: bold; padding: 12px 26px; border-radius: 999px;
-  border: none; background: var(--accent); color: #fff; cursor: pointer; min-height: 48px; }
-button.secondary { background: #8a7a5c; }
+  border: none; background: linear-gradient(#e0682e, var(--accent) 60%, #a83e14); color: #fff; cursor: pointer; min-height: 48px;
+  box-shadow: 0 3px 0 rgba(90,40,10,.35), inset 0 1px 0 rgba(255,255,255,.35); text-shadow: 0 1px 1px rgba(0,0,0,.25); }
+button:not(.pin):active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(90,40,10,.35); }
+button.secondary { background: linear-gradient(#a0906e, #8a7a5c 60%, #6e6046); }
 
 #stage { position: relative; width: min(100%, calc((100vh - 16px) * 1.6)); aspect-ratio: 960 / 600; max-height: calc(100vh - 16px);
   margin: 0 auto; touch-action: none; user-select: none; -webkit-user-select: none; }
 #game { width: 100%; height: 100%; display: block; border-radius: 12px; background: #d9c38f; }
 #hud { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; gap: 10px; align-items: center;
   pointer-events: none; }
-#hud > * { background: rgba(255,250,240,.88); border-radius: 999px; padding: 4px 12px; font-weight: bold;
+#hud > * { background: rgba(255,250,240,.88); box-shadow: 0 2px 6px rgba(60,30,10,.2); border-radius: 999px; padding: 4px 12px; font-weight: bold;
   font-size: 1.05rem; }
 #hud > span:empty { display: none; }
 #hud button { pointer-events: auto; }
@@ -71,10 +76,10 @@ button.secondary { background: #8a7a5c; }
 .toggle.off { background: #b8ab8f; }
 .sub { text-align: left; }
 #mapWrap { position: relative; width: 100%; aspect-ratio: 960 / 600; }
-#mapCanvas { width: 100%; height: 100%; display: block; border-radius: 16px; border: 3px solid #e2d3ae; }
+#mapCanvas { width: 100%; height: 100%; display: block; border-radius: 16px; border: 3px solid #e2d3ae; box-shadow: 0 8px 24px rgba(60,40,10,.25); }
 .pin { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center;
-  background: var(--panel); color: var(--ink); border: 3px solid var(--accent); border-radius: 16px; padding: 4px 8px;
-  min-height: 0; font-size: .9rem; line-height: 1.15; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
+  background: linear-gradient(#fffdf6, #f6ecd4); color: var(--ink); border: 3px solid var(--accent); border-radius: 16px; padding: 4px 8px;
+  min-height: 0; font-size: .9rem; line-height: 1.15; box-shadow: 0 4px 0 rgba(0,0,0,.18), 0 6px 14px rgba(60,30,10,.2); text-shadow: none; }
 .pin:hover, .pin:focus { background: #fff; outline: 3px solid #ffd23f; }
 .pin canvas { width: 56px; height: 56px; }
 .pinPlace { font-weight: normal; font-size: .8rem; }

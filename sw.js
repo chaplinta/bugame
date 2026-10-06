@@ -2,7 +2,7 @@
 // Service worker: caches the whole game so it plays offline after the first visit.
 // Bump VERSION whenever any file below changes, so players get the update.
 
-const VERSION = 'bugame-v11';
+const VERSION = 'bugame-v12';
 const FILES = [
   './',
   'index.html',
@@ -11,7 +11,7 @@ const FILES = [
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
-  'js/sprites.js',
+  'js/sprites.js', 'js/art.js', 'js/art-bugs.js',
   'js/engine.js',
   'js/tank.js',
   'js/secrets.js',
