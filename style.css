@@ -160,3 +160,4 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
 #treeCanvas { width: 100%; aspect-ratio: 960 / 640; display: block; border-radius: 16px; border: 3px solid #e2d3ae; box-shadow: 0 8px 24px rgba(60,40,10,.2); cursor: pointer; }
 .treeFact { margin-top: 12px; max-width: none; font-size: 1.1rem; line-height: 1.4; }
 .treeFact b { color: var(--accent); }
+.version { text-align: center; margin: 14px 0 4px; font-size: .85rem; color: #8a7a5c; }

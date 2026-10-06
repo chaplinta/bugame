@@ -21,6 +21,7 @@ test('map, pins, bug pages, Bug Book load without errors', async (b) => {
     check(await p.isVisible('#bug.active'), 'bug page ' + i);
     await p.click('#bugBack');
   }
+  check(/Version \d+\.\d+ · released \d+ \w+ \d{4}/.test(await p.textContent('.version')), 'no version on map');
   await p.click('#bookBtn');
   check(await p.locator('.bookBug').count() === pins + 1, 'book sections (one per bug plus Secrets)');
   check(p.errors.length === 0, p.errors.join('; '));
