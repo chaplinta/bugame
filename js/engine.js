@@ -113,7 +113,16 @@ const Game = {
     const loop = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      if (this.running) { this.update(dt); this.draw(); }
+      if (this.running) {
+        // Tests can fast-forward (timeScale) and drive a bot every tick (testHook). Normal play: one tick.
+        const n = this.timeScale || 1;
+        for (let i = 0; i < n && this.running; i++) {
+          if (this.testHook) this.testHook(dt);
+          this.update(dt);
+          Input.pressed = false;
+        }
+        if (this.running) this.draw();
+      }
       Input.pressed = false;
       requestAnimationFrame(loop);
     };
@@ -125,6 +134,7 @@ const Game = {
     this.canvas.width = W * dpr;
     this.canvas.height = H * dpr;
     this.dpr = dpr;
+    if (this.g) { this.updateZoom(); this.updateCamera(); }
   },
 
   bindInput() {
@@ -171,12 +181,13 @@ const Game = {
       items: [], preds: [], fx: [], timers: [], cam: { x: 0, y: 0 },
       predCfg: null, predT: 0,
       seen: new Set(), learned: [], toasts: [], toastT: 0, hintT: 0,
-      netT: 45 + Math.random() * 65, event: null,   // the kid-with-a-net event (js/tank.js)
+      netT: 15 + Math.random() * 20, event: null, parts: [], shake: 0, flash: 0,   // the kid-with-a-net event (js/tank.js)
     };
     g.finds = (mission.discoveries || []).map(d => Object.assign({ found: false, angle: 0 }, d,
       { x: d.fx * World.w, y: d.fy * World.h }));
     this.g = g;
     mission.setup(g);
+    this.updateZoom();
     this.updateCamera();
     this.bg = document.createElement('canvas');
     this.bg.width = World.w; this.bg.height = World.h;
@@ -198,6 +209,9 @@ const Game = {
     if (!text || g.seen.has(key)) return;
     g.seen.add(key);
     g.learned.push(text);
+    // Don't let facts pile up on screen: keep at most 3 waiting (all still go in the Bug Book).
+    const waiting = g.toasts.filter(t => t.kind === 'fact');
+    if (waiting.length >= 3) g.toasts.splice(g.toasts.indexOf(waiting[0]), 1);
     g.toasts.push({ text, kind: 'fact' });
     if (this.onFact) this.onFact(g.mission.id, key);
   },
@@ -207,6 +221,7 @@ const Game = {
     const g = this.g;
     if (g.hintT > 0) return;
     g.hintT = 7;
+    g.toasts = g.toasts.filter(t => t.kind !== 'hint');   // only the latest hint matters
     g.toasts.push({ text, kind: 'hint' });
   },
 
@@ -229,7 +244,7 @@ const Game = {
   addPred(cfg) {
     const g = this.g;
     g.predCfg = cfg;
-    g.predT = 40 + Math.random() * 20;
+    g.predT = 20 + Math.random() * 15;
   },
 
   predArrive() {
@@ -244,10 +259,17 @@ const Game = {
     Sound.play('caught');
   },
 
+  // Small screens (phones) see a zoomed-in part of the world so bugs aren't tiny.
+  updateZoom() {
+    const w = this.canvas.getBoundingClientRect().width;
+    this.zoom = w > 0 && w < 700 && World.w > W ? 1.4 : 1;
+  },
+
   updateCamera() {
-    const g = this.g, p = g.player;
-    g.cam.x = clamp(p.x - W / 2, 0, World.w - W);
-    g.cam.y = clamp(p.y - H / 2, 0, World.h - H);
+    const g = this.g, p = g.player, z = this.zoom || 1;
+    const vw = W / z, vh = H / z;
+    g.cam.x = clamp(p.x - vw / 2, 0, Math.max(0, World.w - vw));
+    g.cam.y = clamp(p.y - vh / 2, 0, Math.max(0, World.h - vh));
   },
 
   // Discoveries: hidden things to find while exploring. Each one is a fact for the Bug Book.
@@ -272,6 +294,11 @@ const Game = {
     for (const tm of g.timers) { tm.t -= dt; if (tm.t <= 0) tm.fn(); }
     g.timers = g.timers.filter(tm => tm.t > 0);
 
+    if (g.celebrate > 0) { this.celebrateTick(dt); return; }
+    g.shake = Math.max(0, g.shake - dt);
+    g.flash = Math.max(0, g.flash - dt);
+    this.tickParts(dt);
+
     // A kid with a net: while caught, the tank takes over and the world waits.
     if (this.netCheck) this.netCheck(dt);
     if (g.event) {
@@ -289,7 +316,8 @@ const Game = {
     if (k.has('arrowdown') || k.has('s')) dy += 1;
     if (!dx && !dy && Input.target) {
       // Pointer is in screen space; the world scrolls under it.
-      const tx = Input.target.x + g.cam.x - p.x, ty = Input.target.y + g.cam.y - p.y, d = Math.hypot(tx, ty);
+      const z = this.zoom || 1;
+      const tx = Input.target.x / z + g.cam.x - p.x, ty = Input.target.y / z + g.cam.y - p.y, d = Math.hypot(tx, ty);
       if (d > 8) { dx = tx / d; dy = ty / d; }
     }
     p.moving = false;
@@ -301,6 +329,7 @@ const Game = {
       p.moving = true;
     }
     p.invuln = Math.max(0, p.invuln - dt);
+    p.stillT = p.moving ? 0 : (p.stillT || 0) + dt;   // how long you've stayed put (for gentle hints)
 
     m.update(g, dt, Input);
     this.updateCamera();
@@ -388,6 +417,7 @@ const Game = {
     // Also after the goal is done: exploring on can't end in a loss.
     if (g.lives <= 0 && (g.mission.gentle || g.done)) g.lives = 1;
     Sound.play('caught');
+    g.shake = 0.4; g.flash = 0.4;
     if (g.mission.onCaught) g.mission.onCaught(g);
     g.toasts.unshift({ text: 'Caught by the ' + pr.name + '! Back home you go.', kind: 'hint' });
     g.toastT = 0;
@@ -400,10 +430,52 @@ const Game = {
   finish(won) {
     const g = this.g;
     g.done = true;
+    if (won) {
+      // Celebrate for a moment in the world before the end screen.
+      Sound.play('win');
+      this.fact('win');
+      g.celebrate = 1.8;
+      g.confetti = [];
+      const cols = ['#ffd23f', '#c8501e', '#2f7d5b', '#4fc3f7', '#f2a8c0', '#fff'];
+      for (let i = 0; i < 90; i++) {
+        g.confetti.push({ x: Math.random() * W, y: -20 - Math.random() * 200, vx: (Math.random() - 0.5) * 80,
+          vy: 120 + Math.random() * 160, a: Math.random() * TAU, va: (Math.random() - 0.5) * 10, c: cols[i % cols.length] });
+      }
+      g.toasts = [];
+      this.showToast({ text: 'You did it!', kind: 'hint' });
+      return;
+    }
     this.running = false;
     this.showToast(null);
-    if (won) { Sound.play('win'); this.fact('win'); }
-    setTimeout(() => this.onEnd && this.onEnd(won, g), won ? 400 : 900);
+    setTimeout(() => this.onEnd && this.onEnd(won, g), 900);
+  },
+
+  celebrateTick(dt) {
+    const g = this.g;
+    g.celebrate -= dt;
+    for (const c of g.confetti) { c.x += c.vx * dt; c.y += c.vy * dt; c.a += c.va * dt; }
+    this.tickParts(dt);
+    if (g.celebrate <= 0) {
+      g.celebrate = 0;
+      this.running = false;
+      this.showToast(null);
+      if (this.onEnd) this.onEnd(true, g);
+    }
+  },
+
+  // Little sparkle bursts for rewards.
+  burst(x, y, color, n) {
+    const g = this.g;
+    for (let i = 0; i < (n || 10); i++) {
+      const a = Math.random() * TAU, sp = 60 + Math.random() * 120;
+      g.parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.6 + Math.random() * 0.3, c: color || '#ffd23f' });
+    }
+  },
+
+  tickParts(dt) {
+    const g = this.g;
+    for (const q of g.parts) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.92; q.vy *= 0.92; q.life -= dt; }
+    g.parts = g.parts.filter(q => q.life > 0);
   },
 
   // Carry on exploring after finishing the mission goal.
@@ -438,7 +510,7 @@ const Game = {
     if (g.toastT <= 0) {
       const next = g.toasts.shift();
       this.showToast(next || null);
-      g.toastT = next ? 5.5 : 0.3;
+      g.toastT = next ? (next.kind === 'fact' ? 4.5 : 3.2) : 0.3;
     }
   },
 
@@ -453,7 +525,10 @@ const Game = {
   drawWorld(ctx) {
     const g = this.g, m = g.mission, p = g.player;
     ctx.save();
-    ctx.translate(-Math.round(g.cam.x), -Math.round(g.cam.y));
+    const sh = g.shake > 0 ? g.shake * 18 : 0;
+    const z = this.zoom || 1;
+    ctx.scale(z, z);
+    ctx.translate(-Math.round(g.cam.x) + (Math.random() - 0.5) * sh, -Math.round(g.cam.y) + (Math.random() - 0.5) * sh);
     ctx.drawImage(this.bg, 0, 0);
 
     // Home marker
@@ -517,6 +592,11 @@ const Game = {
       }
     }
 
+    for (const q of g.parts) {
+      ctx.globalAlpha = Math.min(1, q.life * 2);
+      ell(ctx, q.x, q.y, 3, 3, q.c);
+    }
+    ctx.globalAlpha = 1;
     for (const f of g.fx) {
       ctx.globalAlpha = Math.min(1, f.life * 2);
       ctx.fillStyle = f.color || '#fff';
@@ -525,6 +605,14 @@ const Game = {
       ctx.globalAlpha = 1;
     }
     ctx.restore();
+    if (g.flash > 0) { ctx.fillStyle = 'rgba(200,40,30,' + g.flash * 0.6 + ')'; ctx.fillRect(0, 0, W, H); }
+    if (g.celebrate > 0) {
+      for (const c of g.confetti) {
+        ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.a);
+        ctx.fillStyle = c.c; ctx.fillRect(-5, -3, 10, 6);
+        ctx.restore();
+      }
+    }
     if (World.w > W || World.h > H) this.drawMiniMap(ctx);
   },
 
@@ -536,7 +624,8 @@ const Game = {
     ctx.drawImage(this.bg, 0, 0, World.w, World.h, x0, y0, mw, mh);
     ctx.strokeStyle = 'rgba(43,33,24,.8)';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(x0 + g.cam.x * sx, y0 + g.cam.y * sy, W * sx, H * sy);
+    const z = this.zoom || 1;
+    ctx.strokeRect(x0 + g.cam.x * sx, y0 + g.cam.y * sy, W / z * sx, H / z * sy);
     const dot = (e, c, r) => { ctx.beginPath(); ctx.arc(x0 + e.x * sx, y0 + e.y * sy, r, 0, TAU); ctx.fillStyle = c; ctx.fill(); };
     dot(g.home, '#fff', 4);
     for (const d of g.finds) if (d.found) dot(d, '#2f7d5b', 2.5);
@@ -546,5 +635,5 @@ const Game = {
     dot(g.player, '#c8501e', 3.5);
   },
 
-  pop(x, y, text, color) { this.g.fx.push({ x, y, text, color, life: 1 }); },
+  pop(x, y, text, color) { this.g.fx.push({ x, y, text, color, life: 1 }); this.burst(x, y + 16, color); },
 };

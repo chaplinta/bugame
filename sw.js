@@ -2,7 +2,7 @@
 // Service worker: caches the whole game so it plays offline after the first visit.
 // Bump VERSION whenever any file below changes, so players get the update.
 
-const VERSION = 'bugame-v7';
+const VERSION = 'bugame-v8';
 const FILES = [
   './',
   'index.html',

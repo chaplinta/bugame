@@ -84,7 +84,7 @@ const Missions = {
   // ---------------------------------------------------------------- Bull ant
   ant: {
     id: 'ant', bug: 'ant', stage: 'Worker', place: 'Banksia woodland, Kings Park', world: BIG,
-    action: 'Sting', radius: 16, speed: 150, scale: 1.4, goal: 8,
+    action: 'Sting', radius: 16, speed: 150, scale: 1.4, goal: 12,
     home: { x: 220, y: 980, r: 50, label: 'Nest' },
     facts: [
       'Almost every kind of bull ant in the world lives only in Australia.',
@@ -202,7 +202,7 @@ const Missions = {
   queen: {
     id: 'queen', bug: 'ant', stage: 'Queen', place: 'Banksia woodland, Kings Park', world: BIG,
     sprite: 'queenAnt', bg: 'ant',
-    action: 'Land', radius: 16, speed: 170, scale: 1.5, goal: 3,
+    action: 'Land', radius: 16, speed: 170, scale: 1.5, goal: 5,
     home: { x: 220, y: 980, r: 46, label: 'Old nest' },
     facts: [
       'A bull ant colony starts with one queen.',
@@ -213,7 +213,7 @@ const Missions = {
       'Fly with the arrow keys, or touch and drag.',
       'Find a patch of clear sand far from the old nest and press Land.',
       'Hold Dig to dig your new nest.',
-      'Hunt 3 termites and bring them home to feed your first babies.',
+      'Hunt 5 termites and bring them home to feed your first babies.',
     ],
     discoveries: [
       { key: 'd_echidna', sprite: 'dig', fx: 0.5, fy: 0.5 },
@@ -401,7 +401,7 @@ const Missions = {
         if (f.kind === 'paw') {
           Game.fact('paw');
         } else if (f.pollen) {
-          if (p.load >= 3) Game.hint('Your legs are full of pollen. Fly back to the burrow!');
+          if (p.load >= 3) { if (p.stillT > 1.5) Game.hint('Your legs are full of pollen. Fly back to the burrow!'); }
           else if (input.held) {
             p.buzz = true;
             if (Math.floor((p.buzzT + dt) * 8) !== Math.floor(p.buzzT * 8)) Sound.play('buzz');
@@ -412,7 +412,7 @@ const Missions = {
               Sound.play('pick');
               Game.pop(f.x, f.y - 20, 'Pollen!', '#f39c12');
             }
-          } else Game.hint('Hold Buzz to shake the pollen out!');
+          } else if (p.stillT > 1.5) Game.hint('Hold Buzz to shake the pollen out!');
         }
       }
       if (p.load > 0 && Game.inHome()) {
@@ -449,7 +449,7 @@ const Missions = {
   fly: {
     id: 'fly', bug: 'fly', stage: 'Adult female', place: 'A cattle paddock in the Swan Valley', world: BIG,
     sprite: 'bushFly', bg: 'paddock',
-    action: 'Sip', radius: 12, speed: 170, scale: 1.7, goal: 5,
+    action: 'Sip', radius: 12, speed: 170, scale: 1.7, goal: 6,
     home: { x: 220, y: 980, r: 70, label: 'Shady gum tree' },
     facts: [
       'Bush flies are the flies that buzz round your face in an Aussie summer.',
@@ -568,6 +568,8 @@ const Missions = {
       if (g.pats.length < 3) { const q = Game.spawnPoint(200); this.addPat(q.x, q.y, 1); }
 
       // Sip at a cow's face, lay on a fresh pat.
+      if (p.waitRelease && !input.held) p.waitRelease = false;
+      const quiet = p.waitRelease;   // no nagging while still holding from the last sip or lay
       const cow = g.items.find(c => c.kind === 'cow' && dist(this.head(c), p) < 45);
       const pat = g.pats.find(pt => dist(pt, p) < 30 * pt.size + 6);
       // Once full of protein, make sure there's a fresh pat not too far away.
@@ -575,18 +577,18 @@ const Missions = {
         const c = nearest(g.items.filter(i => i.kind === 'cow'), p, 99999);
         if (c && c.pooT > 1) c.pooT = 1;
       }
-      if (pat) {
+      if (pat && !(cow && p.protein < 1)) {
         const ok = pat.fresh > 0.35 && p.protein >= 1;
         setAction('Lay', ok);
         if (input.held) {
-          if (pat.fresh <= 0.35) { Game.hint('This pat has dried out. Find a fresh, shiny one!'); Game.fact('dry'); }
-          else if (p.protein < 1) Game.hint('You need protein first. Sip from a cow’s face.');
+          if (pat.fresh <= 0.35) { if (!quiet) Game.hint('This pat has dried out. Find a fresh, shiny one!'); Game.fact('dry'); }
+          else if (p.protein < 1) { if (p.stillT > 1.5 && !quiet) Game.hint('You need protein first. Sip from a cow’s face.'); }
           else {
             p.landed = true;
             p.x = pat.x; p.y = pat.y;
             p.layT += dt;
             if (p.layT >= 1) {
-              p.layT = 0; p.protein = 0;
+              p.layT = 0; p.protein = 0; p.waitRelease = true;
               pat.eggs++; pat.hatchT = 6;
               g.score++;
               Sound.play('score');
@@ -607,6 +609,7 @@ const Missions = {
           if (Math.floor(g.t * 6) !== Math.floor((g.t - dt) * 6)) Sound.play('buzz');
           Game.fact('sip');
           if (p.protein >= 1) {
+            p.waitRelease = true;
             Sound.play('pick');
             Game.fact('mouth');
             g.toasts.unshift({ text: 'Full of protein! Now follow the arrow to a fresh, shiny cow pat and hold Lay.', kind: 'hint' });
@@ -640,7 +643,7 @@ const Missions = {
   caterpillar: {
     id: 'caterpillar', bug: 'butterfly', stage: 'Caterpillar', place: 'Wildflower heath, Bold Park', world: BIG,
     sprite: 'plCaterpillar', bg: 'heath', escape: 'Crawl',
-    action: 'Munch', radius: 16, speed: 75, scale: 2.2, goal: 9,
+    action: 'Munch', radius: 16, speed: 75, scale: 2.2, goal: 12,
     home: { x: 240, y: 960, r: 44, label: 'Silk shelter' },
     facts: [
       'The Australian painted lady is a butterfly found all over Australia, including Perth.',
@@ -650,8 +653,8 @@ const Missions = {
     how: [
       'Crawl with the arrow keys, or touch and drag.',
       'Find pink everlastings or yellow capeweed and hold Munch to eat the leaves.',
-      'You’ll moult (shed your skin) as you grow. Eat 9 times.',
-      'Then go back to your silk shelter and hold Pupate.',
+      'You’ll moult (shed your skin) as you grow. Eat 12 times.',
+      'Then hold Pupate on any plant to turn into a chrysalis.',
     ],
     discoveries: [
       { key: 'd_paw', sprite: 'paw', fx: 0.7, fy: 0.25 },
@@ -686,7 +689,7 @@ const Missions = {
     update(g, dt, input) {
       const p = g.player;
       p.munch = false;
-      for (const pl of g.items) if (pl.leaf < 1) { pl.regrow = (pl.regrow || 0) + dt; if (pl.regrow > 20) { pl.leaf = 1; pl.regrow = 0; } }
+      for (const pl of g.items) if (pl.leaf < 1) { pl.regrow = (pl.regrow || 0) + dt; if (pl.regrow > 20) { pl.leaf = 1; pl.regrow = 0; pl.toldEmpty = false; } }
       if (g.moultT > 0) { g.moultT -= dt; return; }
       if (g.pupating > 0) {
         g.pupating -= dt;
@@ -696,21 +699,23 @@ const Missions = {
       if (g.pupated) return;
 
       if (g.score >= this.goal) {
-        const home = Game.inHome();
-        setAction('Pupate', home);
-        if (home && input.held) {
+        // Caterpillars wander off to pupate on a stem: any plant will do.
+        const stem = g.items.some(i => dist(i, p) < 34) || Game.inHome();
+        setAction('Pupate', stem);
+        if (stem && input.held) {
           g.pupating = 1.5; g.frozen = true;
           p.angle = -Math.PI / 2;
         }
         return;
       }
 
-      const pl = g.items.find(i => dist(i, p) < 30);
+      const under = g.items.filter(i => dist(i, p) < 30);
+      const pl = under.find(i => i.kind !== 'grevillea' && i.leaf > 0.05) || under[0];
       const host = pl && pl.kind !== 'grevillea';
       setAction('Munch', host && pl.leaf > 0.05);
       if (pl && input.held) {
         if (!host) { Game.hint('Not this one! Painted lady caterpillars only eat daisy plants.'); Game.fact('host'); }
-        else if (pl.leaf <= 0.05) Game.hint('All eaten! Find another plant.');
+        else if (pl.leaf <= 0.05) { if (!pl.toldEmpty) { pl.toldEmpty = true; Game.hint('All eaten! Find another plant.'); } }
         else {
           p.munch = true;
           p.munchT += dt;
@@ -727,7 +732,7 @@ const Missions = {
               Game.pop(p.x, p.y - 34, 'Moult!', '#ffd23f');
               Game.fact('moult');
             }
-            if (g.score === this.goal) g.toasts.push({ text: 'You’re fully grown! Go back to your silk shelter and hold Pupate.', kind: 'hint' });
+            if (g.score === this.goal) g.toasts.push({ text: 'You’re fully grown! Find a plant stem and hold Pupate.', kind: 'hint' });
           }
         }
       } else p.munchT = 0;
@@ -745,10 +750,10 @@ const Missions = {
       }
     },
     playerSprite(g) { return g.pupated || g.pupating > 0 ? 'chrysalis' : 'plCaterpillar'; },
-    goalPoint(g) { return g.score >= this.goal && !g.pupated ? g.home : null; },
+    goalPoint(g) { return g.score >= this.goal && !g.pupated ? nearest(g.items, g.player, 99999) : null; },
     hud(g) {
       if (g.pupated) setHud('You’re a chrysalis!', '');
-      else if (g.score >= this.goal) setHud('Back to your shelter to pupate!', '');
+      else if (g.score >= this.goal) setHud('Find a stem and pupate!', '');
       else setHud('Munches: ' + g.score + ' / ' + this.goal, g.score >= 6 ? 'Big!' : g.score >= 3 ? 'Growing' : 'Tiny');
     },
     won(g) { return !!g.pupated; },
@@ -758,7 +763,7 @@ const Missions = {
   butterfly: {
     id: 'butterfly', bug: 'butterfly', stage: 'Butterfly', place: 'Wildflower heath, Bold Park', world: BIG,
     sprite: 'butterfly', bg: 'heath',
-    action: 'Sip', radius: 18, speed: 190, scale: 2, goal: 6,
+    action: 'Sip', radius: 18, speed: 190, scale: 2, goal: 8,
     home: { x: 240, y: 960, r: 44, label: 'Empty chrysalis' },
     facts: [
       'A painted lady butterfly is orange, black and white, with little blue spots on its back wings.',
@@ -769,7 +774,7 @@ const Missions = {
       'Fly with the arrow keys, or touch and drag.',
       'Land on a flower and hold Sip to drink nectar.',
       'Then land on an everlasting or capeweed and hold Lay to lay an egg.',
-      'Lay 6 eggs. Look for sparkles: they’re discoveries.',
+      'Lay 8 eggs. Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
       { key: 'd_cone', sprite: 'cone', fx: 0.8, fy: 0.2 },
@@ -803,19 +808,23 @@ const Missions = {
       const p = g.player;
       p.sip = false; p.landed = false;
       for (const f of g.items) if (f.nectar === false && f.kind !== 'capeweed') { f.regrow = (f.regrow || 0) + dt; if (f.regrow > 14) { f.nectar = true; f.regrow = 0; } }
-      const f = g.items.find(i => i.sprite !== 'egg' && dist(i, p) < 30);
+      // After a sip or a lay, no hints until the button is let go (holding through is fine, nagging isn't).
+      if (p.waitRelease && !input.held) p.waitRelease = false;
+      const quiet = p.waitRelease;
+      const under = g.items.filter(i => i.sprite !== 'egg' && dist(i, p) < 30);
+      const f = under.find(i => p.energy >= 1 ? i.kind !== 'grevillea' : i.nectar) || under[0];
       if (!f) { setAction(p.energy >= 1 ? 'Lay' : 'Sip', false); p.layT = 0; return; }
       const host = f.kind !== 'grevillea';
       if (p.energy >= 1) {
         setAction('Lay', host);
         if (input.held) {
-          if (!host) { Game.hint('Taste with your feet: this isn’t a daisy plant. Try an everlasting or capeweed.'); Game.fact('grevillea'); }
+          if (!host) { if (!quiet) Game.hint('Taste with your feet: this isn’t a daisy plant. Try an everlasting or capeweed.'); Game.fact('grevillea'); }
           else {
             p.landed = true;
             Game.fact('feet');
             p.layT += dt;
             if (p.layT >= 0.8) {
-              p.layT = 0; p.energy = 0;
+              p.layT = 0; p.energy = 0; p.waitRelease = true;
               g.score++;
               g.items.push({ sprite: 'egg', kind: 'egg', x: f.x + (Math.random() - 0.5) * 24, y: f.y + (Math.random() - 0.5) * 24, r: 2, scale: 1.4 });
               Sound.play('score');
@@ -828,13 +837,14 @@ const Missions = {
       } else {
         setAction('Sip', !!f.nectar);
         if (input.held) {
-          if (!f.nectar) Game.hint(f.kind === 'capeweed' ? 'Capeweed is for your eggs. Find a pink everlasting or a red grevillea to drink from.' : 'This flower is empty. Try another.');
+          if (!f.nectar) { if (p.stillT > 1.5 && !quiet) Game.hint(f.kind === 'capeweed' ? 'Capeweed is for your eggs. Find a pink everlasting or a red grevillea to drink from.' : 'This flower is empty. Try another.'); }
           else {
             p.sip = true; p.landed = true;
             p.energy = Math.min(1, p.energy + dt / 1.2);
             Game.fact('sip');
             if (p.energy >= 1) {
               f.nectar = false;
+              p.waitRelease = true;
               Sound.play('pick');
               g.toasts.unshift({ text: 'Full of nectar! Now land on an everlasting or capeweed and hold Lay.', kind: 'hint' });
               g.toastT = 0;
@@ -859,7 +869,7 @@ const Missions = {
   termite: {
     id: 'termite', bug: 'termite', stage: 'Worker', place: 'Woodland, Whiteman Park', world: BIG,
     sprite: 'termiteWorker', bg: 'woodland', escape: 'Crawl',
-    action: 'Chew', radius: 15, speed: 120, scale: 2.2, goal: 10,
+    action: 'Chew', radius: 15, speed: 120, scale: 2.2, goal: 8,
     home: { x: 300, y: 900, r: 60, label: 'Mound' },
     facts: [
       'Termites are not ants. Their closest relatives are cockroaches!',
@@ -870,7 +880,7 @@ const Missions = {
       'Crawl with the arrow keys, or touch and drag.',
       'Hold Chew on wood to bite off a piece. Hold Dig on damp mud to scoop some up.',
       'Carry it home. Wood feeds the colony; mud builds the mound.',
-      'Bring 5 of each. Watch out for raiding bull ants!',
+      'Bring 4 of each. Watch out for raiding bull ants!',
     ],
     discoveries: [
       { key: 'd_roo', sprite: 'kangaroo', fx: 0.75, fy: 0.3 },
@@ -911,7 +921,7 @@ const Missions = {
         if (Game.inHome()) {
           if (p.carry === 'mud') { g.mud++; Game.fact('mud'); if (g.mud === 3) Game.fact('soldier'); }
           else { g.wood++; Game.fact('wood'); if (g.wood === 2) Game.fact('recycle'); if (g.wood === 4) Game.fact('queen'); }
-          g.score = Math.min(g.wood, 5) + Math.min(g.mud, 5);
+          g.score = Math.min(g.wood, 4) + Math.min(g.mud, 4);
           p.carry = null;
           Sound.play('score');
           Game.pop(p.x, p.y - 20, '+1', '#fff');
@@ -934,8 +944,8 @@ const Missions = {
           Game.later(3, () => this.addThing(it.kind));
         }
       } else p.workT = 0;
-      if (g.mud >= 5 && g.wood < 5) Game.hint('The mound is built! Now bring wood to feed the colony.');
-      if (g.wood >= 5 && g.mud < 5) Game.hint('Plenty of food! Now bring mud to build the mound.');
+      if (g.mud >= 4 && g.wood < 4 && !g.toldMud) { g.toldMud = true; g.toasts.push({ text: 'The mound is built! Now bring wood to feed the colony.', kind: 'hint' }); }
+      if (g.wood >= 4 && g.mud < 4 && !g.toldWood) { g.toldWood = true; g.toasts.push({ text: 'Plenty of food! Now bring mud to build the mound.', kind: 'hint' }); }
     },
     // The mound grows with mud; a wood store builds up beside it.
     drawBuild(ctx, g) {
@@ -944,19 +954,25 @@ const Missions = {
       for (let i = 0; i < Math.min(n, 5); i++) ell(ctx, h.x - 16 + i * 8, h.y - n * 4 - 8 - (i % 2) * 6, 5, 9, '#7a5430');
       for (let i = 0; i < Math.min(g.wood, 8); i++) { ctx.fillStyle = '#a07848'; ctx.fillRect(h.x + h.r + 4 + (i % 3) * 10, h.y + 10 - Math.floor(i / 3) * 6, 9, 4); }
     },
-    goalPoint(g) { return g.player.carry ? g.home : null; },
-    hud(g) {
-      const w = Math.min(g.wood, 5), m = Math.min(g.mud, 5);
-      setHud('Wood ' + w + '/5 · Mud ' + m + '/5', g.player.carry ? 'Carrying ' + g.player.carry : '');
+    goalPoint(g) {
+      if (g.player.carry) return g.home;
+      // Point at whatever is still needed.
+      if (g.wood >= 4) return nearest(g.items.filter(i => i.kind === 'mud'), g.player, 99999);
+      if (g.mud >= 4) return nearest(g.items.filter(i => i.kind === 'woodChip'), g.player, 99999);
+      return null;
     },
-    won(g) { return g.wood >= 5 && g.mud >= 5; },
+    hud(g) {
+      const w = Math.min(g.wood, 4), m = Math.min(g.mud, 4);
+      setHud('Wood ' + w + '/4 · Mud ' + m + '/4', g.player.carry ? 'Carrying ' + g.player.carry : '');
+    },
+    won(g) { return g.wood >= 4 && g.mud >= 4; },
   },
 
   // ---------------------------------------------------------------- Native land snail
   snail: {
     id: 'snail', bug: 'snail', stage: 'Adult', place: 'Bushland near Bibra Lake', world: BIG,
     sprite: 'snail', bg: 'litter', escape: 'Slide',
-    action: 'Graze', radius: 16, speed: 55, scale: 1.6, goal: 8,
+    action: 'Graze', radius: 16, speed: 55, scale: 1.6, goal: 10,
     home: { x: 260, y: 940, r: 55, label: 'Damp hollow' },
     facts: [
       'Snails are not insects. They are molluscs, like octopuses and mussels.',
@@ -965,7 +981,7 @@ const Missions = {
     ],
     how: [
       'Slide with the arrow keys, or touch and drag.',
-      'Hold Graze on fungi, lichen or dead leaves to eat them. Eat 8 to grow your shell.',
+      'Hold Graze on fungi, lichen or dead leaves to eat them. Eat 10 to grow your shell.',
       'Sunny patches dry you out. Keep to the shade, or hold Seal to close your shell.',
       'Watch out for the bobtail lizard.',
     ],
@@ -1075,7 +1091,7 @@ const Missions = {
   spiderling: {
     id: 'spiderling', bug: 'spider', stage: 'Spiderling', place: 'Coastal dunes, Cottesloe', world: BIG,
     sprite: 'spiderling', bg: 'spider',
-    action: 'Jump', radius: 12, speed: 95, scale: 1.5, goal: 6,
+    action: 'Jump', radius: 12, speed: 95, scale: 1.5, goal: 8,
     home: { x: 260, y: 1000, r: 40, label: 'Mum’s retreat' },
     facts: [
       'Peacock spiders hatch from eggs in a silk sac. The mother guards the eggs in her silk retreat.',
@@ -1085,7 +1101,7 @@ const Missions = {
     how: [
       'Move with the arrow keys, or touch and drag. Explore the dunes!',
       'Springtails hop away if you rush at them. Stop close by, then press Jump.',
-      'Catch 6, then go back to the retreat to moult (shed your skin).',
+      'Catch 8, then go back to the retreat to moult (shed your skin).',
       'Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
@@ -1165,7 +1181,7 @@ const Missions = {
   // ----------------------------------------------------- Peacock spider: adult
   spider: {
     id: 'spider', bug: 'spider', stage: 'Adult male', place: 'Coastal dunes, Cottesloe', world: BIG,
-    action: 'Jump', radius: 15, speed: 105, scale: 1.7, goal: 5,
+    action: 'Jump', radius: 15, speed: 105, scale: 1.7, goal: 7,
     home: { x: 260, y: 1000, r: 40, label: 'Silk retreat' },
     facts: [
       'The coastal peacock spider lives in the sand dunes along Perth’s coast. It is about the size of a grain of rice.',
@@ -1175,7 +1191,7 @@ const Missions = {
     how: [
       'Move with the arrow keys, or touch and drag.',
       'Flies spot you if you walk too close. Stop a little way off, then press Jump.',
-      'Catch 5 flies, then find the female and press Dance.',
+      'Catch 7 flies, then find the female and press Dance.',
       'Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
@@ -1312,6 +1328,7 @@ const Missions = {
     },
 
     setup(g) {
+      this.reed.x = 1760; this.reed.y = 160;
       for (let i = 0; i < 8; i++) this.addPrey('wriggler');
       for (let i = 0; i < 3; i++) this.addPrey('tadpole');
       g.player.jet = 0; g.player.jetCd = 0; g.player.grab = null;
@@ -1365,7 +1382,12 @@ const Missions = {
           Game.fact('grab');
           Game.fact(target.kind);
           if (g.score === 4) Game.fact('moult');
-          if (g.score === this.goal) g.toasts.push({ text: 'You’re ready to grow up! Follow the arrow to the reed and climb out.', kind: 'hint' });
+          if (g.score === this.goal) {
+            // Point to a reed a short swim away, not across the whole lake.
+            const r = Game.spawnPoint(100, p, 380);
+            this.reed.x = clamp(r.x, 120, World.w - 120); this.reed.y = clamp(r.y, 120, World.h - 120);
+            g.toasts.push({ text: 'You’re ready to grow up! Follow the arrow to the reed and climb out.', kind: 'hint' });
+          }
           Game.later(1.5, () => this.addPrey(target.kind));
         } else if (p.jetCd <= 0) {
           p.jet = 0.45; p.jetCd = 2;
@@ -1408,7 +1430,7 @@ const Missions = {
   // ------------------------------------------------- Blue skimmer: adult
   dragonfly: {
     id: 'dragonfly', bug: 'dragonfly', stage: 'Adult', place: 'Herdsman Lake', world: BIG,
-    action: 'Dart', radius: 20, speed: 190, scale: 1.3, goal: 15,
+    action: 'Dart', radius: 20, speed: 190, scale: 1.3, goal: 25,
     home: { x: 220, y: 600, r: 50, label: 'Reeds' },
     facts: [
       'Blue skimmers are common around Perth’s lakes and wetlands.',

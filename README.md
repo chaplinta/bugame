@@ -51,4 +51,6 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - `js/tank.js`: the kid-with-a-net event and the bug tank
 - `js/ui.js`: map, bug page, end screen, Bug Book, saved progress
 
+Tests: `node tests/run.js` (see `tests/README.md`).
+
 Design and plans: `docs/DESIGN.md`. In-game facts and simplifications: `docs/facts.md`.

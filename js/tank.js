@@ -120,7 +120,7 @@ Object.assign(Game, {
   // Net coming down over the bug, with the kid's shadow behind it.
   drawSwoop(ctx) {
     const g = this.g, p = g.player, k = Math.min(1, g.event.t / 1.4);
-    const sx = p.x - g.cam.x, sy = p.y - g.cam.y;
+    const z = this.zoom || 1, sx = (p.x - g.cam.x) * z, sy = (p.y - g.cam.y) * z;
     ctx.fillStyle = 'rgba(20,20,30,' + (0.12 + k * 0.2) + ')';
     ctx.beginPath();
     ctx.ellipse(W + 120 - k * 360, H * 0.5, 320, 260, 0, 0, TAU);
