@@ -248,6 +248,22 @@ $('bookBack').addEventListener('click', buildMap);
 $('menuBtn').addEventListener('click', () => { Game.stop(); buildMap(); });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && Game.running) { Game.stop(); buildMap(); } });
 
+// "Install app" button: Android Chrome and desktop browsers offer this once the game qualifies.
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  $('installBtn').hidden = false;
+});
+$('installBtn').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  try { await installPrompt.userChoice; } catch (e) { /* dismissed */ }
+  installPrompt = null;
+  $('installBtn').hidden = true;
+});
+window.addEventListener('appinstalled', () => { $('installBtn').hidden = true; });
+
 Game.init($('game'));
 drawMap();
 buildMap();

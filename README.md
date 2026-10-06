@@ -6,7 +6,7 @@ A browser game for kids aged 5–8. Play as real bugs in real Perth places, doin
 
 Online: https://chaplinta.github.io/bugame/ (deployed from `main` by `.github/workflows/pages.yml`).
 
-Offline: after one visit the service worker (`sw.js`) caches every file, so the game loads with no connection. On a phone or tablet, use the browser's "Add to Home Screen" to install it like an app. Opening `index.html` straight from disk also works offline.
+Offline: after one visit the service worker (`sw.js`) caches every file, so the game loads with no connection. On Android, open the site in Chrome and tap **Install app** on the map screen (or Chrome menu → Install app / Add to Home screen). It then opens full screen from its own icon and works offline. On iPhone/iPad, use Safari → Share → Add to Home Screen. Opening `index.html` straight from disk also works offline.
 
 When you change any game file, bump `VERSION` in `sw.js` so players get the update.
 
