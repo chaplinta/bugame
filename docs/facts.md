@@ -150,6 +150,67 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Female libellulids such as *Orthetrum* lay eggs by dipping the abdomen tip into water in flight. Corbet.
 - Australian hobby (*Falco longipennis*) takes dragonflies in flight. BirdLife Australia.
 
+## Coastal sandhopper (family Talitridae)
+- Talitrid amphipods (sandhoppers, beach fleas) live on sandy beaches around Australia, including Perth's coast. AM; WAM.
+- They are crustaceans (Amphipoda), with many pairs of legs, not insects. AM.
+- They shelter in burrows in damp sand by day and come out at dusk and night to feed. AM; Griffiths & Stenton-Dozey (beach ecology).
+- They eat stranded seaweed (wrack) and help break it down. AM; Dugan et al. on wrack and beach food webs.
+- They jump by flicking the abdomen and tail appendages (uropods) against the sand. AM.
+- Female amphipods carry eggs in a brood pouch (marsupium) under the body; young hatch in the pouch and leave as tiny juveniles. AM.
+- They breathe with gills and must stay moist. AM.
+- Talitrids orient using the sun and moon (sun and moon compass). Pardi & Papi; Ugolini et al.
+- Silver gulls (*Chroicocephalus novaehollandiae*) and red-capped plovers (*Charadrius ruficapillus*) forage for small invertebrates on Perth beaches. BirdLife Australia.
+- Port Beach is in North Fremantle, just north of Fremantle Harbour, whose container cranes are visible from the beach. City of Fremantle.
+
+## Southern house mosquito (*Culex quinquefasciatus*)
+- Common in Perth suburbs; breeds in still water in containers, drains and ponds. WA Department of Health.
+- Only females bite; they need a blood meal to develop eggs. Males feed on nectar. WA Dept of Health; AM.
+- Mosquitoes find hosts using carbon dioxide in breath, body odour and heat. AM; WA Dept of Health.
+- The mouthparts (proboscis) are a bundle of fine stylets; saliva contains anticoagulants, and the reaction to saliva causes itching. AM.
+- *Culex* females lay eggs stuck together in floating rafts on still water. WA Dept of Health; Medical Entomology (Westmead).
+- Larvae (wrigglers) develop in still water; tipping out containers weekly is the standard advice. WA Dept of Health "Fight the Bite".
+- Mainly active at dusk and night. WA Dept of Health.
+- A mosquito can take in more than its own body weight in blood. AM.
+- Marbled geckos (*Christinus marmoratus*) live in southwest WA and hunt insects at night, often near lights. WAM.
+
+## Painted lady flight stage
+- Painted ladies are strong fliers; *Vanessa* butterflies make long movements across Australia. AM; Braby, *Butterflies of Australia*.
+- Butterflies warm their flight muscles in the sun before flying. AM.
+- Butterflies see ultraviolet light and UV patterns on flowers. General insect vision (Briscoe & Chittka).
+- Butterfly flight uses unsteady aerodynamics (clap-and-fling and figure-of-eight wing paths) to create lift. Srygley & Thomas (Nature 2002).
+- Butterflies alternate flapping and gliding. Braby.
+- The proboscis uncoils to sip nectar. AM.
+- Butterflies carry pollen between flowers. AM.
+- Willie wagtails catch insects in flight. BirdLife Australia.
+
+## Blue skimmer, adult female
+- Female *O. caledonicum* are yellow-brown; males develop blue pruinescence. Theischinger & Hawking, *The Complete Field Guide to Dragonflies of Australia*.
+- Females lay eggs by tapping the abdomen tip on the water in flight; the male often guards nearby (non-contact guarding) to keep rival males away. Corbet, *Dragonflies: Behavior and Ecology of Odonata*.
+- Eggs hatch into aquatic nymphs. Corbet.
+
+## Peacock spider, adult female
+- Female *Maratus* are drab brown and cryptic. Otto & Hill (Peckhamia).
+- Males court with a raised, coloured fan, leg waving and substrate-borne vibrations (drumming). Girard, Kasumovic & Elias (2011).
+- Females choose among courting males; female choice drives the evolution of male colour and dance. Girard et al.
+- Female jumping spiders lay eggs in a silk sac inside a retreat and guard them. AM; Jackson (salticid biology).
+- Ants are predators of spider eggs and spiderlings. General.
+
+## Bug family tree
+- Molluscs and arthropods are separate animal phyla. General zoology.
+- Arthropods have an exoskeleton and jointed legs and moult to grow. AM.
+- Chelicerates (spiders, scorpions, mites) have chelicerae and 8 legs. AM.
+- Insects (hexapods) are nested within Pancrustacea: crustaceans and insects form one group. Regier et al. (Nature 2010); Misof et al. (Science 2014).
+- Odonata are an early-branching winged-insect lineage; griffinflies (Meganisoptera) flew about 300 million years ago. Misof et al.; fossil record.
+- Termites are social cockroaches (Blattodea). Inward, Beccaloni & Eggleton (Biology Letters 2007).
+- Holometabola (complete metamorphosis) include Hymenoptera, Lepidoptera and Diptera. Misof et al.
+- Diptera have halteres (reduced hind wings) for balance. AM.
+
+## Who you are (sex tags)
+- Bull ant workers are female; queens are female. AM.
+- Coptotermes workers include both sexes. Termite biology (Eggleton).
+- *Bothriembryon* and other land snails are hermaphrodites. AM; WAM.
+- Juvenile spiderlings and odonate nymphs can't be sexed by eye. General.
+
 ## Secrets
 - Quokkas live on Rottnest Island; in 1696 Dutch explorer Willem de Vlamingh mistook them for large rats and named the island "Rottenest" (rat's nest). Rottnest Island Authority; WAM.
 
@@ -170,3 +231,9 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - The nymph stage is a few minutes; real nymphs take months.
 - Spider jumps follow a target that hops mid-air; real jumps are ballistic.
 - Emergence happens on the water's surface in the game; in reality the nymph climbs well up the stem first.
+- The day lasts 10 minutes; at night every bug sleeps. Really, sandhoppers, mosquitoes and many others are active at night.
+- The sandhopper's beach is shown at dusk; the 2D gull dives and the plover gives up after a few seconds.
+- Mosquito bite spots are marked; people swat only when looking around, so there is a fair chance to fly away.
+- The 3D butterfly flies at a steady speed and lands automatically on a flower's ring.
+- The female peacock spider sees three males in quick succession; any choice is fine in the game.
+- The family tree is simplified: only the bugs in the game are shown, and springtails and other branches are left out.
