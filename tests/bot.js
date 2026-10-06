@@ -57,8 +57,10 @@
 
   const Bot = {
     install(skill) {
-      const kid = skill === 'kid';
-      const st = { next: 0, d: null, wander: 0, wdir: 0, pressNext: false };
+      // 'tapper' plays like 'kid' but never holds the button: it taps instead.
+      const tapper = skill === 'tapper';
+      const kid = skill === 'kid' || tapper;
+      const st = { next: 0, d: null, wander: 0, wdir: 0, pressNext: false, tapT: 0, tapHeld: 0 };
       const mx = Bot.metrics = { rewards: [], hints: {}, caught: 0, maxToasts: 0, tank: null, facts: 0 };
       // Instrument the game.
       const pop = Game.pop.bind(Game);
@@ -102,6 +104,12 @@
         const z = Game.zoom || 1;
         Input.target = goal ? { x: (goal.x - g.cam.x) * z, y: (goal.y - g.cam.y) * z } : null;
         Input.held = !!d.hold && st.wander <= 0;
+        if (tapper && Input.held) {
+          // A tap: a short press about four times a second.
+          Input.held = st.tapHeld > 0;
+          st.tapHeld -= dt; st.tapT -= dt;
+          if (st.tapT <= 0) { st.tapT = 0.25; st.tapHeld = 0.08; Input.pressed = true; Input.held = true; }
+        }
         if (st.pressNext) { Input.pressed = true; st.pressNext = false; }
         // Darting away from a chaser (dragonfly, nymph).
         if (d.flee && (g.mission.id === 'dragonfly' || g.mission.id === 'nymph') && (!kid || Math.random() < 0.02)) Input.pressed = true;

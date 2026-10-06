@@ -7,6 +7,11 @@ function setHud(goal, extra) {
   document.getElementById('hudExtra').textContent = extra || '';
 }
 
+// Action buttons work by holding OR tapping: holding counts time, each new press adds a little extra.
+// Progress is never lost by letting go, so tapping kids get there too.
+function working(input) { return input.held || input.pressed; }
+function work(input, dt) { return (input.held ? dt : 0) + (input.pressed ? 0.3 : 0); }
+
 function setAction(label, ready) {
   const btn = document.getElementById('actionBtn');
   if (btn.textContent !== label) btn.textContent = label;
@@ -265,9 +270,10 @@ const Missions = {
       } else if (g.phase === 'dig') {
         const here = Game.inHome();
         setAction('Dig', here);
-        if (here && input.held) {
-          if (Math.floor((p.digT + dt) * 5) !== Math.floor(p.digT * 5)) Sound.play('tap');
-          p.digT += dt;
+        if (here && working(input)) {
+          const w = work(input, dt);
+          if (Math.floor((p.digT + w) * 5) !== Math.floor(p.digT * 5)) Sound.play('tap');
+          p.digT += w;
           if (p.digT >= 2) {
             g.phase = 'hunt';
             Sound.play('score');
@@ -276,6 +282,7 @@ const Missions = {
             g.toasts.push({ text: 'Your eggs need food. Hunt termites and bring them home!', kind: 'hint' });
           }
         }
+        p.progress = Math.min(1, p.digT / 2);
         p.speed = 140;
       } else {
         setAction('Sting', false);
@@ -346,7 +353,7 @@ const Missions = {
     ],
     how: [
       'Fly with the arrow keys, or touch and drag. Explore the whole yard!',
-      'Land on a blue Dianella or yellow Hibbertia flower and hold Buzz.',
+      'Land on a blue Dianella or yellow Hibbertia flower and hold or tap Buzz.',
       'You can carry 3 loads. Every 3 loads fills a new cell in your burrow.',
       'Look for sparkles: they’re discoveries.',
     ],
@@ -402,19 +409,21 @@ const Missions = {
           Game.fact('paw');
         } else if (f.pollen) {
           if (p.load >= 3) { if (p.stillT > 1.5) Game.hint('Your legs are full of pollen. Fly back to the burrow!'); }
-          else if (input.held) {
+          else if (working(input)) {
             p.buzz = true;
-            if (Math.floor((p.buzzT + dt) * 8) !== Math.floor(p.buzzT * 8)) Sound.play('buzz');
-            p.buzzT += dt;
+            const w = work(input, dt);
+            if (Math.floor((p.buzzT + w) * 8) !== Math.floor(p.buzzT * 8)) Sound.play('buzz');
+            p.buzzT += w;
             Game.fact(f.kind);
             if (p.buzzT >= 0.8) {
               p.load++; f.pollen = false; f.regrow = 12; p.buzzT = 0;
               Sound.play('pick');
               Game.pop(f.x, f.y - 20, 'Pollen!', '#f39c12');
             }
-          } else if (p.stillT > 1.5) Game.hint('Hold Buzz to shake the pollen out!');
+          } else if (p.stillT > 1.5) Game.hint('Hold or tap Buzz to shake the pollen out!');
         }
       }
+      if (f && f.pollen) p.progress = Math.min(1, p.buzzT / 0.8);
       if (p.load > 0 && Game.inHome()) {
         const before = Math.floor(g.score / 3);
         g.score += p.load;
@@ -458,8 +467,8 @@ const Missions = {
     ],
     how: [
       'Fly with the arrow keys, or touch and drag.',
-      'Land near a cow’s face and hold Sip to fill up on protein.',
-      'Then find a fresh cow pat and hold Lay to lay your eggs.',
+      'Land near a cow’s face and hold or tap Sip to fill up on protein.',
+      'Then find a fresh cow pat and hold or tap Lay to lay your eggs.',
       'Old pats dry out, and dung beetles bury them. Be quick!',
     ],
     discoveries: [
@@ -580,13 +589,14 @@ const Missions = {
       if (pat && !(cow && p.protein < 1)) {
         const ok = pat.fresh > 0.35 && p.protein >= 1;
         setAction('Lay', ok);
-        if (input.held) {
+        if (pat !== p.layOn) { p.layOn = pat; p.layT = 0; }
+        if (working(input)) {
           if (pat.fresh <= 0.35) { if (!quiet) Game.hint('This pat has dried out. Find a fresh, shiny one!'); Game.fact('dry'); }
           else if (p.protein < 1) { if (p.stillT > 1.5 && !quiet) Game.hint('You need protein first. Sip from a cow’s face.'); }
           else {
             p.landed = true;
             p.x = pat.x; p.y = pat.y;
-            p.layT += dt;
+            p.layT += work(input, dt);
             if (p.layT >= 1) {
               p.layT = 0; p.protein = 0; p.waitRelease = true;
               pat.eggs++; pat.hatchT = 6;
@@ -596,16 +606,18 @@ const Missions = {
               Game.fact('lay');
             }
           }
-        } else p.layT = 0;
+        }
+        if (ok) p.progress = Math.min(1, p.layT);
       } else if (cow) {
         setAction('Sip', p.protein < 1);
-        if (input.held && p.protein < 1) {
+        if (working(input) && p.protein < 1) {
           // Hang on to the cow's face while it moves.
           const h = this.head(cow);
           p.x = h.x; p.y = h.y;
           p.sip = true; p.landed = true;
           p.angle = cow.angle + Math.PI;
-          p.protein = Math.min(1, p.protein + dt / 1.2);
+          p.protein = Math.min(1, p.protein + work(input, dt) / 1.2);
+          p.progress = p.protein;
           if (Math.floor(g.t * 6) !== Math.floor((g.t - dt) * 6)) Sound.play('buzz');
           Game.fact('sip');
           if (p.protein >= 1) {
@@ -652,9 +664,9 @@ const Missions = {
     ],
     how: [
       'Crawl with the arrow keys, or touch and drag.',
-      'Find pink everlastings or yellow capeweed and hold Munch to eat the leaves.',
+      'Find pink everlastings or yellow capeweed and hold or tap Munch to eat the leaves.',
       'You’ll moult (shed your skin) as you grow. Eat 12 times.',
-      'Then hold Pupate on any plant to turn into a chrysalis.',
+      'Then press Pupate on any plant to turn into a chrysalis.',
     ],
     discoveries: [
       { key: 'd_paw', sprite: 'paw', fx: 0.7, fy: 0.25 },
@@ -702,7 +714,7 @@ const Missions = {
         // Caterpillars wander off to pupate on a stem: any plant will do.
         const stem = g.items.some(i => dist(i, p) < 34) || Game.inHome();
         setAction('Pupate', stem);
-        if (stem && input.held) {
+        if (stem && working(input)) {
           g.pupating = 1.5; g.frozen = true;
           p.angle = -Math.PI / 2;
         }
@@ -713,13 +725,15 @@ const Missions = {
       const pl = under.find(i => i.kind !== 'grevillea' && i.leaf > 0.05) || under[0];
       const host = pl && pl.kind !== 'grevillea';
       setAction('Munch', host && pl.leaf > 0.05);
-      if (pl && input.held) {
+      if (pl !== p.munchOn) { p.munchOn = pl; p.munchT = 0; }
+      if (pl && working(input)) {
         if (!host) { Game.hint('Not this one! Painted lady caterpillars only eat daisy plants.'); Game.fact('host'); }
         else if (pl.leaf <= 0.05) { if (!pl.toldEmpty) { pl.toldEmpty = true; Game.hint('All eaten! Find another plant.'); } }
         else {
           p.munch = true;
-          p.munchT += dt;
-          pl.leaf = Math.max(0, pl.leaf - dt / 3);
+          const w = work(input, dt);
+          p.munchT += w;
+          pl.leaf = Math.max(0, pl.leaf - w / 3);
           if (Math.floor(g.t * 5) !== Math.floor((g.t - dt) * 5)) Sound.play('tap');
           Game.fact(pl.kind === 'capeweed' ? 'capeweed' : 'host');
           if (p.munchT >= 1) {
@@ -732,10 +746,11 @@ const Missions = {
               Game.pop(p.x, p.y - 34, 'Moult!', '#ffd23f');
               Game.fact('moult');
             }
-            if (g.score === this.goal) g.toasts.push({ text: 'You’re fully grown! Find a plant stem and hold Pupate.', kind: 'hint' });
+            if (g.score === this.goal) g.toasts.push({ text: 'You’re fully grown! Find a plant stem and press Pupate.', kind: 'hint' });
           }
         }
-      } else p.munchT = 0;
+      }
+      if (host && pl.leaf > 0.05) p.progress = Math.min(1, p.munchT);
       p.size = 1 + g.score * 0.07;
       p.r = 16 * p.size;
       p.speed = 75 + g.score * 3;
@@ -814,15 +829,17 @@ const Missions = {
       const under = g.items.filter(i => i.sprite !== 'egg' && dist(i, p) < 30);
       const f = under.find(i => p.energy >= 1 ? i.kind !== 'grevillea' : i.nectar) || under[0];
       if (!f) { setAction(p.energy >= 1 ? 'Lay' : 'Sip', false); p.layT = 0; return; }
+      if (f !== p.layOn) { p.layOn = f; p.layT = 0; }
       const host = f.kind !== 'grevillea';
       if (p.energy >= 1) {
         setAction('Lay', host);
-        if (input.held) {
+        if (host) p.progress = Math.min(1, p.layT / 0.8);
+        if (working(input)) {
           if (!host) { if (!quiet) Game.hint('Taste with your feet: this isn’t a daisy plant. Try an everlasting or capeweed.'); Game.fact('grevillea'); }
           else {
             p.landed = true;
             Game.fact('feet');
-            p.layT += dt;
+            p.layT += work(input, dt);
             if (p.layT >= 0.8) {
               p.layT = 0; p.energy = 0; p.waitRelease = true;
               g.score++;
@@ -833,14 +850,15 @@ const Missions = {
               if (g.score === 3) Game.fact('travel');
             }
           }
-        } else p.layT = 0;
+        }
       } else {
         setAction('Sip', !!f.nectar);
-        if (input.held) {
+        if (f.nectar) p.progress = p.energy;
+        if (working(input)) {
           if (!f.nectar) { if (p.stillT > 1.5 && !quiet) Game.hint(f.kind === 'capeweed' ? 'Capeweed is for your eggs. Find a pink everlasting or a red grevillea to drink from.' : 'This flower is empty. Try another.'); }
           else {
             p.sip = true; p.landed = true;
-            p.energy = Math.min(1, p.energy + dt / 1.2);
+            p.energy = Math.min(1, p.energy + work(input, dt) / 1.2);
             Game.fact('sip');
             if (p.energy >= 1) {
               f.nectar = false;
@@ -878,7 +896,7 @@ const Missions = {
     ],
     how: [
       'Crawl with the arrow keys, or touch and drag.',
-      'Hold Chew on wood to bite off a piece. Hold Dig on damp mud to scoop some up.',
+      'Hold or tap Chew on wood to bite off a piece, or Dig on damp mud to scoop some up.',
       'Carry it home. Wood feeds the colony; mud builds the mound.',
       'Bring 4 of each. Watch out for raiding bull ants!',
     ],
@@ -933,8 +951,10 @@ const Missions = {
       const it = g.items.find(i => dist(i, p) < 26);
       const verb = it && it.kind === 'mud' ? 'Dig' : 'Chew';
       setAction(verb, !!it);
-      if (it && input.held) {
-        p.workT += dt;
+      if (it !== p.workOn) { p.workOn = it; p.workT = 0; }
+      if (it) p.progress = Math.min(1, p.workT / 0.8);
+      if (it && working(input)) {
+        p.workT += work(input, dt);
         if (Math.floor(g.t * 5) !== Math.floor((g.t - dt) * 5)) Sound.play('tap');
         if (p.workT >= 0.8) {
           p.workT = 0;
@@ -943,7 +963,7 @@ const Missions = {
           Sound.play('pick');
           Game.later(3, () => this.addThing(it.kind));
         }
-      } else p.workT = 0;
+      }
       if (g.mud >= 4 && g.wood < 4 && !g.toldMud) { g.toldMud = true; g.toasts.push({ text: 'The mound is built! Now bring wood to feed the colony.', kind: 'hint' }); }
       if (g.wood >= 4 && g.mud < 4 && !g.toldWood) { g.toldWood = true; g.toasts.push({ text: 'Plenty of food! Now bring mud to build the mound.', kind: 'hint' }); }
     },
@@ -981,7 +1001,7 @@ const Missions = {
     ],
     how: [
       'Slide with the arrow keys, or touch and drag.',
-      'Hold Graze on fungi, lichen or dead leaves to eat them. Eat 10 to grow your shell.',
+      'Hold or tap Graze on fungi, lichen or dead leaves to eat them. Eat 10 to grow your shell.',
       'Sunny patches dry you out. Keep to the shade, or hold Seal to close your shell.',
       'Watch out for the bobtail lizard.',
     ],
@@ -1029,9 +1049,10 @@ const Missions = {
       p.sealed = false;
       if (food) {
         setAction('Graze', true);
-        if (input.held) {
+        p.progress = 1 - food.amount;
+        if (working(input)) {
           // Each piece of food takes 1.5 s to finish; finishing it counts.
-          food.amount = Math.max(0, food.amount - dt / 1.5);
+          food.amount = Math.max(0, food.amount - work(input, dt) / 1.5);
           Game.fact('graze');
           if (food.amount <= 0.05) {
             food.amount = 0;
@@ -1040,7 +1061,7 @@ const Missions = {
             Game.pop(p.x, p.y - 22, 'Munch!', '#c0cc9a');
             Game.fact(g.score === 2 ? 'shell' : 'food');
           }
-        } else p.grazeT = 0;
+        }
       } else {
         setAction('Seal', inSun);
         if (input.held) { p.sealed = true; if (inSun) Game.fact('dry'); }

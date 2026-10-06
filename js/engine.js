@@ -329,8 +329,10 @@ const Game = {
       p.moving = true;
     }
     p.invuln = Math.max(0, p.invuln - dt);
-    p.stillT = p.moving ? 0 : (p.stillT || 0) + dt;   // how long you've stayed put (for gentle hints)
+    // How long you've stayed put without pressing anything (for gentle hints that don't nag tappers).
+    p.stillT = p.moving || Input.pressed || Input.held ? 0 : (p.stillT || 0) + dt;
 
+    p.progress = 0;   // missions set this while an action is under way (drawn as a ring)
     m.update(g, dt, Input);
     this.updateCamera();
     this.updateFinds();
@@ -572,6 +574,14 @@ const Game = {
       ctx.restore();
     }
 
+    // Progress ring for munching, chewing, sipping, laying...
+    if (p.progress > 0.01) {
+      const rr = p.r + 16;
+      ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, TAU);
+      ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 6; ctx.stroke();
+      ctx.beginPath(); ctx.arc(p.x, p.y, rr, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(1, p.progress));
+      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.stroke();
+    }
     if (p.invuln > 0 && Math.floor(g.t * 10) % 2) ctx.globalAlpha = 0.4;
     this.drawSprite(m.playerSprite ? m.playerSprite(g) : (m.sprite || m.id), p, m.scale * (1 + (p.hop || 0) * 0.5));
     ctx.globalAlpha = 1;

@@ -88,6 +88,50 @@ test('finishing a first stage unlocks the next', async (b) => {
   check(!(await p.locator('.stageBtn').nth(1).isDisabled()), 'adult still locked');
 });
 
+// ------------------------------------------------------------------ tapping (kids tap rather than hold)
+async function tapUntil(p, cond, max) {
+  for (let i = 0; i < (max || 12); i++) {
+    if (await p.evaluate(cond)) return true;
+    await p.keyboard.press(' ', { delay: 60 });
+    await p.waitForTimeout(140);
+  }
+  return p.evaluate(cond);
+}
+
+test('tapping Munch makes the caterpillar eat', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'caterpillar', { noNet: true, noPred: true });
+  await p.evaluate(() => { const g = Game.g, pl = g.items.find(i => i.kind !== 'grevillea'); g.player.x = pl.x; g.player.y = pl.y; });
+  check(await tapUntil(p, () => Game.g.score >= 1), 'no munch from taps');
+});
+
+test('tapping Chew makes the termite take wood', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'termite', { noNet: true, noPred: true });
+  await p.evaluate(() => { const g = Game.g, it = g.items.find(i => i.kind === 'woodChip'); g.player.x = it.x; g.player.y = it.y; });
+  check(await tapUntil(p, () => !!Game.g.player.carry), 'no wood from taps');
+});
+
+test('tapping Sip and Lay works for the bush fly', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'fly', { noNet: true, noPred: true });
+  await p.evaluate(() => { const g = Game.g; g.items.filter(i => i.kind === 'cow').forEach(c => { c.wt = 1e9; c.dir = 0; }); const c = g.items.find(i => i.kind === 'cow'); const h = g.mission.head(c); g.player.x = h.x; g.player.y = h.y; });
+  check(await tapUntil(p, () => Game.g.player.protein >= 1, 16), 'protein did not fill from taps');
+  await p.evaluate(() => { const g = Game.g, pt = g.pats.find(q => q.fresh > 0.5); g.player.x = pt.x; g.player.y = pt.y; });
+  await p.waitForTimeout(100);
+  check(await tapUntil(p, () => Game.g.score >= 1, 16), 'no eggs from taps');
+});
+
+test('the progress ring shows while munching', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'snail', { noNet: true, noPred: true });
+  await p.evaluate(() => { const g = Game.g, f = g.items[0]; g.player.x = f.x; g.player.y = f.y; });
+  await p.keyboard.down(' '); await p.waitForTimeout(500);
+  const prog = await p.evaluate(() => Game.g.player.progress);
+  await p.keyboard.up(' ');
+  check(prog > 0.1, 'progress ' + prog);
+});
+
 // ------------------------------------------------------------------ systems
 test('predator visits with a warning, then leaves', async (b) => {
   const p = await openGame(b);
