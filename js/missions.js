@@ -1009,16 +1009,16 @@ const Missions = {
       g.trail = g.trail.filter(q => g.t - q.t < 12);
 
       const inSun = g.sun.some(s => dist(s, p) < s.r);
-      const food = g.items.find(i => i.amount > 0.05 && dist(i, p) < 28);
+      const food = g.items.find(i => i.amount > 0.05 && dist(i, p) < 32);
       p.sealed = false;
       if (food) {
         setAction('Graze', true);
         if (input.held) {
-          p.grazeT += dt;
+          // Each piece of food takes 1.5 s to finish; finishing it counts.
           food.amount = Math.max(0, food.amount - dt / 1.5);
           Game.fact('graze');
-          if (p.grazeT >= 1.5) {
-            p.grazeT = 0;
+          if (food.amount <= 0.05) {
+            food.amount = 0;
             g.score++;
             Sound.play('score');
             Game.pop(p.x, p.y - 22, 'Munch!', '#c0cc9a');
@@ -1047,7 +1047,7 @@ const Missions = {
       }
       p.size = 1 + Math.min(g.score, 12) * 0.06;
       p.r = 14 * p.size;
-      p.speed = p.moist < 0.3 ? 35 : 55;
+      p.speed = p.moist < 0.3 ? 40 : 65;
     },
     drawBuild(ctx, g) {
       for (const s of g.sun) {
