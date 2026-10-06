@@ -2,7 +2,7 @@
 // Service worker: caches the whole game so it plays offline after the first visit.
 // Bump VERSION whenever any file below changes, so players get the update.
 
-const VERSION = 'bugame-v16';
+const VERSION = 'bugame-v17';
 const FILES = [
   './',
   'index.html',
@@ -16,7 +16,7 @@ const FILES = [
   'js/tank.js',
   'js/secrets.js',
   'js/missions.js', 'js/missions2.js', 'js/flight.js', 'vendor/three.min.js',
-  'js/ui.js', 'js/night.js',
+  'js/ui.js', 'js/night.js', 'js/tree.js',
 ];
 
 self.addEventListener('install', (e) => {

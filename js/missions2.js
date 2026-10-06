@@ -718,3 +718,273 @@ Object.assign(Missions, {
 });
 
 finishMissions();
+
+// ------------------------------------------------------------------ More female bugs
+Object.assign(Sprites, {
+  eggSac(ctx, o, t) {
+    ell(ctx, 0, 0, 11, 10, '#f4f2ea');
+    ctx.strokeStyle = 'rgba(200,195,180,.8)'; ctx.lineWidth = 0.6;
+    for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.arc(0, 0, 3 + i * 1.1, i, i + 2.4); ctx.stroke(); }
+    for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; plainLine(ctx, [Math.cos(a) * 10, Math.sin(a) * 9, Math.cos(a) * 18, Math.sin(a) * 16], 'rgba(255,255,255,.6)', 0.6); }
+  },
+  ripple(ctx, o, t) {
+    for (let i = 0; i < 3; i++) {
+      const r = 6 + ((t * 14 + i * 8) % 24);
+      ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.8, 0, 0, TAU);
+      ctx.strokeStyle = 'rgba(255,255,255,' + (0.8 - r / 32) + ')'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    if (!o.done) { ctx.beginPath(); ctx.arc(0, 0, 4, 0, TAU); ctx.fillStyle = 'rgba(255,230,120,.8)'; ctx.fill(); }
+  },
+});
+
+Object.assign(Missions, {
+  // Blue skimmer, adult female: eat, then lay eggs by dipping her tail into open water while a male guards her.
+  skimmerF: {
+    id: 'skimmerF', bug: 'dragonfly', stage: 'Adult female', place: 'Herdsman Lake', world: BIG,
+    sprite: 'dragonfly', bg: 'dragonfly',
+    action: 'Dart', radius: 20, speed: 190, scale: 1.3, goal: 6,
+    home: { x: 220, y: 600, r: 50, label: 'Reeds' },
+    facts: [
+      'Female blue skimmers are yellow-brown. Only the males turn powder-blue.',
+      'A female lays hundreds of tiny eggs. They hatch into nymphs, like you were.',
+      'While she lays, a male often flies close by to guard her from other males.',
+    ],
+    how: [
+      'Fly into 8 mosquitoes to get your energy up.',
+      'Then fly to the glowing ripples on open water and press Dip to lay your eggs. Lay at 6 spots.',
+      'The blue male will follow you and guard you. Press Dart for speed.',
+    ],
+    discoveries: [
+      { key: 'd_swan', sprite: 'feather', color: '#1a1a1a', fx: 0.45, fy: 0.85 },
+      { key: 'd_frog', sprite: 'frog', fx: 0.05, fy: 0.12 },
+    ],
+    factText: {
+      start: 'You’re a mother blue skimmer. First you need energy, so catch some mosquitoes!',
+      catch: 'Dragonflies catch insects in mid-air, scooping them up with their spiny legs.',
+      dip: 'Female blue skimmers lay eggs by tapping the tip of their body on the water as they fly.',
+      guard: 'The male hovers nearby to keep other males away, so the eggs being laid are his.',
+      rival: 'Look! The guarding male chases off another male.',
+      hobby: 'The Australian hobby is a small, fast falcon. It can catch dragonflies in mid-air.',
+      wings: 'Dragonflies can move each of their 4 wings on its own.',
+      d_swan: 'A black swan feather. The black swan is the bird emblem of Western Australia.',
+      d_frog: 'A motorbike frog. Its call sounds like a motorbike changing gears.',
+      win: 'Your eggs sink into the water and hatch into nymphs in a few weeks. The life cycle starts again!',
+    },
+    setup(g) {
+      const p = g.player;
+      p.female = true; p.dart = 0; p.dartCd = 0; p.energy = 0;
+      for (let i = 0; i < 10; i++) Missions.dragonfly.addMozzie();
+      g.male = { sprite: 'dragonfly', kind: 'male', x: p.x + 80, y: p.y - 60, r: 0, scale: 1.2, angle: 0, flat: true };
+      g.spots = [];
+      Game.addPred({ sprite: 'hobby', name: 'Australian hobby', r: 26, wanderSpeed: 90, chaseSpeed: 225, sight: 210, chaseTime: 2.2, restTime: 4 });
+      Game.later(8, () => Game.fact('guard'));
+    },
+    makeSpots(g) {
+      for (let i = 0; i < 6; i++) {
+        const s = Game.spawnPoint(350);
+        g.spots.push({ sprite: 'ripple', x: s.x, y: s.y, r: 18, angle: 0, flat: true, done: false });
+      }
+    },
+    update(g, dt, input) {
+      const p = g.player;
+      p.dart = Math.max(0, p.dart - dt); p.dartCd = Math.max(0, p.dartCd - dt);
+      p.speed = p.dart > 0 ? 340 : 190;
+      // The male keeps close, just off to one side
+      const mm = g.male, ta = g.t * 1.4;
+      const tx = p.x + Math.cos(ta) * 70, ty = p.y + Math.sin(ta) * 50;
+      mm.angle = Math.atan2(ty - mm.y, tx - mm.x);
+      mm.x += (tx - mm.x) * Math.min(1, dt * 3); mm.y += (ty - mm.y) * Math.min(1, dt * 3);
+      // Now and then a rival male turns up and the guard chases him off
+      if (g.rival) {
+        const rv = g.rival; rv.t += dt;
+        if (rv.t < 1.5) { rv.x += (p.x + 160 - rv.x) * dt; rv.y += (p.y - 120 - rv.y) * dt; }
+        else { rv.x += 380 * dt; rv.y -= 260 * dt; mm.x += (rv.x - mm.x) * dt * 2; }
+        if (rv.t > 3.5) { g.items.splice(g.items.indexOf(rv), 1); g.rival = null; }
+      } else if (g.score >= 1 && Math.random() < dt / 12) {
+        g.rival = { sprite: 'dragonfly', kind: 'rival', x: p.x + 500, y: p.y - 300, r: 0, scale: 1.2, angle: Math.PI, flat: true, t: 0 };
+        g.items.push(g.rival);
+        Game.fact('rival');
+      }
+      for (const m of g.items) if (m.kind === 'mosquito') { wander(m, dt, m.speed); if (Math.random() < dt * 2) m.wt = 0; }
+      const caught = g.items.find(i => i.kind === 'mosquito' && touching(p, i, 2));
+      if (caught && p.energy < 8) {
+        g.items.splice(g.items.indexOf(caught), 1);
+        p.energy++; Sound.play('pick'); Game.pop(caught.x, caught.y - 12, '+1', '#fff'); Game.fact('catch');
+        Game.later(1, () => Missions.dragonfly.addMozzie());
+        if (p.energy === 8) {
+          this.makeSpots(g); Sound.play('score');
+          g.toasts.unshift({ text: 'Full of energy! Fly to the glowing ripples and press Dip to lay eggs.', kind: 'hint' }); g.toastT = 0;
+        }
+      }
+      const spot = p.energy >= 8 ? g.spots.find(s => !s.done && dist(s, p) < 34) : null;
+      if (spot) {
+        setAction('Dip', true);
+        if (input.pressed) {
+          spot.done = true; g.score++;
+          Sound.play('score'); Game.pop(spot.x, spot.y - 16, 'Eggs!', '#ffd23f');
+          Game.burst(spot.x, spot.y, '#e8f8ff', 16); Game.fact('dip');
+        }
+      } else {
+        setAction('Dart', p.dartCd <= 0);
+        if (input.pressed && p.dartCd <= 0) { p.dart = 0.6; p.dartCd = 2.5; Sound.play('dart'); Game.fact('wings'); }
+      }
+    },
+    drawBuild(ctx, g) { for (const s of g.spots) Game.drawSprite('ripple', s, 1.4); },
+    drawExtra(ctx, g) { Game.drawSprite('dragonfly', g.male, g.male.scale); },
+    goalPoint(g) { return g.player.energy >= 6 ? nearest(g.spots.filter(s => !s.done), g.player, 99999) : null; },
+    hud(g) {
+      const p = g.player;
+      if (p.energy < 8) setHud('Energy: ' + p.energy + ' / 8', 'Catch mosquitoes');
+      else setHud('Eggs laid: ' + g.score + ' / ' + this.goal, '');
+    },
+    won(g) { return g.score >= this.goal; },
+  },
+
+  // Peacock spider, adult female: watch the males dance, choose one, spin an egg sac and guard it.
+  spiderF: {
+    id: 'spiderF', bug: 'spider', stage: 'Adult female', place: 'Coastal dunes, Cottesloe', world: BIG,
+    sprite: 'femaleSpider', bg: 'spider', escape: 'Jump',
+    action: 'Choose', radius: 15, speed: 105, scale: 1.8, goal: 3,
+    home: { x: 260, y: 1000, r: 44, label: 'Silk retreat' },
+    facts: [
+      'Female peacock spiders are brown, so they’re hard to spot on the sand.',
+      'Males dance for the females. The female decides which male she likes best.',
+      'A mother peacock spider guards her egg sac until the babies hatch.',
+    ],
+    how: [
+      'Males will come and dance for you. Watch them!',
+      'Walk up to the one you like best and press Choose.',
+      'Go back to your silk retreat and hold Spin to make an egg sac.',
+      'Then guard it! When an ant comes near, press Jump to chase it away. Chase off 3 ants.',
+    ],
+    discoveries: [
+      { key: 'd_snail', sprite: 'shell', color: '#f2efe4', fx: 0.65, fy: 0.25 },
+      { key: 'd_gull', sprite: 'feather', color: '#d8d8d8', band: '#7a7a7a', fx: 0.15, fy: 0.6 },
+    ],
+    factText: {
+      start: 'Female peacock spiders can see colour well, so they can judge the males’ bright fans.',
+      dance: 'Each male raises his colourful fan and waves his legs. He also drums on the ground with his body.',
+      choose: 'Scientists think females pick males with the brightest colours and best dances.',
+      sac: 'She wraps her eggs in a soft silk sac inside her retreat.',
+      ant: 'Ants will steal spider eggs if they get the chance.',
+      guard: 'Jumping spiders are brave mothers. She’ll chase off insects much bigger than she is.',
+      d_snail: 'A white snail shell. In summer these snails climb plants to keep off the hot sand.',
+      d_gull: 'A silver gull feather. Gulls eat almost anything they find along the beach.',
+      win: 'In a few weeks, tiny spiderlings will hatch and leave the egg sac. Each one can already jump!',
+    },
+    setup(g) {
+      const p = g.player;
+      p.jcd = 0; g.phase = 'watch'; g.males = []; g.spinT = 0; g.chased = 0; g.antT = 3;
+      const cols = [['#2a8aa8', '#ff6a1a'], ['#3a6ad0', '#f2d040'], ['#40a070', '#e8402a']];
+      for (let i = 0; i < 3; i++) {
+        Game.later(2 + i * 3, () => {
+          if (g.phase !== 'watch') return;
+          const s = Game.spawnPoint(60, p, 220);
+          const m = { sprite: 'spider', kind: 'male', x: s.x, y: s.y, r: 14, scale: 1.6, angle: 0, dance: 0, n: i, flat: false };
+          g.males.push(m); g.items.push(m);
+          Sound.play('pick');
+          Game.fact('dance');
+          if (i === 0) { g.toasts.unshift({ text: 'A male is dancing for you! Walk up to the one you like and press Choose.', kind: 'hint' }); g.toastT = 0; }
+        });
+      }
+    },
+    update(g, dt, input) {
+      const p = g.player;
+      // Males face you and keep dancing
+      for (const m of g.males) {
+        m.angle = Math.atan2(p.y - m.y, p.x - m.x);
+        m.dance = 1; m.fan = 1;
+        if (dist(m, p) > 90) { m.x += Math.cos(m.angle) * 40 * dt; m.y += Math.sin(m.angle) * 40 * dt; }
+        if (m.leave) { m.x -= Math.cos(m.angle) * 160 * dt; m.y -= Math.sin(m.angle) * 160 * dt; }
+      }
+      g.males = g.males.filter(m => { if (m.leave && dist(m, p) > 500) { g.items.splice(g.items.indexOf(m), 1); return false; } return true; });
+      if (g.phase === 'watch') {
+        const m = nearest(g.males, p, 70);
+        setAction('Choose', !!m);
+        if (m && input.pressed) {
+          g.phase = 'sac'; g.chosen = m;
+          Sound.play('win'); Game.pop(m.x, m.y - 30, '♥', '#e8506a'); Game.fact('choose');
+          for (const o of g.males) if (o !== m) o.leave = true;
+          Game.later(2.5, () => { m.leave = true; });
+          g.toasts.unshift({ text: 'Good choice! Now go back to your silk retreat and hold Spin.', kind: 'hint' }); g.toastT = 0;
+        }
+        return;
+      }
+      if (g.phase === 'sac') {
+        const home = Game.inHome();
+        setAction('Spin', home);
+        if (home && working(input)) {
+          g.spinT += work(input, dt); p.progress = g.spinT / 2;
+          if (g.spinT >= 2) {
+            g.phase = 'guard';
+            g.sac = { sprite: 'eggSac', kind: 'sac', x: g.home.x + 20, y: g.home.y, r: 12, scale: 1.4, angle: 0 };
+            g.items.push(g.sac);
+            Sound.play('score'); Game.pop(g.sac.x, g.sac.y - 24, 'Egg sac!', '#fff'); Game.fact('sac');
+            g.toasts.unshift({ text: 'Guard your eggs! Jump at ants that come near.', kind: 'hint' }); g.toastT = 0;
+          }
+        }
+        return;
+      }
+      // Guarding: ants come one at a time toward the sac
+      if (!g.ant) {
+        g.antT -= dt;
+        if (g.antT <= 0) {
+          const a = Math.random() * TAU;
+          g.ant = { sprite: 'smallAnt', kind: 'ant', x: g.sac.x + Math.cos(a) * 380, y: g.sac.y + Math.sin(a) * 380, r: 10, scale: 1.4, angle: 0, state: 'sit' };
+          g.ant.x = clamp(g.ant.x, 30, World.w - 30); g.ant.y = clamp(g.ant.y, 30, World.h - 30);
+          g.items.push(g.ant); Game.fact('ant');
+        }
+      }
+      const ant = g.ant;
+      if (ant) {
+        if (ant.flee) {
+          ant.x += Math.cos(ant.angle) * 200 * dt; ant.y += Math.sin(ant.angle) * 200 * dt;
+          ant.flee -= dt;
+          if (ant.flee <= 0) { g.items.splice(g.items.indexOf(ant), 1); g.ant = null; g.antT = 3 + Math.random() * 2; }
+        } else {
+          ant.angle = Math.atan2(g.sac.y - ant.y, g.sac.x - ant.x);
+          if (dist(ant, g.sac) > 20) { ant.x += Math.cos(ant.angle) * 45 * dt; ant.y += Math.sin(ant.angle) * 45 * dt; ant.moving = true; }
+        }
+      }
+      // Jump at the ant to scare it off
+      const prey = ant && !ant.flee ? [ant] : [];
+      const hit = spiderHunt(g, dt, input, prey, 170);
+      if (hit) {
+        g.items.push(hit);   // spiderHunt removes what it lands on; the ant runs off instead
+        hit.flee = 2; hit.angle = Math.atan2(hit.y - g.sac.y, hit.x - g.sac.x);
+        g.chased++; Game.pop(hit.x, hit.y - 20, 'Shoo!', '#ffd23f'); Game.fact('guard');
+      }
+    },
+    locked(g) { return !!g.player.jump; },
+    drawExtra(ctx, g) { drawSilk(ctx, g.player); },
+    goalPoint(g) {
+      if (g.phase === 'sac') return g.home;
+      if (g.phase === 'guard' && g.ant && !g.ant.flee) return g.ant;
+      return null;
+    },
+    hud(g) {
+      if (g.phase === 'watch') setHud('Choose a male', g.males.length + ' dancing');
+      else if (g.phase === 'sac') setHud('Spin an egg sac at home', '');
+      else setHud('Ants chased: ' + g.chased + ' / ' + this.goal, '');
+    },
+    won(g) { return g.chased >= this.goal; },
+  },
+});
+Bugs.find(b => b.id === 'dragonfly').stages.push('skimmerF');
+Bugs.find(b => b.id === 'spider').stages.push('spiderF');
+
+// Who you are in each stage, shown on the bug page.
+const SEX = {
+  ant: 'You are a female worker. All bull ant workers are female.',
+  queen: 'You are a queen: the female who lays all the colony’s eggs.',
+  bee: 'You are a female.', fly: 'You are a female.',
+  caterpillar: 'Caterpillars grow up to be male or female.',
+  butterfly: 'You are a female.', flight: 'You are a female.',
+  termite: 'Termite workers can be male or female.',
+  snail: 'You are male and female at the same time.',
+  spiderling: 'You’re too young to tell yet.', spider: 'You are a male.', spiderF: 'You are a female.',
+  nymph: 'You’re too young to tell yet.', dragonfly: 'You are a male.', skimmerF: 'You are a female.',
+  sandhopper: 'You are a female.', mosquito: 'You are a female. Only females bite.',
+};
+for (const id in SEX) if (Missions[id]) Missions[id].sex = SEX[id];
+finishMissions();

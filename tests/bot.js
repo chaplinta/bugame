@@ -82,6 +82,14 @@
         goal = { x: p.x + turn * 200, y: p.y + dyv * 200 };
         if (fl.y < want - 1 && fl.vy < 2) act = true;
       }
+    } else if (id === 'skimmerF') {
+      if (p.energy < 8) goal = near(g.items.filter(i => i.kind === 'mosquito'));
+      else { const s = near(g.spots.filter(q => !q.done)); goal = s; if (s && dist(s, p) < 30) act = true; }
+    } else if (id === 'spiderF') {
+      if (g.phase === 'watch') { const mm = near(g.males); if (mm) { goal = mm; if (dist(mm, p) < 60) act = true; } }
+      else if (g.phase === 'sac') { if (Game.inHome()) { hold = true; goal = null; } else goal = g.home; }
+      else if (g.ant && !g.ant.flee) { if (dist(g.ant, p) < 150) act = true; else goal = g.ant; }
+      else goal = g.sac;
     } else if (id === 'dragonfly') {
       goal = near(g.items);
     }

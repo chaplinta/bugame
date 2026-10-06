@@ -135,6 +135,7 @@ function selectStage(id) {
     box.appendChild(b);
   });
   $('stagePlace').textContent = (bug.stages.length > 1 ? '' : m.stage + ' · ') + m.place;
+  $('stageSex').textContent = m.sex || '';
   fillList($('stageFacts'), m.facts);
   fillList($('stageHow'), m.gentle ? m.how.concat('You can\u2019t lose this one. If you get caught you just go home.') : m.how);
 }

@@ -39,6 +39,7 @@
     <div id="placeList"></div>
     <div class="buttons">
       <button id="bookBtn">Bug Book</button>
+      <button id="treeBtn">Family tree</button>
       <button id="installBtn" class="secondary" hidden>Install app</button>
     </div>
   </section>
@@ -50,6 +51,7 @@
       <p class="sci" id="bugSci"></p>
       <div id="stages" class="stages"></div>
       <p class="place" id="stagePlace"></p>
+      <p class="sexTag" id="stageSex"></p>
       <ul id="stageFacts" class="facts"></ul>
       <h3>How to play</h3>
       <ul id="stageHow" class="how"></ul>
@@ -109,6 +111,16 @@
     </div>
   </section>
 
+  <section id="tree" class="screen">
+    <header class="top">
+      <h1>Bug family tree</h1>
+      <button id="treeBack" class="secondary">Map</button>
+    </header>
+    <p class="sub">How the bugs are related. Close branches mean close relatives.</p>
+    <canvas id="treeCanvas"></canvas>
+    <p id="treeFact" class="panel treeFact"></p>
+  </section>
+
   <section id="book" class="screen">
     <header class="top">
       <h1>Bug Book</h1>
@@ -129,5 +141,6 @@
 <script src="js/flight.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/night.js"></script>
+<script src="js/tree.js"></script>
 </body>
 </html>

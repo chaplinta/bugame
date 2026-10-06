@@ -261,6 +261,30 @@ test('3D butterfly flight: three.js loads, renders, and falls back without WebGL
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+test('family tree: branches give facts, bugs open their page', async (b) => {
+  const p = await openGame(b);
+  await p.click('#treeBtn');
+  check(await p.isVisible('#tree.active'), 'tree screen not shown');
+  const box = await p.locator('#treeCanvas').boundingBox();
+  const at = (h) => [box.x + (h.x + h.w / 2) / 960 * box.width, box.y + (h.y + h.h / 2) / 640 * box.height];
+  const insects = await p.evaluate(() => Tree.hits.find(h => h.node && h.node.name === 'Insects'));
+  await p.mouse.click(...at(insects));
+  check(/6 legs/.test(await p.textContent('#treeFact')), 'no fact for a branch');
+  check(await p.evaluate(() => Tree.hits.filter(h => h.bug).length === Bugs.length), 'not every bug is on the tree');
+  const snail = await p.evaluate(() => Tree.hits.find(h => h.bug && h.bug.id === 'snail'));
+  await p.mouse.click(...at(snail));
+  check(await p.isVisible('#bug.active') && (await p.textContent('#bugName')) === 'Native Snail', 'bug page not opened');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('bug pages say who you are (female, male, both)', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(() => openBug(Bugs.find(x => x.id === 'mosquito')));
+  check(/female/i.test(await p.textContent('#stageSex')), 'mosquito not female');
+  await p.evaluate(() => openBug(Bugs.find(x => x.id === 'snail')));
+  check(/male and female/i.test(await p.textContent('#stageSex')), 'snail not both');
+});
+
 test('messages do not pile up', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'ant', { noNet: true, noPred: true });

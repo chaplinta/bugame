@@ -434,4 +434,5 @@ Missions.flight = {
 };
 
 Bugs.find(b => b.id === 'butterfly').stages.push('flight');
+Missions.flight.sex = 'You are a female.';
 finishMissions();
