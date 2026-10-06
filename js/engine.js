@@ -295,6 +295,7 @@ const Game = {
   update(dt) {
     const g = this.g, p = g.player, m = g.mission;
     g.t += dt;
+    if (g.night) return;   // night has fallen: everyone is asleep (js/night.js)
 
     for (const tm of g.timers) { tm.t -= dt; if (tm.t <= 0) tm.fn(); }
     g.timers = g.timers.filter(tm => tm.t > 0);
@@ -532,6 +533,7 @@ const Game = {
     if (g.event && g.event.phase === 'tank') { this.drawTank(ctx); return; }
     this.drawWorld(ctx);
     if (g.event) this.drawSwoop(ctx);
+    if (typeof Night !== 'undefined') Night.drawSky(ctx);
   },
 
   drawWorld(ctx) {

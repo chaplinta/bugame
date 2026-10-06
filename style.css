@@ -141,3 +141,14 @@ li.unknown { color: #9a8d72; font-style: italic; }
   #toast { max-width: 62%; font-size: .9rem; left: 38%; }
   #hud > * { font-size: .85rem; padding: 3px 8px; }
 }
+
+/* Day clock and night screen */
+canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 2px 6px rgba(60,30,10,.2); align-self: center; }
+#hud canvas.sunClock { padding: 0; background: none; }
+.toggles { align-items: center; }
+#night .panel { background: linear-gradient(#1a2258, #2e3c80); color: #f4f0ff; border-color: #4a5aa0; }
+#night h2, #night h3 { color: #ffe9a0; }
+#nightPic { width: 300px; height: 180px; border-radius: 14px; }
+.center { text-align: center; }
+#actionBtn.asleep { visibility: hidden; }
+#night .unlock { color: #9be6a8; }

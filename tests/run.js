@@ -221,6 +221,27 @@ test('kid with a net: tank escape and 30 s release', async (b) => {
   check(await p.evaluate(() => !Game.g.event), 'not released');
 });
 
+test('night falls after 10 minutes: bugs sleep, night screen, new day', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'bee', { noNet: true, noPred: true });
+  await p.evaluate(() => { Night.elapsed = 500; Night.tick(0); });
+  check(await p.evaluate(() => Night.dusk() > 0), 'no dusk');
+  await p.evaluate(() => { Night.elapsed = 598.5; });
+  await p.waitForFunction(() => Game.g.night > 0, null, { timeout: 5000 });
+  const x = await p.evaluate(() => Game.g.player.x);
+  await p.keyboard.down('ArrowRight'); await p.waitForTimeout(400); await p.keyboard.up('ArrowRight');
+  check(await p.evaluate((x) => Game.g.player.x === x, x), 'bug moved while asleep');
+  await p.waitForSelector('#night.active', { timeout: 8000 });
+  check(await p.locator('#nightFacts li').count() >= 1, 'no facts on night screen');
+  // Reloading keeps it night; starting a game shows the night screen again.
+  await p.reload();
+  check(await p.isVisible('#night.active'), 'night not kept after reload');
+  await p.click('#newDay');
+  check(await p.isVisible('#map.active'), 'new day did not go to map');
+  check(await p.evaluate(() => Night.left() > 590 && !Night.fallen), 'clock not reset');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('messages do not pile up', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'ant', { noNet: true, noPred: true });

@@ -144,6 +144,7 @@ function readStage() {
 }
 
 function startGame() {
+  if (typeof Night !== 'undefined' && Night.fallen) { Night.showScreen(); return; }
   Speech.stop();
   show('play');
   syncToggles();

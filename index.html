@@ -19,6 +19,7 @@
     <header class="top">
       <h1 id="title">Bugame</h1>
       <div class="toggles">
+        <canvas class="sunClock" title="Time left today"></canvas>
         <button class="toggle" data-setting="sound" aria-pressed="true">Sound</button>
         <button class="toggle" data-setting="speech" aria-pressed="false">Read to me</button>
       </div>
@@ -68,6 +69,7 @@
         <span id="hudGoal"></span>
         <span id="hudExtra"></span>
         <span id="hudFind"></span>
+        <canvas class="sunClock" title="Time left today"></canvas>
         <button id="hudSound" class="hudToggle" aria-label="Sound on or off"></button>
         <span id="hudLives"></span>
       </div>
@@ -93,6 +95,20 @@
     </div>
   </section>
 
+  <section id="night" class="screen">
+    <div class="panel nightPanel">
+      <canvas id="nightPic"></canvas>
+      <h2>Night time!</h2>
+      <p class="sub center">The sun has set and all the bugs are asleep. Good night!</p>
+      <p id="nightCount" class="unlock"></p>
+      <h3>Facts you found today</h3>
+      <ul id="nightFacts" class="facts"></ul>
+      <div class="buttons">
+        <button id="newDay">Start a new day</button>
+      </div>
+    </div>
+  </section>
+
   <section id="book" class="screen">
     <header class="top">
       <h1>Bug Book</h1>
@@ -110,5 +126,6 @@
 <script src="js/secrets.js"></script>
 <script src="js/missions.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/night.js"></script>
 </body>
 </html>
