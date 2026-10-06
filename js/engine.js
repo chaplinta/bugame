@@ -187,6 +187,7 @@ const Game = {
       { x: d.fx * World.w, y: d.fy * World.h }));
     this.g = g;
     mission.setup(g);
+    if (this.setupSecret) this.setupSecret();
     this.updateZoom();
     this.updateCamera();
     this.bg = document.createElement('canvas');
@@ -336,6 +337,7 @@ const Game = {
     m.update(g, dt, Input);
     this.updateCamera();
     this.updateFinds();
+    if (this.checkSecret) this.checkSecret(dt);
 
     if (g.predCfg && !g.preds.length && !g.frozen) {
       g.predT -= dt;
@@ -490,8 +492,8 @@ const Game = {
   showToast(tst) {
     const el = document.getElementById('toast');
     if (!tst) { el.className = ''; return; }
-    el.className = 'show' + (tst.kind === 'hint' ? ' hint' : '');
-    el.innerHTML = (tst.kind === 'fact' ? '<b>Bug fact:</b> ' : '') + tst.text;
+    el.className = 'show' + (tst.kind === 'hint' ? ' hint' : tst.kind === 'secret' ? ' secret' : '');
+    el.innerHTML = (tst.kind === 'fact' ? '<b>Bug fact:</b> ' : tst.kind === 'secret' ? '<b>Secret!</b> ' : '') + tst.text;
     Speech.say(tst.text);
   },
 
@@ -547,6 +549,7 @@ const Game = {
     ctx.fillText(g.home.label, g.home.x, g.home.y + g.home.r + 16);
 
     if (m.drawBuild) m.drawBuild(ctx, g);
+    if (this.drawSecret) this.drawSecret(ctx);
     for (const d of g.finds) {
       this.drawSprite(d.sprite, d, d.scale || 1.4);
       if (!d.found) {
@@ -584,6 +587,7 @@ const Game = {
     }
     if (p.invuln > 0 && Math.floor(g.t * 10) % 2) ctx.globalAlpha = 0.4;
     this.drawSprite(m.playerSprite ? m.playerSprite(g) : (m.sprite || m.id), p, m.scale * (1 + (p.hop || 0) * 0.5));
+    if (this.drawHat) this.drawHat(ctx);
     ctx.globalAlpha = 1;
 
     for (const pr of g.preds) {

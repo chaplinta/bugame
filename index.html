@@ -17,7 +17,7 @@
 
   <section id="map" class="screen active">
     <header class="top">
-      <h1>Bugame</h1>
+      <h1 id="title">Bugame</h1>
       <div class="toggles">
         <button class="toggle" data-setting="sound" aria-pressed="true">Sound</button>
         <button class="toggle" data-setting="speech" aria-pressed="false">Read to me</button>
@@ -26,7 +26,14 @@
     <p class="sub">Be a real bug in Perth, WA. Tap a place on the map.</p>
     <div id="mapWrap">
       <canvas id="mapCanvas"></canvas>
+      <canvas id="parade" hidden></canvas>
       <div id="pins"></div>
+      <button id="rottnest" aria-label="Rottnest Island"></button>
+      <div id="secretPop" class="panel" hidden>
+        <canvas></canvas>
+        <p></p>
+        <button id="secretClose">Cool!</button>
+      </div>
     </div>
     <div id="placeList"></div>
     <div class="buttons">
@@ -98,6 +105,7 @@
 <script src="js/sprites.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/tank.js"></script>
+<script src="js/secrets.js"></script>
 <script src="js/missions.js"></script>
 <script src="js/ui.js"></script>
 </body>

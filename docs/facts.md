@@ -150,6 +150,9 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Female libellulids such as *Orthetrum* lay eggs by dipping the abdomen tip into water in flight. Corbet.
 - Australian hobby (*Falco longipennis*) takes dragonflies in flight. BirdLife Australia.
 
+## Secrets
+- Quokkas live on Rottnest Island; in 1696 Dutch explorer Willem de Vlamingh mistook them for large rats and named the island "Rottenest" (rat's nest). Rottnest Island Authority; WAM.
+
 ## Catch and release
 - In-game advice after escaping the bug tank: "It's fine to catch a bug to have a look, but always let it go where you found it." Standard advice from museums and education programs (e.g. Australian Museum bug-collecting guidance); also avoids moving animals between habitats.
 

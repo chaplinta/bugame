@@ -19,6 +19,8 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - **Building**: homes grow as you bring things back (the ant nest gets more entrances, the bee fills burrow cells).
 - **Predators are rare**: one passes through about once a minute, gives a warning, then leaves.
 - **Kid with a net**: once in every level, a kid catches you with a bug net and pops you in a bug tank (a jar of pond water for the nymph). Wait for the kid to lift a corner of the lid, get to the gap and press the action button (Climb, Fly, Jump or Swim) to escape. If you don't escape within 30 seconds the kid lets you go.
+- **Bug tank (side view)**: when the kid catches you, you see the tank side-on on their desk. Climb up the glass (or fly or swim) to the gap when they lift the lid.
+- **Secrets**: a hidden lost thing in every place (no sparkle to give it away), a quokka on Rottnest on the map, a bug parade if you tap the title lots, a spin if you mash the action button, and a Santa hat in December. The Bug Book counts them.
 - **Keep exploring**: after finishing a goal you can carry on playing.
 - **Map**: a map of Perth. Tap a bug's place to open its page.
 - **Life stages**: the bull ant, peacock spider and blue skimmer have two stages each. Finishing a stage unlocks the next.
@@ -49,6 +51,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - `js/sprites.js`: bug, predator, plant and background drawings
 - `js/missions.js`: `Bugs` (map pins, stage order) and `Missions` (one per stage, with all its facts in `factText`)
 - `js/tank.js`: the kid-with-a-net event and the bug tank
+- `js/secrets.js`: Easter eggs
 - `js/ui.js`: map, bug page, end screen, Bug Book, saved progress
 
 Tests: `node tests/run.js` (see `tests/README.md`).

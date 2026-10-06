@@ -22,7 +22,7 @@ test('map, pins, bug pages, Bug Book load without errors', async (b) => {
     await p.click('#bugBack');
   }
   await p.click('#bookBtn');
-  check(await p.locator('.bookBug').count() === pins, 'book sections');
+  check(await p.locator('.bookBug').count() === pins + 1, 'book sections (one per bug plus Secrets)');
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
@@ -203,6 +203,29 @@ test('progress is saved and survives a reload', async (b) => {
   await p.reload();
   const stars = await p.locator('.pin', { hasText: 'Peacock Spider' }).locator('.pinStars').textContent();
   check(/★/.test(stars), 'no stars after reload: ' + stars);
+});
+
+test('secrets: hidden thing in a world, quokka on the map, Bug Book count', async (b) => {
+  const p = await openGame(b);
+  await p.click('#rottnest');
+  check(await p.isVisible('#secretPop'), 'no quokka');
+  await p.click('#secretClose');
+  await startMission(p, 'termite', { noNet: true, noPred: true });
+  await p.evaluate(() => { const s = Game.g.secret; Game.g.player.x = s.x; Game.g.player.y = s.y; });
+  await p.waitForTimeout(200);
+  check(/Secret!/.test(await p.textContent('#toast')), 'no secret message');
+  await p.click('#menuBtn');
+  await p.click('#bookBtn');
+  check(/Secrets found: 2 \//.test(await p.textContent('.secrets .count')), 'book count ' + await p.textContent('.secrets .count'));
+});
+
+test('tank is side-on: gaps only open at the top', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'bee', { noPred: true });
+  await p.evaluate(() => { Game.g.player.x += 400; Game.g.netT = 0; });
+  await p.waitForFunction(() => Game.g.event && Game.g.event.phase === 'tank', null, { timeout: 5000 });
+  const ys = await p.evaluate(() => Game.g.event.corners.map(c => c.y));
+  check(ys.every(y => y < 150), 'gap not at the top: ' + ys);
 });
 
 // ------------------------------------------------------------------ platform

@@ -52,16 +52,22 @@ Object.assign(Game, {
     } else {
       ev.lidT -= dt;
       if (ev.lidT <= 0) {
-        const c = ev.corners[Math.floor(Math.random() * 4)];
+        const c = ev.corners[Math.floor(Math.random() * ev.corners.length)];
         ev.open = { x: c.x, y: c.y, t: 4.5 };
-        ev.leaves.push({ x: TANK.x + 80 + Math.random() * (TANK.w - 160), y: TANK.y + 80 + Math.random() * (TANK.h - 160), a: Math.random() * TAU });
+        // A leaf drops in through the gap and falls to the floor.
+        ev.leaves.push({ x: c.x + (c.x < W / 2 ? 30 : -30), y: TANK.y + 10, a: Math.random() * TAU, vy: 0 });
         Sound.play('tap');
         if (!ev.toldGap) {
           ev.toldGap = true;
-          g.toasts.unshift({ text: 'The lid is open! Get to the gap and press ' + ev.verb + '!', kind: 'hint' });
+          const how = ev.verb === 'Fly' ? 'Fly up' : ev.verb === 'Swim' ? 'Swim up' : 'Climb up the glass';
+          g.toasts.unshift({ text: 'The lid is open! ' + how + ' to the gap and press ' + ev.verb + '!', kind: 'hint' });
           g.toastT = 0;
         }
       }
+    }
+    for (const lf of ev.leaves) {
+      const floor = TANK.y + TANK.h - (ev.water ? 40 : 66);
+      if (lf.y < floor) { lf.vy = Math.min(ev.water ? 40 : 160, lf.vy + dt * 300); lf.y += lf.vy * dt; lf.x += Math.sin(g.t * 3 + lf.a) * 20 * dt; lf.a += dt; }
     }
     ev.eyeT -= dt;
     if (ev.eyeT < -1.6) { ev.eyeT = 3 + Math.random() * 3; ev.eyeSide = Math.random() < 0.5 ? -1 : 1; }
@@ -85,18 +91,18 @@ Object.assign(Game, {
     ev.saved = { x: p.x, y: p.y, angle: p.angle };
     ev.verb = m.escape || ESCAPE_VERB[m.id] || 'Fly';
     ev.speed = p.speed;
-    ev.lidT = 3;
+    ev.lidT = 2;
     ev.open = null;
     ev.eyeT = 1;
     ev.eyeSide = 1;
     ev.leaves = [];
     ev.water = m.id === 'nymph';
-    ev.corners = [
-      { x: TANK.x + 30, y: TANK.y + 30 }, { x: TANK.x + TANK.w - 30, y: TANK.y + 30 },
-      { x: TANK.x + 30, y: TANK.y + TANK.h - 30 }, { x: TANK.x + TANK.w - 30, y: TANK.y + TANK.h - 30 },
-    ];
+    // Side view: the gap can only open at the top, at either end of the lid.
+    ev.corners = [{ x: TANK.x + 50, y: TANK.y + 28 }, { x: TANK.x + TANK.w - 50, y: TANK.y + 28 }];
+    // Start on the floor of the tank (or in the middle of the water).
     p.x = TANK.x + TANK.w / 2;
-    p.y = TANK.y + TANK.h / 2;
+    p.y = ev.water ? TANK.y + TANK.h / 2 : TANK.y + TANK.h - 80;
+    p.angle = -Math.PI / 2;
     p.jump = null; p.hop = 0; p.grab = null; p.sip = false; p.buzz = false;
     Input.target = null;
     g.toasts.push({ text: 'You’re in a bug tank! Move around and watch the lid.', kind: 'hint' });
@@ -146,95 +152,116 @@ Object.assign(Game, {
     ctx.restore();
   },
 
+  // Side-on view of the tank sitting on a desk, with the kid peering in from behind.
   drawTank(ctx) {
     const g = this.g, ev = g.event, m = g.mission, p = g.player, t = g.t;
-    const T = TANK;
-    // Desk top
-    ctx.fillStyle = '#c9a27a';
+    const T = TANK, floorY = T.y + T.h - 60;
+    // Bedroom wall and desk
+    ctx.fillStyle = '#e8dcc4';
     ctx.fillRect(0, 0, W, H);
-    for (let y = 10; y < H; y += 26) line(ctx, [0, y, W, y + 6], 'rgba(120,80,40,.18)', 2);
-    // Glass walls
-    ctx.fillStyle = 'rgba(200,235,250,.55)';
-    ctx.fillRect(T.x - 22, T.y - 22, T.w + 44, T.h + 44);
-    ctx.strokeStyle = 'rgba(120,170,200,.9)';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(T.x - 22, T.y - 22, T.w + 44, T.h + 44);
-    // Floor
-    if (ev.water) {
-      ctx.fillStyle = '#5f8f6a';
-      ctx.fillRect(T.x, T.y, T.w, T.h);
-      for (let i = 0; i < 30; i++) ell(ctx, T.x + (i * 97) % T.w, T.y + (i * 61) % T.h, 2, 2, 'rgba(255,255,255,.3)');
-    } else {
-      ctx.fillStyle = m.id === 'bee' || m.id === 'fly' || m.id === 'dragonfly' ? '#8a6a44' : '#e3cc96';
-      ctx.fillRect(T.x, T.y, T.w, T.h);
-      for (let i = 0; i < 120; i++) ell(ctx, T.x + (i * 137) % T.w, T.y + (i * 89) % T.h, 3, 2, 'rgba(60,40,20,.25)', i);
+    for (let x = 0; x < W; x += 48) { ctx.fillStyle = x % 96 ? '#e2d4b8' : '#ecdfc8'; ctx.fillRect(x, 0, 48, H); }
+    ctx.fillStyle = '#b07a48';
+    ctx.fillRect(0, T.y + T.h + 6, W, H);
+    for (let x = -40; x < W; x += 70) line(ctx, [x, T.y + T.h + 14, x + 120, H], 'rgba(90,50,20,.18)', 2);
+    // The kid's face behind the tank, moving to look at you
+    const peek = ev.eyeT < 0 ? 1 : 0.55;
+    const fx = clamp(p.x + (ev.eyeSide || 1) * 40, T.x + 120, T.x + T.w - 120), fy = T.y + 70;
+    ctx.globalAlpha = peek;
+    ell(ctx, fx, fy + 40, 190, 170, '#f0c8a0');
+    ell(ctx, fx, fy - 90, 200, 90, '#6b4226');                     // hair
+    for (const s of [-1, 1]) {
+      const ex = fx + s * 70, ey = fy + 10, blink = ev.eyeT < -1.3 ? 0.15 : 1;
+      ell(ctx, ex, ey, 34, 26 * blink, '#fff');
+      if (blink > 0.5) {
+        ell(ctx, ex + (p.x - ex) * 0.04, ey + (p.y - ey) * 0.04, 16, 16, '#5a3a1a');
+        ell(ctx, ex + (p.x - ex) * 0.04, ey + (p.y - ey) * 0.04, 8, 8, '#111');
+        ell(ctx, ex + (p.x - ex) * 0.04 - 5, ey - 6, 4, 4, '#fff');
+      }
     }
+    ctx.beginPath(); ctx.arc(fx, fy + 80, 50, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.strokeStyle = '#a0583a'; ctx.lineWidth = 6; ctx.stroke();
+    ctx.globalAlpha = 1;
+    // Glass (back and sides)
+    ctx.fillStyle = 'rgba(200,235,250,.5)';
+    ctx.fillRect(T.x, T.y, T.w, T.h);
+    // Water or substrate
     if (ev.water) {
-      // Pond weed the kid scooped up too
+      ctx.fillStyle = 'rgba(80,140,110,.75)';
+      ctx.fillRect(T.x, T.y + 40, T.w, T.h - 40);
+      line(ctx, [T.x, T.y + 40, T.x + T.w, T.y + 40], 'rgba(255,255,255,.6)', 3);
+      for (let i = 0; i < 12; i++) {
+        const by = T.y + T.h - ((t * 40 + i * 37) % (T.h - 50));
+        ctx.beginPath(); ctx.arc(T.x + 40 + (i * 53) % (T.w - 80), by, 3, 0, TAU);
+        ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+      ctx.fillStyle = '#5a4a30';
+      ctx.fillRect(T.x, floorY + 30, T.w, T.h - (floorY + 30 - T.y));
       for (let i = 0; i < 7; i++) {
-        const x = T.x + 90 + i * 80, y = T.y + 120 + (i % 3) * 110;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.quadraticCurveTo(x + 30, y + 20, x + 10, y + 60);
-        ctx.strokeStyle = '#2f6b2a';
-        ctx.lineWidth = 4;
-        ctx.stroke();
+        const x = T.x + 70 + i * 90;
+        ctx.beginPath(); ctx.moveTo(x, floorY + 30);
+        ctx.quadraticCurveTo(x + 30 * Math.sin(t + i), floorY - 60, x + 10, floorY - 130);
+        ctx.strokeStyle = '#2f6b2a'; ctx.lineWidth = 5; ctx.stroke();
       }
     } else {
-      // Things the kid put in: a twig, a leaf, a bottle-cap of water
-      line(ctx, [T.x + 120, T.y + 300, T.x + 330, T.y + 220, T.x + 420, T.y + 250], '#6b4a2a', 8);
-      line(ctx, [T.x + 250, T.y + 250, T.x + 280, T.y + 180], '#6b4a2a', 5);
-      ell(ctx, T.x + 500, T.y + 120, 40, 20, '#5f9a3a', 0.4);
-      line(ctx, [T.x + 465, T.y + 100, T.x + 535, T.y + 140], '#3f7a2a', 2);
-      ell(ctx, T.x + 520, T.y + 340, 26, 26, '#f2f2f2');
-      ell(ctx, T.x + 520, T.y + 340, 20, 20, '#7cc3e0');
+      const sandy = ['ant', 'queen', 'spider', 'spiderling', 'caterpillar', 'butterfly'].includes(m.id);
+      ctx.fillStyle = sandy ? '#e3cc96' : '#6a4a2a';
+      ctx.fillRect(T.x, floorY, T.w, T.h - (floorY - T.y));
+      ctx.fillStyle = sandy ? '#c9a868' : '#4a3420';
+      ctx.fillRect(T.x, floorY + 30, T.w, T.h - (floorY + 30 - T.y));
+      for (let i = 0; i < 40; i++) ell(ctx, T.x + (i * 137) % T.w, floorY + 8 + (i * 29) % 50, 4, 3, sandy ? '#b8945a' : '#3a2814', i);
+      // Twig leaning from the floor up the glass, a bottle-cap of water, a leaf
+      line(ctx, [T.x + 90, floorY + 6, T.x + 330, T.y + 150], '#6b4a2a', 9);
+      line(ctx, [T.x + 230, T.y + 240, T.x + 290, T.y + 220], '#6b4a2a', 5);
+      ctx.fillStyle = '#e8e8e8'; ctx.fillRect(T.x + 480, floorY - 14, 54, 16);
+      ctx.fillStyle = '#7cc3e0'; ctx.fillRect(T.x + 484, floorY - 12, 46, 6);
+      ell(ctx, T.x + 380, floorY - 2, 44, 10, '#5f9a3a', 0.08);
     }
-    for (const lf of ev.leaves) ell(ctx, lf.x, lf.y, 18, 9, '#6fae3c', lf.a);
+    for (const lf of ev.leaves) ell(ctx, lf.x, lf.y, 18, 8, '#6fae3c', lf.a);
     // The bug
     Game.drawSprite(m.playerSprite ? m.playerSprite(g) : (m.sprite || m.id), p, m.scale);
-    // Mesh lid over everything, except the corner the kid has lifted
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(T.x - 22, T.y - 22, T.w + 44, T.h + 44);
-    if (ev.open) ctx.rect(ev.open.x + 50, ev.open.y - 50, -100, 100);   // counter-wound hole
-    ctx.clip('evenodd');
-    ctx.strokeStyle = 'rgba(90,90,90,.35)';
-    ctx.lineWidth = 1;
-    for (let x = T.x - 22; x <= T.x + T.w + 22; x += 12) { ctx.beginPath(); ctx.moveTo(x, T.y - 22); ctx.lineTo(x, T.y + T.h + 22); ctx.stroke(); }
-    for (let y = T.y - 22; y <= T.y + T.h + 22; y += 12) { ctx.beginPath(); ctx.moveTo(T.x - 22, y); ctx.lineTo(T.x + T.w + 22, y); ctx.stroke(); }
-    ctx.restore();
-    // Open gap and the kid's hand holding the lid up
+    // Front glass: highlights and frame
+    ctx.fillStyle = 'rgba(255,255,255,.12)';
+    ctx.fillRect(T.x, T.y, T.w, T.h);
+    line(ctx, [T.x + 30, T.y + 20, T.x + 90, T.y + 200], 'rgba(255,255,255,.5)', 6);
+    line(ctx, [T.x + 60, T.y + 20, T.x + 100, T.y + 140], 'rgba(255,255,255,.35)', 3);
+    ctx.strokeStyle = '#4a5560'; ctx.lineWidth = 6;
+    ctx.strokeRect(T.x, T.y, T.w, T.h);
+    // Mesh lid along the top, one end lifted when the kid opens it
+    const lidY = T.y - 6;
+    const drawLid = (x0, x1, lift) => {
+      ctx.save();
+      ctx.translate(x0, lidY);
+      ctx.rotate(lift);
+      const L = x1 - x0;
+      ctx.fillStyle = 'rgba(90,90,90,.85)'; ctx.fillRect(0, -6, L, 12);
+      ctx.strokeStyle = 'rgba(220,220,220,.7)'; ctx.lineWidth = 1;
+      for (let x = 4; x < L; x += 8) { ctx.beginPath(); ctx.moveTo(x, -5); ctx.lineTo(x, 5); ctx.stroke(); }
+      ctx.restore();
+    };
     if (ev.open) {
+      const left = ev.open.x < W / 2;
+      // Lid hinged at the far end, raised at the open end
+      const hingeX = left ? T.x + T.w : T.x;
+      ctx.save();
+      ctx.translate(hingeX, lidY);
+      ctx.rotate(left ? Math.PI + 0.22 : -0.22);
+      ctx.fillStyle = 'rgba(90,90,90,.85)'; ctx.fillRect(0, -6, T.w, 12);
+      ctx.restore();
       const o = ev.open, glow = 0.5 + Math.sin(t * 8) * 0.4;
-      ctx.strokeStyle = 'rgba(255,210,63,' + glow + ')';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(o.x - 50, o.y - 50, 100, 100);
-      const hx = o.x + (o.x < W / 2 ? -70 : 70), hy = o.y + (o.y < H / 2 ? -60 : 60);
-      ell(ctx, hx, hy, 46, 34, '#f0c8a0');
-      for (let i = 0; i < 4; i++) ell(ctx, hx + (o.x < W / 2 ? 30 : -30) + (i - 1.5) * 4, hy - 20 + i * 13, 22, 7, '#eab890');
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 18px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Gap!', o.x, o.y + 6);
-    }
-    // A giant eye peering in through the glass
-    if (ev.eyeT < 0) {
-      const ex = ev.eyeSide > 0 ? T.x + T.w + 60 : T.x - 60, ey = T.y + T.h / 2;
-      const blink = ev.eyeT < -1.3 ? 0.2 : 1;
-      ell(ctx, ex, ey, 46, 70 * blink, '#fdfdfd');
-      if (blink > 0.5) {
-        ell(ctx, ex - ev.eyeSide * 12, ey + (p.y - ey) * 0.05, 28, 28, '#6b4a2a');
-        ell(ctx, ex - ev.eyeSide * 14, ey + (p.y - ey) * 0.05, 13, 13, '#111');
-        ell(ctx, ex - ev.eyeSide * 8, ey - 8, 5, 5, '#fff');
-      }
-    }
-    // Sticker on the glass
+      ctx.strokeStyle = 'rgba(255,210,63,' + glow + ')'; ctx.lineWidth = 4;
+      ctx.strokeRect(o.x - 50, T.y - 4, 100, 70);
+      // The kid's hand holding the lid up
+      const hx = left ? T.x - 20 : T.x + T.w + 20, hy = T.y - 30;
+      ell(ctx, hx, hy, 40, 30, '#f0c8a0');
+      for (let i = 0; i < 4; i++) ell(ctx, hx + (left ? 34 : -34), hy - 18 + i * 12, 20, 6, '#eab890');
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('Gap!', o.x, T.y + 40);
+    } else drawLid(T.x - 6, T.x + T.w + 6, 0);
+    // Sticker on the front glass
     const label = ev.water ? 'MY POND BUGS' : 'MY BUGS', lw = ev.water ? 150 : 100;
     ctx.fillStyle = '#fff6c0';
-    ctx.fillRect(T.x + 10, T.y + T.h - 2, lw, 26);
-    ctx.fillStyle = '#c8501e';
-    ctx.font = 'bold 17px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, T.x + 10 + lw / 2, T.y + T.h + 17);
+    ctx.fillRect(T.x + T.w - lw - 20, T.y + T.h - 40, lw, 26);
+    ctx.fillStyle = '#c8501e'; ctx.font = 'bold 17px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(label, T.x + T.w - 20 - lw / 2, T.y + T.h - 21);
   },
 });

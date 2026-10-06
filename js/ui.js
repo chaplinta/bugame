@@ -3,11 +3,11 @@
 
 // Saved progress: stars per mission and fact keys found per mission.
 const Progress = {
-  data: { stars: {}, facts: {} },
+  data: { stars: {}, facts: {}, secrets: [] },
   load() {
     try {
       const d = JSON.parse(localStorage.getItem('bugame.progress') || '{}');
-      this.data = { stars: d.stars || {}, facts: d.facts || {} };
+      this.data = { stars: d.stars || {}, facts: d.facts || {}, secrets: d.secrets || [] };
     } catch (e) { /* storage off */ }
   },
   save() { try { localStorage.setItem('bugame.progress', JSON.stringify(this.data)); } catch (e) { /* storage off */ } },
@@ -18,6 +18,8 @@ const Progress = {
     const list = this.data.facts[id] || (this.data.facts[id] = []);
     if (!list.includes(key)) { list.push(key); this.save(); }
   },
+  addSecret(key) { if (!this.data.secrets.includes(key)) { this.data.secrets.push(key); this.save(); } },
+  hasSecret(key) { return this.data.secrets.includes(key); },
   // A stage is open when it is the first one or the one before it is done.
   unlocked(bug, i) { return i === 0 || this.stars(bug.stages[i - 1]) > 0; },
 };
@@ -205,7 +207,89 @@ function buildBook() {
     }
     list.appendChild(sec);
   }
+  // Secrets found anywhere in the game.
+  const all = SECRETS.all(), got = all.filter(s => Progress.hasSecret(s.key));
+  const sec = document.createElement('section');
+  sec.className = 'bookBug panel secrets';
+  sec.innerHTML = '<div class="bookHead"><div><h2>Secrets</h2><p class="count"></p></div></div><ul class="facts"></ul>';
+  sec.querySelector('.count').textContent = 'Secrets found: ' + got.length + ' / ' + all.length;
+  const ul = sec.querySelector('ul');
+  for (const s of all) {
+    const li = document.createElement('li');
+    const known = Progress.hasSecret(s.key);
+    li.textContent = known ? s.name + ': ' + s.text.replace(/^Tap.*|^Press.*/, 'found!') : '??? Keep exploring\u2026';
+    if (!known) li.className = 'unknown';
+    ul.appendChild(li);
+  }
+  list.appendChild(sec);
   show('book');
+}
+
+// ---------------------------------------------------------------- Map secrets
+
+Game.onSecret = (key) => Progress.addSecret(key);
+
+function mapSecret(key, text, draw) {
+  const pop = $('secretPop');
+  const c = pop.querySelector('canvas');
+  const ctx = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  c.width = 160 * dpr; c.height = 160 * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, 160, 160);
+  ctx.translate(80, 90);
+  ctx.scale(1.4, 1.4);
+  draw(ctx);
+  pop.querySelector('p').textContent = text;
+  pop.hidden = false;
+  Sound.play('win');
+  Speech.say(text);
+  Progress.addSecret(key);
+}
+
+// Tap Rottnest: a quokka says hello.
+$('rottnest').addEventListener('click', () => mapSecret('s_quokka',
+  'A quokka! Quokkas live on Rottnest Island. In 1696 a Dutch explorer thought they were giant rats, and named the island \u201crat\u2019s nest\u201d.',
+  (ctx) => Sprites.quokka(ctx)));
+$('secretClose').addEventListener('click', () => { $('secretPop').hidden = true; Speech.stop(); });
+
+// Tap the title lots of times: a parade of bugs marches across the map.
+let titleTaps = 0, titleTimer = 0;
+$('title').addEventListener('click', () => {
+  titleTaps++;
+  clearTimeout(titleTimer);
+  titleTimer = setTimeout(() => { titleTaps = 0; }, 1500);
+  if (titleTaps < 5) return;
+  titleTaps = 0;
+  bugParade();
+});
+
+function bugParade() {
+  const c = $('parade');
+  const dpr = window.devicePixelRatio || 1;
+  c.width = W * dpr; c.height = H * dpr;
+  c.hidden = false;
+  const ctx = c.getContext('2d');
+  const marchers = Bugs.map((b, i) => ({ sprite: b.sprite, x: -60 - i * 70, y: 300 + Math.sin(i) * 40 }));
+  const start = performance.now();
+  Sound.play('win');
+  const step = (now) => {
+    const t = (now - start) / 1000;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    for (const m of marchers) {
+      const x = m.x + t * 180, y = m.y + Math.sin(t * 8 + m.x) * 6;
+      ctx.save(); ctx.translate(x, y); ctx.scale(1.6 * (ICON_SCALE[m.sprite] || 1), 1.6 * (ICON_SCALE[m.sprite] || 1));
+      Sprites[m.sprite](ctx, { moving: true, load: 0 }, t);
+      ctx.restore();
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#c8501e'; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center';
+    if (t < 3) ctx.fillText('Bug parade!', W / 2, 120);
+    if (t < 9) requestAnimationFrame(step); else c.hidden = true;
+  };
+  requestAnimationFrame(step);
+  if (!Progress.hasSecret('s_parade')) Progress.addSecret('s_parade');
 }
 
 // ---------------------------------------------------------------- Settings
