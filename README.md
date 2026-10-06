@@ -33,6 +33,10 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 | Bull ant: worker (*Myrmecia*) | Kings Park banksia woodland | sting and carry prey home; avoid the echidna |
 | Bull ant: queen | Kings Park | fly to clear sand, land and drop your wings, dig a nest, hunt for your first larvae; dodge the willie wagtail |
 | Bush fly (*Musca vetustissima*) | Swan Valley paddock | sip protein from cows' faces, lay eggs in fresh cow pats before they dry or dung beetles bury them |
+| Painted lady: caterpillar (*Vanessa kershawi*) | Bold Park heath | munch everlasting and capeweed leaves, moult as you grow, pupate in your silk shelter |
+| Painted lady: butterfly | Bold Park heath | sip nectar, taste leaves with your feet, lay eggs on the right daisy plants |
+| Termite (*Coptotermes*) | Whiteman Park woodland | chew dead wood to feed the colony, dig mud to build the mound; bull ants raid |
+| Native snail (*Bothriembryon*) | Bibra Lake bushland | graze fungi, lichen and dead leaves, keep out of the sun or seal your shell, avoid the bobtail |
 | Blue-banded bee (*Amegilla*) | Backyard | buzz-pollinate Dianella and Hibbertia; avoid the rainbow bee-eater |
 | Peacock spider: spiderling | Cottesloe dunes | jump on springtails, avoid ants, go home to moult |
 | Peacock spider: adult male (*Maratus speciosus*) | Cottesloe dunes | stalk and jump on flies, then dance; avoid the spider wasp |

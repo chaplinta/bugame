@@ -37,6 +37,47 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Western grey kangaroos graze paddocks at dawn and dusk. DBCA.
 - Willie wagtails catch flies in flight and on the ground. BirdLife Australia.
 
+## Australian painted lady (*Vanessa kershawi*)
+- Found throughout Australia including Perth. AM; Braby, *Butterflies of Australia*.
+- Eggs are small, green and laid singly on host leaves. Braby.
+- Larvae feed on Asteraceae (daisy family), including everlastings and the introduced capeweed (*Arctotheca calendula*, from South Africa). Braby; DPIRD.
+- Larvae tie leaves with silk into a shelter. Braby.
+- Larvae moult four times (five instars); caterpillars increase in mass by hundreds of times. General Lepidoptera biology.
+- Paper wasps (*Polistes*) prey on caterpillars to feed their brood. AM.
+- Pupa (chrysalis) hangs from a stem; metamorphosis inside; adult emerges after about 1–2 weeks in warm weather. Braby.
+- New adults pump haemolymph into their wings to expand them. General.
+- Adults feed on nectar with a coiled proboscis. AM.
+- Females taste host plants with chemoreceptors on their feet before laying. General Lepidoptera biology.
+- Grevilleas are nectar sources but not larval hosts for this species. Braby.
+- Painted ladies can travel long distances and sometimes move in large numbers. Braby.
+- Kangaroo paw (*Anigozanthos manglesii*) is WA's floral emblem. WA Government.
+
+## Termite (*Coptotermes*)
+- Termites are most closely related to cockroaches (order Blattodea). CSIRO; AM.
+- Colonies have a king, queen, workers and soldiers. CSIRO.
+- Workers are blind and communicate by smell (pheromones) and vibration. CSIRO.
+- They feed on wood; gut microbes help digest cellulose. CSIRO.
+- They build with soil, chewed wood, saliva and faeces. CSIRO.
+- *Coptotermes* soldiers exude a sticky white defensive fluid. CSIRO.
+- Queens lay hundreds of eggs a day (mature colonies). CSIRO.
+- Ants, including bull ants, raid termites; echidnas dig into mounds. AM.
+- Termites recycle dead wood into soil. CSIRO.
+- Winged reproductives (alates) swarm after rain to found new colonies. CSIRO.
+- Red-tailed black cockatoos (forest subspecies) feed on marri and jarrah seeds. DBCA.
+
+## Native land snail (*Bothriembryon*)
+- Snails are molluscs (gastropods), not insects. AM.
+- *Bothriembryon* is a native genus, most species in south-west WA. WAM.
+- Snails move on a single muscular foot over mucus. AM.
+- The radula carries thousands of tiny teeth. AM.
+- Many land snails graze fungi, lichen, algae and decaying plant matter. WAM; general.
+- Shell grows by adding material at the aperture. AM.
+- In dry heat snails seal the aperture with a dried mucus epiphragm. AM.
+- Eyes are at the tips of the upper tentacles. AM.
+- Bobtails eat snails. WAM.
+- Most land snails are hermaphrodites. AM.
+- Quendas live in the bushland around Bibra Lake (Beeliar wetlands). DBCA.
+
 ## Discoveries
 - Many banksias are serotinous: seeds held in cones until fire. Kings Park / WA Herbarium.
 - Quendas (southern brown bandicoots) dig conical foraging holes; present in Kings Park. DBCA; Kings Park.
@@ -117,6 +158,8 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Time is compressed: a few minutes stands in for days of foraging.
 - Ant workers carry one prey at a time; real ants sometimes cooperate.
 - The bee mission plays a female; the male sleeping fact is shown at the end.
+- Sun patches dry the snail out in seconds; really it takes much longer.
+- Termite workers carry one piece at a time to a small mound; real colonies are huge.
 - Every bug can escape the tank the same way (through a gap in the lid) at a similar speed, so slow bugs like nymphs aren't stuck.
 - Predators only visit now and then (about once a minute) and leave after about 20 seconds.
 - Bush fly eggs hatch in seconds in the game; really it takes hours.

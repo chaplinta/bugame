@@ -627,6 +627,164 @@ const Sprites = {
     line(ctx, [15, 0, 21, 0], '#c8c0b0', 2.5);
   },
 
+  // --- painted lady (Vanessa kershawi) ---
+  // Caterpillar: dark and spiky with pale side stripes. o.size grows as it eats.
+  plCaterpillar(ctx, o, t) {
+    const s = o.size || 1, wig = o.moving ? Math.sin(t * 8) : 0;
+    ctx.save();
+    ctx.scale(s, s);
+    for (let k = 6; k >= 0; k--) {
+      const y = Math.sin(k * 0.9 + t * 8) * wig * 1.2;
+      ell(ctx, -k * 4.2, y, 3.8, 3.6, k % 2 ? '#3a2e2a' : '#4a3c34');
+      ell(ctx, -k * 4.2, y - 2.6, 1.6, 0.7, '#d8c070');
+      ell(ctx, -k * 4.2, y + 2.6, 1.6, 0.7, '#d8c070');
+      for (const sgn of [-1, 1]) line(ctx, [-k * 4.2, y + sgn * 3, -k * 4.2 - 1, y + sgn * 6], '#c8b060', 0.8);
+    }
+    ell(ctx, 3, 0, 3.4, 3.4, '#1e1612');
+    ctx.restore();
+    if (o.munch) ell(ctx, 6 * s, 0, 1.6, 1.6, '#7fc24a');
+  },
+  chrysalis(ctx) {
+    line(ctx, [16, 0, 22, 0], '#8a7a5a', 1.5);
+    ell(ctx, 4, 0, 12, 6, '#9a8a6a');
+    ell(ctx, 4, 0, 12, 6, 'rgba(0,0,0,0)');
+    for (let i = -1; i <= 1; i++) ell(ctx, i * 6, 0, 1.5, 4, '#c8b88a');
+    ell(ctx, 8, -2, 1.5, 1, '#e8d8a0');
+    ell(ctx, 8, 2, 1.5, 1, '#e8d8a0');
+  },
+  // Butterfly from above: orange wings with black tips and white spots, blue eyespots on the hindwings.
+  butterfly(ctx, o, t) {
+    const f = o.landed ? 0.35 : 0.55 + Math.sin(t * 18) * 0.45;
+    for (const s of [-1, 1]) {
+      ctx.save();
+      ctx.scale(1, s * f);
+      ctx.beginPath();
+      ctx.moveTo(2, 0); ctx.quadraticCurveTo(14, 4, 12, 22); ctx.quadraticCurveTo(2, 24, -2, 2); ctx.closePath();
+      ctx.fillStyle = '#e8782a'; ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(10, 10); ctx.quadraticCurveTo(15, 14, 12, 22); ctx.quadraticCurveTo(7, 22, 6, 18); ctx.closePath();
+      ctx.fillStyle = '#1e1a18'; ctx.fill();
+      ell(ctx, 10, 18, 1.4, 1.4, '#fff');
+      ell(ctx, 8, 15, 1.1, 1.1, '#fff');
+      ctx.beginPath();
+      ctx.moveTo(-2, 1); ctx.quadraticCurveTo(-2, 18, -12, 15); ctx.quadraticCurveTo(-14, 6, -4, 1); ctx.closePath();
+      ctx.fillStyle = '#d96a24'; ctx.fill();
+      ell(ctx, -9, 11, 2.2, 2.2, '#2a5ab0');
+      ell(ctx, -9, 11, 1, 1, '#111');
+      ctx.restore();
+    }
+    ell(ctx, -2, 0, 9, 1.8, '#2a221c');
+    ell(ctx, 7, 0, 2.2, 2.2, '#2a221c');
+    line(ctx, [8, -1, 15, -5], '#2a221c', 0.8);
+    line(ctx, [8, 1, 15, 5], '#2a221c', 0.8);
+    if (o.sip) { ctx.beginPath(); ctx.arc(11, 0, 2.5, -1.5, 1.5); ctx.strokeStyle = '#2a221c'; ctx.lineWidth = 0.8; ctx.stroke(); }
+  },
+  // Everlasting (paper daisy): pink papery petals, yellow centre. o.leaf 0..1 is how much leaf is left.
+  everlasting(ctx, o) {
+    const lf = o.leaf === undefined ? 1 : o.leaf;
+    for (let i = 0; i < 6; i++) { ctx.save(); ctx.rotate(i * 1.05 + 0.3); ell(ctx, 16, 0, 9 * (0.4 + lf * 0.6), 3.5, '#5f9a3a'); ctx.restore(); }
+    for (let i = 0; i < 14; i++) { ctx.save(); ctx.rotate(i * TAU / 14); ell(ctx, 8, 0, 6, 2.2, o.nectar === false ? '#e8c8d0' : '#f2a8c0'); ctx.restore(); }
+    ell(ctx, 0, 0, 4.5, 4.5, '#e8b030');
+  },
+  // Capeweed: a weed from South Africa with grey-green leaves and a yellow daisy.
+  capeweed(ctx, o) {
+    const lf = o.leaf === undefined ? 1 : o.leaf;
+    for (let i = 0; i < 7; i++) { ctx.save(); ctx.rotate(i * 0.9); ell(ctx, 13, 0, 11 * (0.4 + lf * 0.6), 4.5, '#8aa070'); ctx.restore(); }
+    for (let i = 0; i < 12; i++) { ctx.save(); ctx.rotate(i * TAU / 12); ell(ctx, 6, 0, 4.5, 1.8, '#f2d040'); ctx.restore(); }
+    ell(ctx, 0, 0, 3, 3, '#2a2418');
+  },
+  // Grevillea: nectar-rich flower, but not a food plant for caterpillars.
+  grevillea(ctx, o) {
+    for (let i = 0; i < 6; i++) { ctx.save(); ctx.rotate(i * 1.05); ell(ctx, 14, 0, 9, 1.6, '#4f7a3a'); ctx.restore(); }
+    for (let i = 0; i < 8; i++) { const a = i * 0.8; line(ctx, [0, 0, Math.cos(a) * 10, Math.sin(a) * 10], o.nectar === false ? '#e8a0a0' : '#d8303a', 2); ell(ctx, Math.cos(a) * 11, Math.sin(a) * 11, 1.5, 1.5, '#f2d040'); }
+  },
+  egg(ctx) { ell(ctx, 0, 0, 2, 2, '#a8d070'); },
+  paperWasp(ctx, o, t) {
+    const flap = Math.sin(t * 70) * 0.3;
+    insectLegs(ctx, 2, 16, '#c8901e', 1.3, t, true);
+    wings(ctx, 2, 3, 13, 4, flap, 'rgba(200,170,120,.55)');
+    ell(ctx, -12, 0, 10, 5.5, '#c8901e');
+    for (let i = 0; i < 3; i++) ctx.fillRect(-19 + i * 5, -5, 2, 10);
+    ell(ctx, -3, 0, 1.8, 1.5, '#2a1a0a');
+    ell(ctx, 3, 0, 5, 4, '#3a2a12');
+    ell(ctx, 10, 0, 4, 4.2, '#c8901e');
+    line(ctx, [13, -2, 18, -6, 21, -5], '#3a2a12', 1.2);
+    line(ctx, [13, 2, 18, 6, 21, 5], '#3a2a12', 1.2);
+  },
+
+  // --- termite (Coptotermes) ---
+  termiteWorker(ctx, o, t) {
+    ell(ctx, -2, 0, 17, 7, 'rgba(60,40,20,.25)');
+    insectLegs(ctx, 0, 9, '#9a845a', 1.1, t, o.moving);
+    ell(ctx, -8, 0, 7, 4.6, '#f1e6c8');
+    ell(ctx, -8, 0, 5, 3, '#e6d2a8');
+    ell(ctx, 0, 0, 3.2, 3.2, '#ead9b0');
+    ell(ctx, 6, 0, 4, 3.6, '#d8a050');
+    line(ctx, [9, -2, 14, -6], '#c9b48a', 0.9);
+    line(ctx, [9, 2, 14, 6], '#c9b48a', 0.9);
+    if (o.carry) {
+      ctx.save(); ctx.translate(14, 0);
+      if (o.carry === 'mud') ell(ctx, 0, 0, 4.5, 4, '#6b4a2a');
+      else { ctx.fillStyle = '#a07848'; ctx.fillRect(-5, -2, 10, 4); }
+      ctx.restore();
+    }
+  },
+  woodChip(ctx) {
+    ctx.fillStyle = '#a07848';
+    ctx.fillRect(-9, -4, 18, 8);
+    line(ctx, [-8, -1, 8, -1], '#7a5a32', 1);
+    line(ctx, [-8, 2, 6, 2], '#7a5a32', 1);
+  },
+  mud(ctx) {
+    ell(ctx, 0, 0, 10, 8, '#6b4a2a');
+    ell(ctx, -3, -2, 4, 3, '#8a6440');
+  },
+  log(ctx) {
+    ctx.fillStyle = '#6a5034';
+    ctx.fillRect(-60, -14, 120, 28);
+    ell(ctx, 60, 0, 8, 14, '#a07848');
+    for (let i = 0; i < 4; i++) ell(ctx, 60, 0, 6 - i * 1.5, 11 - i * 2.5, i % 2 ? '#8a6a44' : '#a07848');
+    line(ctx, [-50, -6, 40, -6], '#4a3420', 1.2);
+    line(ctx, [-40, 5, 50, 5], '#4a3420', 1.2);
+  },
+
+  // --- native land snail (Bothriembryon) ---
+  // Tall, cone-shaped brown shell with pale bands. o.size grows as it eats; o.sealed hides the body.
+  snail(ctx, o, t) {
+    const s = o.size || 1;
+    ctx.save();
+    ctx.scale(s, s);
+    if (!o.sealed) {
+      const st = Math.sin(t * 3) * 0.6;
+      ell(ctx, 2, 0, 18, 6, '#8a7a6a');
+      ell(ctx, 2, 0, 16, 4.5, '#9a8a7a');
+      for (const sg of [-1, 1]) {
+        line(ctx, [16, sg * 2, 26, sg * (6 + st)], '#7a6a5a', 1.6);
+        ell(ctx, 26, sg * (6 + st), 1.6, 1.6, '#2a2018');
+        line(ctx, [18, sg * 1, 21, sg * 3], '#7a6a5a', 1);
+      }
+    }
+    for (let i = 0; i < 5; i++) ell(ctx, -4 - i * 3.2, 0, 10 - i * 1.8, 8 - i * 1.4, i % 2 ? '#7a4a24' : '#9a6234');
+    for (let i = 0; i < 4; i++) line(ctx, [-2 - i * 3.4, -7 + i * 1.3, -2 - i * 3.4, 7 - i * 1.3], 'rgba(240,220,180,.6)', 1);
+    if (o.sealed) ell(ctx, 4, 0, 4, 6, '#e8e0d0');
+    ctx.restore();
+  },
+  fungus(ctx, o) {
+    const a = o.amount === undefined ? 1 : o.amount;
+    for (let i = 0; i < 4; i++) ell(ctx, Math.cos(i * 1.6) * 7, Math.sin(i * 1.6) * 6, 5 * a + 2, 5 * a + 2, i % 2 ? '#c89a6a' : '#e0b888');
+    for (let i = 0; i < 4; i++) ell(ctx, Math.cos(i * 1.6) * 7, Math.sin(i * 1.6) * 6, 1.5, 1.5, '#8a6440');
+  },
+  lichen(ctx, o) {
+    const a = o.amount === undefined ? 1 : o.amount;
+    for (let i = 0; i < 7; i++) ell(ctx, Math.cos(i * 0.9) * 9 * a, Math.sin(i * 0.9) * 7 * a, 4 + 2 * a, 3 + 2 * a, i % 2 ? '#a8b888' : '#c0cc9a', i);
+  },
+  deadLeaf(ctx, o) {
+    const a = o.amount === undefined ? 1 : o.amount;
+    ell(ctx, 0, 0, 16 * (0.4 + a * 0.6), 7, '#a8783a');
+    line(ctx, [-14, 0, 14, 0], '#7a5428', 1);
+  },
+  slime(ctx) {},
+
   // --- dragonfly nymph stage ---
   // Dragonfly nymph: stocky, wing pads on its back, folded labium under the head.
   nymph(ctx, o, t) {
@@ -891,6 +1049,47 @@ const Backgrounds = {
         line(ctx, [x, y, x + Math.cos(a) * l, y + Math.sin(a) * l], '#9a9a4a', 1.5);
       }
     });
+  },
+  // Bold Park heath in spring: low shrubs and wildflowers on grey sand.
+  heath(ctx, W, H, home) {
+    const r = rng(101), A = W * H / (960 * 600);
+    ctx.fillStyle = '#d8d0b0';
+    ctx.fillRect(0, 0, W, H);
+    speckle(ctx, W, H, 900 * A, ['#c8c0a0', '#e4dcc0', '#a8b888', '#98a878'], r, 4);
+    scatter(r, W, H, 18 * A, home, 120, (x, y) => {
+      for (let i = 0; i < 6; i++) ell(ctx, x + (r() - 0.5) * 40, y + (r() - 0.5) * 30, 14, 11, i % 2 ? '#6f8f50' : '#809f5c');
+    });
+    scatter(r, W, H, 80 * A, home, 60, (x, y) => ell(ctx, x, y, 2.2, 2.2, ['#f2f2f2', '#f0d040', '#c060c0'][Math.floor(r() * 3)]));
+    // Silk shelter / chrysalis stem at home
+    for (let i = 0; i < 5; i++) ell(ctx, home.x + (r() - 0.5) * 30, home.y + (r() - 0.5) * 30, 16, 7, '#5f9a3a', r() * TAU);
+    ctx.globalAlpha = 0.6;
+    for (let i = 0; i < 20; i++) { const a = r() * TAU; line(ctx, [home.x, home.y, home.x + Math.cos(a) * 26, home.y + Math.sin(a) * 26], '#fff', 0.8); }
+    ctx.globalAlpha = 1;
+  },
+  // Whiteman Park woodland: dry grass, fallen logs, a termite mound for home.
+  woodland(ctx, W, H, home) {
+    const r = rng(113), A = W * H / (960 * 600);
+    ctx.fillStyle = '#d6c08c';
+    ctx.fillRect(0, 0, W, H);
+    speckle(ctx, W, H, 900 * A, ['#c8b07a', '#e2d0a0', '#b0a070', '#8a7a50'], r, 4);
+    scatter(r, W, H, 6 * A, home, 200, (x, y) => drawBanksia(ctx, x, y, 34 + r() * 20, r));
+    scatter(r, W, H, 6 * A, home, 220, (x, y) => {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(r() * TAU); Sprites.log(ctx); ctx.restore();
+    });
+    ell(ctx, home.x, home.y, home.r * 1.2, home.r, '#9a7448');
+  },
+  // Bibra Lake bushland floor: shady leaf litter under trees.
+  litter(ctx, W, H, home) {
+    const r = rng(127), A = W * H / (960 * 600);
+    ctx.fillStyle = '#6a5a3e';
+    ctx.fillRect(0, 0, W, H);
+    speckle(ctx, W, H, 1400 * A, ['#7a6444', '#8a6e48', '#5a4a30', '#9a7a4a', '#6a7a40'], r, 6);
+    scatter(r, W, H, 10 * A, home, 150, (x, y) => {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(r() * TAU); line(ctx, [-50, 0, 50, 0], '#4a3420', 6); ctx.restore();
+    });
+    // Damp hollow under a log: home
+    ell(ctx, home.x, home.y, home.r * 1.3, home.r, '#4a3c28');
+    ctx.save(); ctx.translate(home.x, home.y - home.r * 0.6); Sprites.log(ctx); ctx.restore();
   },
 };
 

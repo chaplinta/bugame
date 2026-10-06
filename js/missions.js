@@ -73,6 +73,9 @@ const Bugs = [
   { id: 'ant', name: 'Bull Ant', sci: 'Myrmecia', place: 'Kings Park', sprite: 'ant', pin: { x: 455, y: 330 }, stages: ['ant', 'queen'] },
   { id: 'bee', name: 'Blue-banded Bee', sci: 'Amegilla', place: 'A backyard', sprite: 'bee', pin: { x: 700, y: 455 }, stages: ['bee'] },
   { id: 'fly', name: 'Bush Fly', sci: 'Musca vetustissima', place: 'Swan Valley', sprite: 'bushFly', pin: { x: 780, y: 185 }, stages: ['fly'] },
+  { id: 'butterfly', name: 'Painted Lady', sci: 'Vanessa kershawi', place: 'Bold Park', sprite: 'butterfly', pin: { x: 300, y: 300 }, stages: ['caterpillar', 'butterfly'] },
+  { id: 'termite', name: 'Termite', sci: 'Coptotermes', place: 'Whiteman Park', sprite: 'termiteWorker', pin: { x: 640, y: 100 }, stages: ['termite'] },
+  { id: 'snail', name: 'Native Snail', sci: 'Bothriembryon', place: 'Bibra Lake', sprite: 'snail', pin: { x: 430, y: 525 }, stages: ['snail'] },
   { id: 'spider', name: 'Peacock Spider', sci: 'Maratus speciosus', place: 'Cottesloe dunes', sprite: 'spider', pin: { x: 262, y: 380 }, stages: ['spiderling', 'spider'] },
   { id: 'dragonfly', name: 'Blue Skimmer', sci: 'Orthetrum caledonicum', place: 'Herdsman Lake', sprite: 'dragonfly', pin: { x: 430, y: 185 }, stages: ['nymph', 'dragonfly'] },
 ];
@@ -629,6 +632,441 @@ const Missions = {
     hud(g) {
       const k = Math.round(g.player.protein * 5);
       setHud('Eggs laid: ' + Math.min(g.score, this.goal) + ' / ' + this.goal, 'Protein ' + '■'.repeat(k) + '□'.repeat(5 - k));
+    },
+    won(g) { return g.score >= this.goal; },
+  },
+
+  // ------------------------------------------------- Painted lady: caterpillar
+  caterpillar: {
+    id: 'caterpillar', bug: 'butterfly', stage: 'Caterpillar', place: 'Wildflower heath, Bold Park', world: BIG,
+    sprite: 'plCaterpillar', bg: 'heath', escape: 'Crawl',
+    action: 'Munch', radius: 16, speed: 75, scale: 2.2, goal: 9,
+    home: { x: 240, y: 960, r: 44, label: 'Silk shelter' },
+    facts: [
+      'The Australian painted lady is a butterfly found all over Australia, including Perth.',
+      'It starts life as a tiny green egg laid on a leaf. Out hatches a caterpillar.',
+      'Caterpillars are insects too: look for 6 real legs at the front.',
+    ],
+    how: [
+      'Crawl with the arrow keys, or touch and drag.',
+      'Find pink everlastings or yellow capeweed and hold Munch to eat the leaves.',
+      'You’ll moult (shed your skin) as you grow. Eat 9 times.',
+      'Then go back to your silk shelter and hold Pupate.',
+    ],
+    discoveries: [
+      { key: 'd_paw', sprite: 'paw', fx: 0.7, fy: 0.25 },
+      { key: 'd_bobtail', sprite: 'bobtail', fx: 0.45, fy: 0.7 },
+    ],
+    factText: {
+      start: 'Caterpillars are eating machines. They grow hundreds of times heavier before they become butterflies.',
+      host: 'Painted lady caterpillars only eat daisy-family plants, like everlastings and capeweed.',
+      capeweed: 'Capeweed is a weed from South Africa, and one of the painted lady caterpillar’s favourite foods.',
+      shelter: 'The caterpillar ties leaves together with silk to make a shelter to hide in.',
+      moult: 'A caterpillar’s skin can’t stretch, so it moults: it splits the old skin and wriggles out in a bigger one.',
+      paperWasp: 'Paper wasps hunt caterpillars to feed to their young.',
+      pupate: 'The caterpillar hangs from a stem and its skin splits to show the chrysalis. Inside, its body is rebuilt into a butterfly.',
+      d_paw: 'A red and green kangaroo paw, the floral emblem of Western Australia.',
+      d_bobtail: 'A bobtail lizard, sunning itself. Bobtails eat flowers, snails and insects.',
+      win: 'After a week or two the chrysalis splits, and a painted lady butterfly crawls out.',
+    },
+
+    setup(g) {
+      for (let i = 0; i < 18; i++) {
+        const near = i < 8 ? Game.spawnPoint(120, g.home, 500) : Game.spawnPoint(150);
+        const kind = i % 6 === 5 ? 'grevillea' : i % 2 ? 'capeweed' : 'everlasting';
+        g.items.push({ sprite: kind, kind, x: near.x, y: near.y, r: 26, scale: 1.4, leaf: 1, angle: Math.random() * TAU });
+      }
+      const p = g.player;
+      p.size = 1; p.munchT = 0;
+      Game.addPred({ sprite: 'paperWasp', name: 'paper wasp', r: 18, wanderSpeed: 60, chaseSpeed: 95, sight: 150,
+        chaseTime: 3, restTime: 3.5 });
+      Game.later(6, () => Game.fact('shelter'));
+    },
+    locked(g) { return g.moultT > 0 || g.pupating > 0 || g.pupated; },
+    update(g, dt, input) {
+      const p = g.player;
+      p.munch = false;
+      for (const pl of g.items) if (pl.leaf < 1) { pl.regrow = (pl.regrow || 0) + dt; if (pl.regrow > 20) { pl.leaf = 1; pl.regrow = 0; } }
+      if (g.moultT > 0) { g.moultT -= dt; return; }
+      if (g.pupating > 0) {
+        g.pupating -= dt;
+        if (g.pupating <= 0) { g.pupated = true; g.frozen = false; Sound.play('win'); Game.fact('pupate'); }
+        return;
+      }
+      if (g.pupated) return;
+
+      if (g.score >= this.goal) {
+        const home = Game.inHome();
+        setAction('Pupate', home);
+        if (home && input.held) {
+          g.pupating = 1.5; g.frozen = true;
+          p.angle = -Math.PI / 2;
+        }
+        return;
+      }
+
+      const pl = g.items.find(i => dist(i, p) < 30);
+      const host = pl && pl.kind !== 'grevillea';
+      setAction('Munch', host && pl.leaf > 0.05);
+      if (pl && input.held) {
+        if (!host) { Game.hint('Not this one! Painted lady caterpillars only eat daisy plants.'); Game.fact('host'); }
+        else if (pl.leaf <= 0.05) Game.hint('All eaten! Find another plant.');
+        else {
+          p.munch = true;
+          p.munchT += dt;
+          pl.leaf = Math.max(0, pl.leaf - dt / 3);
+          if (Math.floor(g.t * 5) !== Math.floor((g.t - dt) * 5)) Sound.play('tap');
+          Game.fact(pl.kind === 'capeweed' ? 'capeweed' : 'host');
+          if (p.munchT >= 1) {
+            p.munchT = 0;
+            g.score++;
+            Game.pop(p.x, p.y - 20, 'Yum!', '#7fc24a');
+            if (g.score === 3 || g.score === 6) {
+              g.moultT = 1.5;
+              Sound.play('score');
+              Game.pop(p.x, p.y - 34, 'Moult!', '#ffd23f');
+              Game.fact('moult');
+            }
+            if (g.score === this.goal) g.toasts.push({ text: 'You’re fully grown! Go back to your silk shelter and hold Pupate.', kind: 'hint' });
+          }
+        }
+      } else p.munchT = 0;
+      p.size = 1 + g.score * 0.07;
+      p.r = 16 * p.size;
+      p.speed = 75 + g.score * 3;
+    },
+    drawExtra(ctx, g) {
+      if (g.moultT > 0) {
+        ctx.globalAlpha = Math.min(1, g.moultT);
+        ctx.save(); ctx.translate(g.player.x - 30, g.player.y + 4);
+        Sprites.plCaterpillar(ctx, { size: g.player.size * 0.9 }, 0);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+    },
+    playerSprite(g) { return g.pupated || g.pupating > 0 ? 'chrysalis' : 'plCaterpillar'; },
+    goalPoint(g) { return g.score >= this.goal && !g.pupated ? g.home : null; },
+    hud(g) {
+      if (g.pupated) setHud('You’re a chrysalis!', '');
+      else if (g.score >= this.goal) setHud('Back to your shelter to pupate!', '');
+      else setHud('Munches: ' + g.score + ' / ' + this.goal, g.score >= 6 ? 'Big!' : g.score >= 3 ? 'Growing' : 'Tiny');
+    },
+    won(g) { return !!g.pupated; },
+  },
+
+  // ------------------------------------------------- Painted lady: butterfly
+  butterfly: {
+    id: 'butterfly', bug: 'butterfly', stage: 'Butterfly', place: 'Wildflower heath, Bold Park', world: BIG,
+    sprite: 'butterfly', bg: 'heath',
+    action: 'Sip', radius: 18, speed: 190, scale: 2, goal: 6,
+    home: { x: 240, y: 960, r: 44, label: 'Empty chrysalis' },
+    facts: [
+      'A painted lady butterfly is orange, black and white, with little blue spots on its back wings.',
+      'Butterflies have 4 wings covered in tiny coloured scales, like dust.',
+      'Adult butterflies don’t eat leaves. They drink nectar.',
+    ],
+    how: [
+      'Fly with the arrow keys, or touch and drag.',
+      'Land on a flower and hold Sip to drink nectar.',
+      'Then land on an everlasting or capeweed and hold Lay to lay an egg.',
+      'Lay 6 eggs. Look for sparkles: they’re discoveries.',
+    ],
+    discoveries: [
+      { key: 'd_cone', sprite: 'cone', fx: 0.8, fy: 0.2 },
+      { key: 'd_magpie', sprite: 'magpie', fx: 0.3, fy: 0.3 },
+    ],
+    factText: {
+      start: 'A new butterfly pumps blood into its crumpled wings to stretch them out, then waits for them to dry.',
+      sip: 'Butterflies drink nectar through a long tongue that curls up like a spring when it’s not being used.',
+      feet: 'A female painted lady tastes leaves with her feet to check she has found the right plant for her caterpillars.',
+      lay: 'She lays one tiny green egg on each leaf, so her caterpillars won’t run out of food.',
+      grevillea: 'Grevilleas are full of nectar, but painted lady caterpillars can’t eat their leaves.',
+      travel: 'Painted ladies can fly long distances, sometimes in big swarms.',
+      wagtail: 'Willie wagtails snap up butterflies and other insects, in the air and on the ground.',
+      d_cone: 'A banksia cone. Bold Park’s bushland is full of banksias.',
+      d_magpie: 'An Australian magpie, hunting for grubs in the grass.',
+      win: 'Each egg will hatch into a caterpillar, and the life cycle starts all over again.',
+    },
+
+    setup(g) {
+      for (let i = 0; i < 20; i++) {
+        const pt = Game.spawnPoint(150);
+        const kind = i % 4 === 3 ? 'grevillea' : i % 2 ? 'capeweed' : 'everlasting';
+        g.items.push({ sprite: kind, kind, x: pt.x, y: pt.y, r: 26, scale: 1.4, leaf: 1, nectar: kind !== 'capeweed', angle: Math.random() * TAU });
+      }
+      const p = g.player;
+      p.energy = 0; p.layT = 0;
+      Game.addPred({ sprite: 'wagtail', name: 'willie wagtail', r: 20, scale: 1.1, wanderSpeed: 70, chaseSpeed: 150, sight: 170,
+        chaseTime: 2.5, restTime: 3.5 });
+    },
+    update(g, dt, input) {
+      const p = g.player;
+      p.sip = false; p.landed = false;
+      for (const f of g.items) if (f.nectar === false && f.kind !== 'capeweed') { f.regrow = (f.regrow || 0) + dt; if (f.regrow > 14) { f.nectar = true; f.regrow = 0; } }
+      const f = g.items.find(i => i.sprite !== 'egg' && dist(i, p) < 30);
+      if (!f) { setAction(p.energy >= 1 ? 'Lay' : 'Sip', false); p.layT = 0; return; }
+      const host = f.kind !== 'grevillea';
+      if (p.energy >= 1) {
+        setAction('Lay', host);
+        if (input.held) {
+          if (!host) { Game.hint('Taste with your feet: this isn’t a daisy plant. Try an everlasting or capeweed.'); Game.fact('grevillea'); }
+          else {
+            p.landed = true;
+            Game.fact('feet');
+            p.layT += dt;
+            if (p.layT >= 0.8) {
+              p.layT = 0; p.energy = 0;
+              g.score++;
+              g.items.push({ sprite: 'egg', kind: 'egg', x: f.x + (Math.random() - 0.5) * 24, y: f.y + (Math.random() - 0.5) * 24, r: 2, scale: 1.4 });
+              Sound.play('score');
+              Game.pop(f.x, f.y - 24, 'Egg!', '#fff');
+              Game.fact('lay');
+              if (g.score === 3) Game.fact('travel');
+            }
+          }
+        } else p.layT = 0;
+      } else {
+        setAction('Sip', !!f.nectar);
+        if (input.held) {
+          if (!f.nectar) Game.hint(f.kind === 'capeweed' ? 'Capeweed is for your eggs. Find a pink everlasting or a red grevillea to drink from.' : 'This flower is empty. Try another.');
+          else {
+            p.sip = true; p.landed = true;
+            p.energy = Math.min(1, p.energy + dt / 1.2);
+            Game.fact('sip');
+            if (p.energy >= 1) {
+              f.nectar = false;
+              Sound.play('pick');
+              g.toasts.unshift({ text: 'Full of nectar! Now land on an everlasting or capeweed and hold Lay.', kind: 'hint' });
+              g.toastT = 0;
+            }
+          }
+        }
+      }
+    },
+    goalPoint(g) {
+      const p = g.player;
+      const want = p.energy >= 1 ? g.items.filter(i => i.kind === 'everlasting' || i.kind === 'capeweed') : g.items.filter(i => i.nectar);
+      return nearest(want, p, 99999);
+    },
+    hud(g) {
+      const k = Math.round(g.player.energy * 5);
+      setHud('Eggs laid: ' + Math.min(g.score, this.goal) + ' / ' + this.goal, 'Nectar ' + '■'.repeat(k) + '□'.repeat(5 - k));
+    },
+    won(g) { return g.score >= this.goal; },
+  },
+
+  // ---------------------------------------------------------------- Termite
+  termite: {
+    id: 'termite', bug: 'termite', stage: 'Worker', place: 'Woodland, Whiteman Park', world: BIG,
+    sprite: 'termiteWorker', bg: 'woodland', escape: 'Crawl',
+    action: 'Chew', radius: 15, speed: 120, scale: 2.2, goal: 10,
+    home: { x: 300, y: 900, r: 60, label: 'Mound' },
+    facts: [
+      'Termites are not ants. Their closest relatives are cockroaches!',
+      'Termites live in huge families called colonies, with a king, a queen, workers and soldiers.',
+      'Termites are insects: 6 legs and 3 body parts.',
+    ],
+    how: [
+      'Crawl with the arrow keys, or touch and drag.',
+      'Hold Chew on wood to bite off a piece. Hold Dig on damp mud to scoop some up.',
+      'Carry it home. Wood feeds the colony; mud builds the mound.',
+      'Bring 5 of each. Watch out for raiding bull ants!',
+    ],
+    discoveries: [
+      { key: 'd_roo', sprite: 'kangaroo', fx: 0.75, fy: 0.3 },
+      { key: 'd_echidna', sprite: 'dig', fx: 0.55, fy: 0.85 },
+      { key: 'd_cockatoo', sprite: 'feather', band: '#c8303a', fx: 0.9, fy: 0.75 },
+    ],
+    factText: {
+      start: 'Termite workers are blind. They find their way by smell and by feeling vibrations.',
+      wood: 'Termites eat wood. Tiny living things in their gut help break it down.',
+      recycle: 'By eating dead wood, termites turn it back into soil. That helps the bush grow.',
+      mud: 'Termites build with soil, chewed wood, spit and poo, all mixed together.',
+      soldier: 'Termite soldiers have big heads. Some squirt a sticky white liquid at attackers.',
+      queen: 'A termite queen can lay hundreds of eggs a day.',
+      ant: 'Bull ants and other ants raid termite nests for food.',
+      d_roo: 'A western grey kangaroo. Kangaroos live in the bush at Whiteman Park.',
+      d_echidna: 'Echidna diggings! Echidnas tear open termite mounds with strong claws and lick termites up.',
+      d_cockatoo: 'A red-tailed black cockatoo feather. These cockatoos eat marri and jarrah seeds.',
+      win: 'When the colony is big enough, winged termites fly out after rain to start new nests.',
+    },
+
+    setup(g) {
+      g.wood = 0; g.mud = 0;
+      for (let i = 0; i < 8; i++) this.addThing('woodChip');
+      for (let i = 0; i < 6; i++) this.addThing('mud');
+      g.player.workT = 0;
+      Game.addPred({ sprite: 'ant', name: 'bull ant', ground: true, r: 16, scale: 1.4, wanderSpeed: 50, chaseSpeed: 85, sight: 150,
+        chaseTime: 3, restTime: 3.5 });
+    },
+    addThing(kind) {
+      const p = Game.g.items.length < 6 ? Game.spawnPoint(150, Game.g.home, 600) : nearPlayer(150);
+      Game.g.items.push({ sprite: kind, kind, x: p.x, y: p.y, r: 16, scale: 1.7, angle: Math.random() * TAU });
+    },
+    onCaught(g) { g.player.carry = null; },
+    update(g, dt, input) {
+      const p = g.player;
+      if (p.carry) {
+        setAction(p.carry === 'mud' ? 'Dig' : 'Chew', false);
+        if (Game.inHome()) {
+          if (p.carry === 'mud') { g.mud++; Game.fact('mud'); if (g.mud === 3) Game.fact('soldier'); }
+          else { g.wood++; Game.fact('wood'); if (g.wood === 2) Game.fact('recycle'); if (g.wood === 4) Game.fact('queen'); }
+          g.score = Math.min(g.wood, 5) + Math.min(g.mud, 5);
+          p.carry = null;
+          Sound.play('score');
+          Game.pop(p.x, p.y - 20, '+1', '#fff');
+        }
+        p.speed = 105;
+        return;
+      }
+      p.speed = 120;
+      const it = g.items.find(i => dist(i, p) < 26);
+      const verb = it && it.kind === 'mud' ? 'Dig' : 'Chew';
+      setAction(verb, !!it);
+      if (it && input.held) {
+        p.workT += dt;
+        if (Math.floor(g.t * 5) !== Math.floor((g.t - dt) * 5)) Sound.play('tap');
+        if (p.workT >= 0.8) {
+          p.workT = 0;
+          p.carry = it.kind === 'mud' ? 'mud' : 'wood';
+          g.items.splice(g.items.indexOf(it), 1);
+          Sound.play('pick');
+          Game.later(3, () => this.addThing(it.kind));
+        }
+      } else p.workT = 0;
+      if (g.mud >= 5 && g.wood < 5) Game.hint('The mound is built! Now bring wood to feed the colony.');
+      if (g.wood >= 5 && g.mud < 5) Game.hint('Plenty of food! Now bring mud to build the mound.');
+    },
+    // The mound grows with mud; a wood store builds up beside it.
+    drawBuild(ctx, g) {
+      const h = g.home, n = Math.min(g.mud, 8);
+      for (let i = 0; i <= n; i++) ell(ctx, h.x, h.y - i * 4, h.r * (0.9 - i * 0.07) + 6, h.r * (0.75 - i * 0.06) + 4, i % 2 ? '#8a6438' : '#9a7448');
+      for (let i = 0; i < Math.min(n, 5); i++) ell(ctx, h.x - 16 + i * 8, h.y - n * 4 - 8 - (i % 2) * 6, 5, 9, '#7a5430');
+      for (let i = 0; i < Math.min(g.wood, 8); i++) { ctx.fillStyle = '#a07848'; ctx.fillRect(h.x + h.r + 4 + (i % 3) * 10, h.y + 10 - Math.floor(i / 3) * 6, 9, 4); }
+    },
+    goalPoint(g) { return g.player.carry ? g.home : null; },
+    hud(g) {
+      const w = Math.min(g.wood, 5), m = Math.min(g.mud, 5);
+      setHud('Wood ' + w + '/5 · Mud ' + m + '/5', g.player.carry ? 'Carrying ' + g.player.carry : '');
+    },
+    won(g) { return g.wood >= 5 && g.mud >= 5; },
+  },
+
+  // ---------------------------------------------------------------- Native land snail
+  snail: {
+    id: 'snail', bug: 'snail', stage: 'Adult', place: 'Bushland near Bibra Lake', world: BIG,
+    sprite: 'snail', bg: 'litter', escape: 'Slide',
+    action: 'Graze', radius: 16, speed: 55, scale: 1.6, goal: 8,
+    home: { x: 260, y: 940, r: 55, label: 'Damp hollow' },
+    facts: [
+      'Snails are not insects. They are molluscs, like octopuses and mussels.',
+      'WA has its own native land snails, called Bothriembryon. Most live in the south-west.',
+      'A snail’s eyes are on the tips of its long tentacles.',
+    ],
+    how: [
+      'Slide with the arrow keys, or touch and drag.',
+      'Hold Graze on fungi, lichen or dead leaves to eat them. Eat 8 to grow your shell.',
+      'Sunny patches dry you out. Keep to the shade, or hold Seal to close your shell.',
+      'Watch out for the bobtail lizard.',
+    ],
+    discoveries: [
+      { key: 'd_frog', sprite: 'frog', fx: 0.85, fy: 0.15 },
+      { key: 'd_shell', sprite: 'shell', fx: 0.4, fy: 0.3 },
+      { key: 'd_quenda', sprite: 'dig', fx: 0.7, fy: 0.75 },
+    ],
+    factText: {
+      start: 'A snail glides on one big foot, on a layer of slime. Look at your shiny trail!',
+      graze: 'A snail’s tongue is covered in thousands of tiny teeth for scraping up food.',
+      food: 'These snails graze on fungi, lichen and rotting leaves.',
+      shell: 'A snail grows its shell by adding new shell around the opening.',
+      dry: 'Snails dry out in the sun. In hot weather they seal their shell with a door of dried slime and wait for rain.',
+      bobtail: 'Bobtail lizards crunch up snails, shell and all.',
+      d_frog: 'A motorbike frog, near the lake. Its call sounds like a motorbike changing gears.',
+      d_shell: 'An empty garden snail shell. Garden snails were brought here from Europe, unlike native Bothriembryon.',
+      d_quenda: 'A quenda dig. Quendas are bandicoots that live in the bush around Bibra Lake.',
+      win: 'Most land snails are male and female at the same time.',
+    },
+
+    setup(g) {
+      const kinds = ['fungus', 'lichen', 'deadLeaf'];
+      for (let i = 0; i < 16; i++) {
+        const pt = i < 6 ? Game.spawnPoint(120, g.home, 500) : Game.spawnPoint(150);
+        g.items.push({ sprite: kinds[i % 3], kind: kinds[i % 3], x: pt.x, y: pt.y, r: 18, scale: 1.4, amount: 1, angle: Math.random() * TAU });
+      }
+      g.sun = [];
+      for (let i = 0; i < 7; i++) { const pt = Game.spawnPoint(260); g.sun.push({ x: pt.x, y: pt.y, r: 110 + Math.random() * 80 }); }
+      g.trail = [];
+      const p = g.player;
+      p.size = 1; p.moist = 1; p.grazeT = 0; p.sealed = false;
+      Game.addPred({ sprite: 'bobtail', name: 'bobtail lizard', ground: true, r: 24, scale: 2, wanderSpeed: 25, chaseSpeed: 45, sight: 140,
+        chaseTime: 4, restTime: 4 });
+    },
+    locked(g) { return g.player.sealed; },
+    update(g, dt, input) {
+      const p = g.player;
+      for (const it of g.items) if (it.amount < 1) { it.regrow = (it.regrow || 0) + dt; if (it.regrow > 25) { it.amount = 1; it.regrow = 0; } }
+      if (p.moving && (!g.lastTrail || dist(g.lastTrail, p) > 10)) { g.lastTrail = { x: p.x, y: p.y, t: g.t }; g.trail.push(g.lastTrail); }
+      g.trail = g.trail.filter(q => g.t - q.t < 12);
+
+      const inSun = g.sun.some(s => dist(s, p) < s.r);
+      const food = g.items.find(i => i.amount > 0.05 && dist(i, p) < 28);
+      p.sealed = false;
+      if (food) {
+        setAction('Graze', true);
+        if (input.held) {
+          p.grazeT += dt;
+          food.amount = Math.max(0, food.amount - dt / 1.5);
+          Game.fact('graze');
+          if (p.grazeT >= 1.5) {
+            p.grazeT = 0;
+            g.score++;
+            Sound.play('score');
+            Game.pop(p.x, p.y - 22, 'Munch!', '#c0cc9a');
+            Game.fact(g.score === 2 ? 'shell' : 'food');
+          }
+        } else p.grazeT = 0;
+      } else {
+        setAction('Seal', inSun);
+        if (input.held) { p.sealed = true; if (inSun) Game.fact('dry'); }
+        p.grazeT = 0;
+      }
+
+      if (Game.inHome()) p.moist = Math.min(1, p.moist + dt / 3);
+      else if (inSun && !p.sealed) {
+        p.moist = Math.max(0, p.moist - dt / 9);
+        if (p.moist < 0.4) { Game.hint('You’re drying out! Get into the shade, or hold Seal.'); Game.fact('dry'); }
+      } else p.moist = Math.min(1, p.moist + dt / 20);
+      if (p.moist <= 0) {
+        g.lives--;
+        if (g.lives <= 0 && (this.gentle || g.done)) g.lives = 1;
+        Sound.play('caught');
+        g.toasts.unshift({ text: 'Too dry! You slide back to the damp hollow.', kind: 'hint' });
+        g.toastT = 0;
+        p.x = g.home.x; p.y = g.home.y; p.moist = 0.6; p.invuln = 3;
+        if (g.lives <= 0) Game.finish(false);
+      }
+      p.size = 1 + Math.min(g.score, 12) * 0.06;
+      p.r = 14 * p.size;
+      p.speed = p.moist < 0.3 ? 35 : 55;
+    },
+    drawBuild(ctx, g) {
+      for (const s of g.sun) {
+        const gr = ctx.createRadialGradient(s.x, s.y, 10, s.x, s.y, s.r);
+        gr.addColorStop(0, 'rgba(255,240,170,.55)');
+        gr.addColorStop(1, 'rgba(255,240,170,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill();
+      }
+      for (let i = 1; i < g.trail.length; i++) {
+        const a = g.trail[i - 1], b = g.trail[i];
+        if (dist(a, b) > 40) continue;
+        line(ctx, [a.x, a.y, b.x, b.y], 'rgba(230,240,255,' + (0.5 * (1 - (g.t - b.t) / 12)) + ')', 6);
+      }
+    },
+    goalPoint() { return null; },
+    hud(g) {
+      const k = Math.round(g.player.moist * 5);
+      setHud('Food: ' + Math.min(g.score, this.goal) + ' / ' + this.goal, 'Damp ' + '■'.repeat(k) + '□'.repeat(5 - k));
     },
     won(g) { return g.score >= this.goal; },
   },

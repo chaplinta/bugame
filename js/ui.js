@@ -32,7 +32,7 @@ function show(id) {
 }
 
 // Small bugs need a bigger icon to match the others.
-const ICON_SCALE = { bushFly: 2.2 };
+const ICON_SCALE = { bushFly: 2.2, termiteWorker: 1.6, butterfly: 1.3 };
 
 function portrait(canvas, sprite, size) {
   const ctx = canvas.getContext('2d');
