@@ -109,11 +109,15 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Female libellulids such as *Orthetrum* lay eggs by dipping the abdomen tip into water in flight. Corbet.
 - Australian hobby (*Falco longipennis*) takes dragonflies in flight. BirdLife Australia.
 
+## Catch and release
+- In-game advice after escaping the bug tank: "It's fine to catch a bug to have a look, but always let it go where you found it." Standard advice from museums and education programs (e.g. Australian Museum bug-collecting guidance); also avoids moving animals between habitats.
+
 ## Simplifications (allowed)
 - Bugs are drawn far larger than real size relative to predators and plants.
 - Time is compressed: a few minutes stands in for days of foraging.
 - Ant workers carry one prey at a time; real ants sometimes cooperate.
 - The bee mission plays a female; the male sleeping fact is shown at the end.
+- Every bug can escape the tank the same way (through a gap in the lid) at a similar speed, so slow bugs like nymphs aren't stuck.
 - Predators only visit now and then (about once a minute) and leave after about 20 seconds.
 - Bush fly eggs hatch in seconds in the game; really it takes hours.
 - Predators give up a chase in the safe home area, and pause before chasing so young players can react.

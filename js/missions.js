@@ -1044,3 +1044,8 @@ const Missions = {
 
 // A bug's first stage is gentle: getting caught never ends the game.
 for (const bug of Bugs) Missions[bug.stages[0]].gentle = true;
+
+// Every level has the kid-with-a-net event (js/tank.js); escaping adds this to the Bug Book.
+for (const id in Missions) {
+  Missions[id].factText.tank = 'It\u2019s fine to catch a bug to have a look, but always let it go where you found it.';
+}

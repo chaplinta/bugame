@@ -171,6 +171,7 @@ const Game = {
       items: [], preds: [], fx: [], timers: [], cam: { x: 0, y: 0 },
       predCfg: null, predT: 0,
       seen: new Set(), learned: [], toasts: [], toastT: 0, hintT: 0,
+      netT: 45 + Math.random() * 65, event: null,   // the kid-with-a-net event (js/tank.js)
     };
     g.finds = (mission.discoveries || []).map(d => Object.assign({ found: false, angle: 0 }, d,
       { x: d.fx * World.w, y: d.fy * World.h }));
@@ -271,6 +272,14 @@ const Game = {
     for (const tm of g.timers) { tm.t -= dt; if (tm.t <= 0) tm.fn(); }
     g.timers = g.timers.filter(tm => tm.t > 0);
 
+    // A kid with a net: while caught, the tank takes over and the world waits.
+    if (this.netCheck) this.netCheck(dt);
+    if (g.event) {
+      this.updateEvent(dt);
+      this.updateToasts(dt);
+      return;
+    }
+
     // Player movement
     let dx = 0, dy = 0;
     const k = Input.keys;
@@ -310,14 +319,7 @@ const Game = {
     for (const f of g.fx) f.life -= dt;
     g.fx = g.fx.filter(f => f.life > 0);
 
-    // Toasts
-    g.hintT = Math.max(0, g.hintT - dt);
-    g.toastT -= dt;
-    if (g.toastT <= 0) {
-      const next = g.toasts.shift();
-      this.showToast(next || null);
-      g.toastT = next ? 5.5 : 0.3;
-    }
+    this.updateToasts(dt);
 
     m.hud(g);
     document.getElementById('hudLives').textContent = '♥'.repeat(g.lives) + '♡'.repeat(3 - g.lives);
@@ -429,9 +431,27 @@ const Game = {
     ctx.restore();
   },
 
+  updateToasts(dt) {
+    const g = this.g;
+    g.hintT = Math.max(0, g.hintT - dt);
+    g.toastT -= dt;
+    if (g.toastT <= 0) {
+      const next = g.toasts.shift();
+      this.showToast(next || null);
+      g.toastT = next ? 5.5 : 0.3;
+    }
+  },
+
   draw() {
-    const ctx = this.ctx, g = this.g, m = g.mission, p = g.player;
+    const ctx = this.ctx, g = this.g;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    if (g.event && g.event.phase === 'tank') { this.drawTank(ctx); return; }
+    this.drawWorld(ctx);
+    if (g.event) this.drawSwoop(ctx);
+  },
+
+  drawWorld(ctx) {
+    const g = this.g, m = g.mission, p = g.player;
     ctx.save();
     ctx.translate(-Math.round(g.cam.x), -Math.round(g.cam.y));
     ctx.drawImage(this.bg, 0, 0);
