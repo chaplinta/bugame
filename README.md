@@ -53,7 +53,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 | Painted lady: flying high (3D) | Above Bold Park | take off, fly to glowing flowers, land and sip; dodge a willie wagtail |
 | Sandhopper, female (Talitridae) | Port Beach, North Fremantle (side-on) | hop along the beach eating seaweed wrack, then get back to your burrow; dodge a silver gull and a red-capped plover |
 | Native garden (build your own) | Your backyard | paint soils and ponds, plant natives, add rocks, logs and nest boxes; 23 kinds of wildlife move in when the garden suits them; saved between visits |
-| Golden orb-weaver, female (*Trichonephila edulis*) | Wireless Hill | spin dry and sticky silk between branches, lay a spiral, cut and repair, wrap stuck insects; beetles smash through |
+| Golden orb-weaver, female (*Trichonephila edulis*) | Wireless Hill | spin dry and sticky silk between branches, lay a spiral, cut and repair, wrap stuck insects then eat them, or set them free (bees sting, so cut them loose); beetles smash through |
 | Sugar ant worker (*Camponotus*) | Under a Bull Creek backyard (side-on) | dig tunnels, carry soil up to build the mound, make a nursery and food store, fetch honeydew, plug the entrance before rain |
 | Mosquito, female (*Culex quinquefasciatus*) | Backyard barbecue, Bassendean (isometric) | bite people while they chat, fly off before they swat, lay egg rafts on still water |
 

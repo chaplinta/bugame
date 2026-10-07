@@ -379,9 +379,29 @@ test('orb web: spin threads between branches, spiral, wrap stuck insects', async
   check(await p.evaluate(() => Game.g.threads.some(t => t.type === 'sticky')), 'no spiral');
   await p.evaluate(() => { Game.timeScale = 4; });
   await p.waitForFunction(() => Game.g.prey.some(q => q.stuck && !q.wrapped), null, { timeout: 30000 });
+  await p.evaluate(() => { Game.g.prey.filter(q => q.stuck).forEach(q => { q.sting = false; }); });
   const q = await p.evaluate(() => { const q = Game.g.prey.find(q => q.stuck && !q.wrapped); return [q.x, q.y]; });
   await p.mouse.click(...at(...q));
+  await p.waitForFunction(() => Game.g.wrapped >= 1, null, { timeout: 10000 });
+  // Tap the bundle to eat it: score and silk go up
+  const silk0 = await p.evaluate(() => { Game.g.silk = 50; return 50; });
+  const bundle = await p.evaluate(() => { const q = Game.g.prey.find(q => q.wrapped); return [q.x, q.y]; });
+  await p.mouse.click(...at(...bundle));
   await p.waitForFunction(() => Game.g.score >= 1, null, { timeout: 10000 });
+  check(await p.evaluate((s0) => Game.g.silk > s0 + 20, silk0), 'eating did not give silk');
+  // Set free: pick the tool and tap a stuck insect
+  const th = await p.evaluate(() => { const g = Game.g, t = g.threads.find(t => t.type === 'sticky'); const x = (t.a.x + t.b.x) / 2, y = (t.a.y + t.b.y) / 2;
+    g.prey.push({ sprite: 'fly', x, y, vx: 90, vy: 0, ph: 0, r: 8, scale: 1.7, angle: 0, flat: true, stuck: t, tag: 'freeMe' }); return [x, y]; });
+  await p.evaluate(() => { Game.timeScale = 1; });
+  await p.locator('#tools .tool', { hasText: 'Set free' }).click();
+  await p.mouse.click(...at(...th));
+  await p.waitForFunction(() => { const q = Game.g.prey.find(q => q.tag === 'freeMe'); return !q || (!q.stuck && q.freeT > 0); }, null, { timeout: 5000 });
+  // A stinging bee is cut loose instead of wrapped
+  await p.locator('#tools .tool', { hasText: 'Dry silk' }).click();
+  const bee = await p.evaluate(() => { const g = Game.g, t = g.threads.find(t => t.type === 'sticky'); const x = (t.a.x * 0.3 + t.b.x * 0.7), y = (t.a.y * 0.3 + t.b.y * 0.7);
+    g.prey.push({ sprite: 'resinBee', x, y, vx: 90, vy: 0, ph: 0, r: 8, scale: 1.7, angle: 0, flat: true, stuck: t, sting: true, tag: 'bee' }); return [x, y]; });
+  await p.mouse.click(...at(...bee));
+  await p.waitForFunction(() => { const q = Game.g.prey.find(q => q.tag === 'bee'); return !q || (!q.stuck && !q.wrapped); }, null, { timeout: 5000 });
   check(p.errors.length === 0, p.errors.join('; '));
 });
 

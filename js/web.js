@@ -53,7 +53,7 @@ Bugs.push({ id: 'orbweaver', name: 'Golden Orb-weaver', sci: 'Trichonephila edul
 Missions.web = {
   id: 'web', bug: 'orbweaver', stage: 'Adult female', place: 'Wireless Hill bushland', view: 'build',
   sprite: 'orbSpider', bg: 'webBush', pointerOnly: true,
-  action: '', radius: 14, speed: 0, scale: 2, goal: 8,
+  action: '', radius: 14, speed: 0, scale: 2, goal: 6,
   home: { x: 520, y: 300, r: 1, label: '' },
   facts: [
     'Golden orb-weavers spin huge webs of golden silk. They live all over Australia, including Perth.',
@@ -64,7 +64,8 @@ Missions.web = {
     'Pick a silk on the left. Drag from a branch (or another thread) to another branch or thread to spin a line.',
     'Dry silk is strong but not sticky. Sticky silk catches insects.',
     'Spiral: make some spokes from one middle point, then tap that point to spin a sticky spiral.',
-    'Tap a stuck insect to run over and wrap it. Wrap 8! Cut threads with the scissors.',
+    'Tap a stuck insect to wrap it, then tap the bundle to eat it. Eat 6!',
+    'Pick Set free and tap an insect to let it go. Watch out for bees: they sting, so cut them loose.',
   ],
   discoveries: [],
   tools: [
@@ -75,6 +76,7 @@ Missions.web = {
     ] },
     { name: 'Tools', items: [
       { id: 'cut', label: 'Cut', sprite: 'cutIcon', iconScale: 1 },
+      { id: 'free', label: 'Set free', sprite: 'freeIcon', iconScale: 1 },
       { id: 'clearWeb', label: 'Start again', now: true },
     ] },
   ],
@@ -91,12 +93,14 @@ Missions.web = {
     male: 'Look! A tiny male has moved onto the edge of your web. He is a lot smaller than her.',
     klepto: 'Little silver dewdrop spiders sometimes live in golden orb webs and steal small insects.',
     silk: 'Making silk takes energy. Eating insects gives the spider more silk.',
+    eat: 'Spiders can’t chew. She pours juices onto her meal that turn it to soup, then sucks it up.',
+    free: 'Orb-weavers often cut loose prey they don’t want, like stinging bees, so they don’t get stung.',
     win: 'What a web! Golden orb-weavers can keep the same web for weeks, mending it every day.',
   },
 
   setup(g) {
     g.netDone = true;
-    g.threads = []; g.prey = []; g.drawing = null; g.silk = SILK_MAX; g.spawnT = 3; g.wrapping = null; g.path = [];
+    g.threads = []; g.prey = []; g.drawing = null; g.silk = SILK_MAX; g.spawnT = 3; g.job = null; g.path = [];
     const p = g.player; p.x = 520; p.y = 300; p.angle = Math.PI / 2; p.flat = true;
     // Start with one dry bridge line across the top, like a real spider's first thread
     this.addThread(g, { x: 330, y: 70 }, { x: 700, y: 64 }, 'dry', true);
@@ -136,9 +140,21 @@ Missions.web = {
   },
   onPointer(g, type, x, y) {
     if (type === 'down') {
-      // Tap a stuck insect to wrap it
-      const q = nearest(g.prey.filter(q => q.stuck && !q.wrapped), { x, y }, 30);
-      if (q) { this.goWrap(g, q); return; }
+      const pt = { x, y };
+      // Set free tool: let a caught insect go
+      const caught = nearest(g.prey.filter(q => q.stuck || q.wrapped), pt, 30);
+      if (g.tool === 'free') { if (caught) this.goJob(g, caught, 'free'); return; }
+      // Tap a bundle to eat it, or a stuck insect to wrap it (stinging bees get cut loose instead)
+      const bundle = nearest(g.prey.filter(q => q.wrapped), pt, 30);
+      if (bundle) { this.goJob(g, bundle, 'eat'); return; }
+      const q = nearest(g.prey.filter(q => q.stuck && !q.wrapped), pt, 30);
+      if (q) {
+        if (q.sting) {
+          g.toasts.unshift({ text: 'Careful, that’s a bee! It could sting. She cuts it loose instead.', kind: 'hint' }); g.toastT = 0;
+          Game.fact('free'); this.goJob(g, q, 'free');
+        } else this.goJob(g, q, 'wrap');
+        return;
+      }
     }
     this.use(g, g.tool, x, y, type);
   },
@@ -207,9 +223,9 @@ Missions.web = {
     }
     if (made) { Game.fact('spiral'); Sound.play('score'); Game.pop(x, y - 20, 'Spiral!', '#ffd23f'); }
   },
-  goWrap(g, q) {
+  goJob(g, q, kind) {
     g.path = [{ x: q.x, y: q.y }];
-    g.wrapping = q;
+    g.job = { q, kind, t: 0 };
   },
   locked() { return true; },
   move() {},
@@ -225,39 +241,53 @@ Missions.web = {
       p.moving = false;
       p.angle += (Math.PI / 2 - p.angle) * Math.min(1, dt * 3);   // rest head-down, like real orb-weavers
     }
-    // Wrap prey once the spider gets there
-    const w = g.wrapping;
-    if (w && !g.path.length) {
-      w.wrapT = (w.wrapT || 0) + dt;
-      p.progress = w.wrapT / 1.2;
-      if (w.wrapT >= 1.2) {
-        w.wrapped = true; g.wrapping = null; g.score++; g.silk = Math.min(SILK_MAX, g.silk + 30);
-        Sound.play('score'); Game.pop(w.x, w.y - 20, 'Wrapped!', '#ffd23f'); Game.fact('wrap');
-        if (g.score === 4) Game.fact('klepto');
+    // Wrap, eat or free the insect once the spider gets there
+    const job = g.job;
+    if (job && !g.prey.includes(job.q)) g.job = null;
+    else if (job && !g.path.length) {
+      const q = job.q, need = { wrap: 1.2, eat: 2, free: 0.6 }[job.kind];
+      job.t += dt;
+      p.progress = job.t / need;
+      if (job.kind === 'eat') q.eaten = job.t / need;
+      if (job.t >= need) {
+        g.job = null;
+        if (job.kind === 'wrap') {
+          q.wrapped = true; g.wrapped = (g.wrapped || 0) + 1; g.silk = Math.min(SILK_MAX, g.silk + 10);
+          Sound.play('score'); Game.pop(q.x, q.y - 20, 'Wrapped!', '#ffd23f'); Game.fact('wrap');
+          if (g.wrapped === 1) Game.hint('Wrapped up! Tap the bundle to eat it.');
+        } else if (job.kind === 'eat') {
+          q.gone = true; g.score++; g.silk = Math.min(SILK_MAX, g.silk + 40);
+          Sound.play('win'); Game.pop(q.x, q.y - 20, 'Yum!', '#7fc24a'); Game.burst(q.x, q.y, '#f4f2ea', 10); Game.fact('eat');
+          if (g.score === 3) Game.fact('klepto');
+        } else {
+          q.stuck = null; q.wrapped = false; q.freeT = 1.6; q.vy = -120; q.vx = (q.vx || 80) > 0 ? 120 : -120;
+          Sound.play('pick'); Game.pop(q.x, q.y - 20, 'Free!', '#9ad0ff'); Game.fact('free');
+        }
       }
     }
     // Insects fly through
     g.spawnT -= dt;
     if (g.spawnT <= 0 && g.prey.filter(q => !q.stuck).length < 4) {
       g.spawnT = 2.5 + Math.random() * 2.5;
-      const kinds = ['fly', 'fly', 'moth', 'mosquito', 'moth', 'beetle'];
+      const kinds = ['fly', 'fly', 'moth', 'mosquito', 'moth', 'beetle', 'resinBee'];
       const kind = kinds[Math.floor(Math.random() * kinds.length)];
       const left = Math.random() < 0.5;
       g.prey.push({ sprite: kind, x: left ? 110 : W + 20, y: 120 + Math.random() * 380, vx: (left ? 1 : -1) * (kind === 'beetle' ? 150 : 90 + Math.random() * 50),
-        vy: 0, ph: Math.random() * 6, r: 8, scale: kind === 'beetle' ? 1.4 : 1.7, angle: left ? 0 : Math.PI, flat: true, heavy: kind === 'beetle' });
+        vy: 0, ph: Math.random() * 6, r: 8, scale: kind === 'beetle' ? 1.4 : 1.7, angle: left ? 0 : Math.PI, flat: true, heavy: kind === 'beetle', sting: kind === 'resinBee' });
     }
     for (const q of g.prey) {
       if (q.wrapped) continue;
       if (q.stuck) {
         q.struggle = (q.struggle || 0) + dt;
         q.angle = (q.vx > 0 ? 0 : Math.PI) + Math.sin(g.t * 30) * 0.3;
-        if (q.struggle > 14 && g.wrapping !== q) { q.stuck = null; q.vy = -40; Game.hint('It got away! Tap stuck insects quickly.'); Game.fact('escape'); }
+        if (q.struggle > 14 && !(g.job && g.job.q === q)) { q.stuck = null; q.vy = -40; Game.hint('It got away! Tap stuck insects quickly.'); Game.fact('escape'); }
         continue;
       }
       const from = { x: q.x, y: q.y };
       q.ph += dt * 3;
       q.x += q.vx * dt; q.y += (q.vy + Math.sin(q.ph) * 50) * dt;
       q.vy *= 0.98;
+      if (q.freeT > 0) { q.freeT -= dt; if (q.x < 60 || q.x > W + 40 || q.y < -40 || q.y > H + 40) q.gone = true; continue; }   // just let go: flying clear
       for (const th of g.threads.slice()) {
         const hit = segsCross(from, q, th.a, th.b);
         if (!hit) continue;
@@ -278,7 +308,7 @@ Missions.web = {
     g.prey = g.prey.filter(q => !q.gone);
     if (g.prey.some(q => q.stuck && !q.wrapped && !q.told)) {
       const q = g.prey.find(q => q.stuck && !q.told); q.told = true;
-      if (g.score < 2) Game.hint('Something’s stuck! Tap it to run over and wrap it.');
+      if (g.score < 2) Game.hint('Something’s stuck! Tap it to wrap it, then tap the bundle to eat. Or pick Set free to let it go.');
     }
   },
   drawBuild(ctx, g) {
@@ -302,7 +332,10 @@ Missions.web = {
     if (g.male) Game.drawSprite('orbSpider', { x: g.male.x, y: g.male.y, angle: Math.PI / 2, flat: true }, 0.6);
   },
   drawExtra(ctx, g) {
-    for (const q of g.prey) Game.drawSprite(q.wrapped ? 'wrapped' : q.sprite, Object.assign({}, q, { stuck: !!q.stuck }), q.wrapped ? 1.3 : q.scale);
+    for (const q of g.prey) {
+      Game.drawSprite(q.wrapped ? 'wrapped' : q.sprite, Object.assign({}, q, { stuck: !!q.stuck }), q.wrapped ? 1.3 * (1 - (q.eaten || 0) * 0.7) : q.scale);
+      if (q.sting && q.stuck) { ctx.fillStyle = '#c0392b'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', q.x, q.y - 16); }
+    }
     // Silk meter
     const k = g.silk / SILK_MAX;
     ctx.fillStyle = 'rgba(255,250,240,.8)'; ctx.fillRect(W - 40, 140, 16, 200);
@@ -310,7 +343,7 @@ Missions.web = {
     ctx.fillStyle = '#2b2118'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Silk', W - 32, 132);
   },
   goalPoint() { return null; },
-  hud(g) { setHud('Wrapped: ' + g.score + ' / ' + this.goal, g.threads.length + ' threads'); },
+  hud(g) { setHud('Eaten: ' + g.score + ' / ' + this.goal, 'Wrapped: ' + (g.wrapped || 0) + ' · ' + g.threads.length + ' threads'); },
   won(g) { return g.score >= this.goal; },
 };
 
@@ -319,6 +352,12 @@ Object.assign(Sprites, {
     ctx.beginPath();
     for (let a = 0; a < TAU * 3; a += 0.2) { const r = 2 + a * 2; const x = Math.cos(a) * r, y = Math.sin(a) * r; a ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
     ctx.strokeStyle = '#c89a20'; ctx.lineWidth = 1.6; ctx.stroke();
+  },
+  freeIcon(ctx) {
+    ell(ctx, 0, 4, 9, 8, '#f2c8a0');
+    for (let i = 0; i < 4; i++) ell(ctx, -6 + i * 4, -6, 2, 5, '#f2c8a0');
+    ell(ctx, 9, 2, 4, 2, '#f2c8a0', -0.6);
+    plainLine(ctx, [6, -12, 10, -16], '#7ab0e0', 1.5); plainLine(ctx, [10, -12, 14, -14], '#7ab0e0', 1.5);
   },
   cutIcon(ctx) {
     for (const s of [-1, 1]) { plainLine(ctx, [-9, s * 7, 9, -s * 4], '#555', 2.4); ctx.beginPath(); ctx.arc(-10, s * 7, 3.6, 0, TAU); ctx.strokeStyle = '#c8302a'; ctx.lineWidth = 2; ctx.stroke(); }

@@ -237,6 +237,8 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Orb webs: frame and radial (dry) threads plus a sticky capture spiral with glue droplets. Foelix, *Biology of Spiders*.
 - Silk is made in glands and drawn from spinnerets. Foelix.
 - Prey is wrapped in silk then bitten. AM.
+- Spiders digest externally: they pour digestive fluid onto prey and suck up the liquid. Foelix.
+- Orb-weavers often cut unwanted prey (e.g. stinging bees and wasps) out of the web. Foelix; AM.
 - Webs are repaired often; golden orb-weaver webs can persist for long periods. AM.
 - Dewdrop spiders (*Argyrodes*) live in orb webs and steal small prey (kleptoparasites). AM.
 - Spider silk is among the strongest natural materials for its weight. General.

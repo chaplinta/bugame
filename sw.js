@@ -3,7 +3,7 @@
 // Bump VERSION whenever any file below changes, so players get the update.
 // For a release, also update the version and date shown on the map screen (index.html, .version).
 
-const VERSION = 'bugame-v23';
+const VERSION = 'bugame-v24';
 const FILES = [
   './',
   'index.html',
