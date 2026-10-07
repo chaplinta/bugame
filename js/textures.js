@@ -104,13 +104,17 @@ const Tex = {
     sandHi() { const r = rng(12); return Tex.make(() => { const v = r(); return Tex.light(v < 0.12 ? 0.3 + r() * 0.45 : 0); }); },
     // Soil: crumbs with dark cracks between.
     soil() {
-      const f = Tex.fbm(13, 10, 3, 0.55), w = Tex.worley(14, 40);
-      return Tex.make(i => { const e = w.f2[i] - w.f1[i]; return Tex.dark((f[i] - 0.45) * 0.7 + Math.max(0, 1 - e / 1.8) * 0.35 + 0.1); });
+      const f = Tex.fbm(13, 10, 3, 0.55), w = Tex.worley(14, 90);
+      return Tex.make(i => { const e = w.f2[i] - w.f1[i]; return Tex.dark((f[i] - 0.45) * 0.7 + Math.max(0, 1 - e / 1.1) * 0.16 + Math.min(1, w.f1[i] / 6) * 0.08 + 0.08); });
     },
     // Bark: furrows running along y.
     bark() { const f = Tex.fbm(15, 12, 3, 0.55, 0.25, 4); return Tex.make(i => Tex.dark((f[i] - 0.5) * 1.1 + 0.15)); },
     // Light on the bottom of a pond (screen).
-    caustic() { const w = Tex.worley(16, 12); return Tex.make(i => { const e = w.f2[i] - w.f1[i]; return Tex.light(Math.max(0, 1 - e / 3.5) ** 2 * 0.9); }); },
+    caustic() {
+      // Bright lines that fade in and out, so the net doesn't read as a grid
+      const w = Tex.worley(16, 14), f = Tex.fbm(18, 32, 2, 0.5);
+      return Tex.make(i => { const e = w.f2[i] - w.f1[i]; return Tex.light(Math.max(0, 1 - e / 3.4) ** 1.4 * (0.25 + 0.75 * Math.max(0, f[i] - 0.35) * 1.5) * 0.8); });
+    },
     // Water surface ripples (multiply, very light).
     ripple() { const f = Tex.fbm(17, 24, 2, 0.5, 3, 0.6); return Tex.make(i => Tex.dark((f[i] - 0.5) * 0.4 + 0.05)); },
   },

@@ -143,13 +143,7 @@ function storybookFinish(ctx, W, H, seed) {
   ctx.fillRect(0, 0, W, H);
 }
 
-for (const [name, fn] of Object.entries(Backgrounds)) {
-  Backgrounds[name] = function (ctx, W, H, home) {
-    Shade.maxR = 30;   // pebbles, leaves and shrubs get shaded; big ground patches stay flat
-    try { fn(ctx, W, H, home); } finally { Shade.maxR = 1e9; }
-    storybookFinish(ctx, W, H, name.length * 31 + 5);
-  };
-}
+// Backgrounds are painted through Ground.paint (ground.js), which shades small things and leaves the ground flat.
 
 // Soft round shadow under something standing on the ground.
 function softShadow(ctx, x, y, rx, ry, a) {

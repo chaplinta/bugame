@@ -370,7 +370,6 @@ Backgrounds.nestSoil = function (ctx, W, H) {
   const px = 1400;
   plainLine(ctx, [px, NEST.surf, px - 6, NEST.surf - 90], '#5a3a20', 6);
   for (let i = 0; i < 14; i++) { const a = r() * TAU, d = r() * 50; ell(ctx, px + Math.cos(a) * d, NEST.surf - 100 + Math.sin(a) * d * 0.6, 22, 14, i % 2 ? '#5a8a44' : '#4a7a3a'); }
-  storybookFinish(ctx, W, NEST.surf, 8);
 };
 
 finishMissions();

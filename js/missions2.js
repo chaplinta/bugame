@@ -56,7 +56,10 @@ Backgrounds.beach = function (ctx, W, H) {
   g = ctx.createLinearGradient(0, 470, 0, 640);
   g.addColorStop(0, '#5a8ab8'); g.addColorStop(1, '#2a5a8a');
   ctx.fillStyle = g; ctx.fillRect(0, 470, B.sea + 60, H - 470);
-  for (let i = 0; i < 40; i++) { const x = r() * (B.sea + 40), y = 476 + r() * 140; plainLine(ctx, [x, y, x + 14, y], 'rgba(255,255,255,.35)', 1.5); }
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 470, B.sea + 60, H - 470); ctx.clip();
+  Tex.fillRect(ctx, 'ripple', 0, 470, B.sea + 60, H - 470, 0.6, 0.5, 'multiply');
+  ctx.restore();
+  for (let i = 0; i < 60; i++) { const x = r() * (B.sea + 40), y = 476 + r() * 140; plainLine(ctx, [x, y, x + 8 + r() * 14, y], 'rgba(255,255,255,' + (0.2 + r() * 0.3) + ')', 1 + r()); }
   // Sand cross-section: dry on top, damp and darker deeper down
   const surf = () => { ctx.beginPath(); ctx.moveTo(B.sea - 40, H); for (let x = B.sea - 40; x <= W; x += 8) ctx.lineTo(x, B.ground(x)); ctx.lineTo(W, H); ctx.closePath(); };
   surf();
@@ -64,6 +67,8 @@ Backgrounds.beach = function (ctx, W, H) {
   g.addColorStop(0, '#f4e2b4'); g.addColorStop(0.25, '#e2c88e'); g.addColorStop(0.6, '#b8975e'); g.addColorStop(1, '#8a6a40');
   ctx.fillStyle = g; ctx.fill();
   ctx.save(); surf(); ctx.clip();
+  Tex.fillRect(ctx, 'sand', 0, 300, W, H - 300, 1.4, 0.5, 'multiply');
+  Tex.fillRect(ctx, 'sandHi', 0, 300, W, H - 300, 1.4, 0.45, 'screen');
   // Layers and shells in the sand
   for (let k = 0; k < 4; k++) {
     ctx.beginPath(); for (let x = B.sea - 40; x <= W; x += 20) ctx.lineTo(x, B.ground(x) + 40 + k * 45 + Math.sin(x / 120 + k) * 6);
@@ -130,7 +135,6 @@ Backgrounds.beach = function (ctx, W, H) {
   plainLine(ctx, [ux + 40, uy, ux + 30, uy - 140], '#ddd', 4);
   ctx.beginPath(); ctx.moveTo(ux - 50, uy - 120); ctx.quadraticCurveTo(ux + 30, uy - 210, ux + 110, uy - 140); ctx.closePath();
   ctx.fillStyle = '#f2c040'; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.stroke();
-  storybookFinish(ctx, W, H, 12);
 };
 
 Object.assign(Sprites, {
@@ -467,14 +471,13 @@ function isoBox(ctx, x, y, a, b, h, top, left, right) {
 
 Backgrounds.yard = function (ctx, W, H) {
   const r = rng(51), T = ISO_TILE;
-  ctx.fillStyle = '#7aa04a'; ctx.fillRect(0, 0, W, H);
-  // Lawn tiles
+  Ground.lawn(ctx, W, H, 51, { stripes: false, clover: 0.6 });
+  // Lawn tiles, faint, to keep the isometric grid
   for (let j = -1; j < H / (T.h / 2) + 2; j++) for (let i = -1; i < W / T.w + 2; i++) {
     const x = i * T.w + (j % 2 ? T.w / 2 : 0), y = j * T.h / 2;
     const v = r();
-    isoDiamond(ctx, x, y, T.w, T.h, v < 0.33 ? '#86ac54' : v < 0.66 ? '#7ea44e' : '#8ab25a');
+    isoDiamond(ctx, x, y, T.w, T.h, v < 0.33 ? 'rgba(255,255,220,.05)' : v < 0.66 ? 'rgba(0,30,0,.05)' : 'rgba(0,0,0,0)', 'rgba(255,255,255,.08)');
   }
-  for (let i = 0; i < 2500; i++) { const x = r() * W, y = r() * H; plainLine(ctx, [x, y, x + (r() - 0.5) * 3, y - 3 - r() * 4], r() < 0.5 ? 'rgba(60,100,30,.45)' : 'rgba(170,200,110,.45)', 1); }
   // Patio pavers
   for (let j = 0; j < 9; j++) for (let i = 0; i < 9; i++) {
     const x = 980 + (i - j) * 40, y = 420 + (i + j) * 20;
@@ -512,7 +515,6 @@ Backgrounds.yard = function (ctx, W, H) {
   // Garden bed along the left, with shrubs
   isoDiamond(ctx, 180, 520, 300, 520, '#6a4a30');
   for (let i = 0; i < 9; i++) { const x = 100 + r() * 160, y = 340 + r() * 360; softShadow(ctx, x + 8, y + 10, 34, 16, 0.3); ell(ctx, x, y - 10, 30, 26, '#4a7a3a'); ell(ctx, x - 8, y - 18, 16, 14, '#6a9a4a'); }
-  storybookFinish(ctx, W, H, 33);
 };
 
 Object.assign(Sprites, {

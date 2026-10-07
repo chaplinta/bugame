@@ -580,17 +580,15 @@ Missions.garden = {
 // Bare backyard: dirt, a timber fence and the back step.
 Backgrounds.gardenYard = function (ctx, W, H) {
   const r = rng(12);
-  ctx.fillStyle = SOILS.dirt.base; ctx.fillRect(0, 0, W, H);
-  speckle(ctx, W, H, 1800, SOILS.dirt.speck.concat(['#c0a27a', '#8a6c48']), r, 2.4);
+  Ground.soil(ctx, W, H, 12, { base: '#a88a64', dark: '#7a6044', light: '#c4a880', stones: 0.9, cracks: 0.4, relief: 0.3 });
   // Fence along the top and sides
-  for (let x = 0; x < W; x += 22) { ctx.fillStyle = (x / 22) % 2 ? '#9a7a52' : '#a8885e'; ctx.fillRect(x, 0, 21, 26); }
-  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(0, 26, W, 6);
-  for (let y = 26; y < H; y += 22) { ctx.fillStyle = (y / 22) % 2 ? '#9a7a52' : '#a8885e'; ctx.fillRect(W - 18, y, 18, 21); }
+  for (let x = 0; x < W; x += 22) Ground.bark(ctx, x, 0, 21, 26, x, { axis: 'y', color: (x / 22) % 2 ? '#9a7a52' : '#a8885e' });
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(0, 26, W, 8);
+  for (let y = 26; y < H; y += 22) Ground.bark(ctx, W - 18, y, 18, 21, y, { axis: 'x', color: (y / 22) % 2 ? '#9a7a52' : '#a8885e' });
   // Back step and a tap
   ctx.fillStyle = '#c8c0b0'; ctx.fillRect(W / 2 - 80, H - 26, 160, 26);
   ctx.fillStyle = '#b0a898'; ctx.fillRect(W / 2 - 80, H - 26, 160, 5);
   plainEll(ctx, W - 40, 60, 6, 6, '#8a8a8a'); plainLine(ctx, [W - 40, 60, W - 30, 60], '#6a6a6a', 3);
-  storybookFinish(ctx, W, H, 21);
 };
 
 finishMissions();

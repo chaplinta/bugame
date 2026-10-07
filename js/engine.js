@@ -218,7 +218,8 @@ const Game = {
     this.bg.width = Math.round(World.w * k); this.bg.height = Math.round(World.h * k);
     const bctx = this.bg.getContext('2d');
     bctx.scale(k, k);
-    Backgrounds[mission.bg || mission.id](bctx, World.w, World.h, home);
+    if (typeof Ground !== 'undefined') Ground.paint(mission.bg || mission.id, bctx, World.w, World.h, home);
+    else Backgrounds[mission.bg || mission.id](bctx, World.w, World.h, home);
     Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false;
     const btn = document.getElementById('actionBtn');
     btn.textContent = mission.action;

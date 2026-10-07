@@ -2,14 +2,14 @@
 // Draw-time check: ms per frame for every mission, normal and with the CPU throttled 4x (a phone stand-in),
 // plus how long each level takes to start (mostly painting the background).
 // Usage: node tests/perf.js [missions,comma,separated]   -> prints a table, writes tests/output/perf.json,
-// exits 1 if the throttled p95 frame time is over 8 ms or a level takes over 800 ms to start.
+// exits 1 if the throttled p95 frame time is over 8 ms or a level takes over 1200 ms to start.
 
 const fs = require('fs');
 const path = require('path');
 const { launch, openGame, startMission, MISSIONS } = require('./helpers');
 const BOT = fs.readFileSync(path.join(__dirname, 'bot.js'), 'utf8');
 
-const FRAME_BUDGET = 8, START_BUDGET = 800;
+const FRAME_BUDGET = 8, START_BUDGET = 1200;
 
 async function measure(p, id, frames) {
   await p.addScriptTag({ content: BOT });

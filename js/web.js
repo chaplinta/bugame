@@ -375,14 +375,14 @@ Backgrounds.webBush = function (ctx, W, H) {
   drawPerthSkyline(ctx, 380, 396, 360, 0.75, 0.35);
   // Distant bush
   for (let i = 0; i < 40; i++) { const x = r() * W, y = 380 + r() * 120; softBlob(ctx, x, y, 30 + r() * 40, 'rgba(110,140,90,' + (0.25 + r() * 0.2) + ')'); }
-  ctx.fillStyle = 'rgba(160,150,110,.5)'; ctx.fillRect(0, 540, W, 60);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 540, W, 60); ctx.clip(); Ground.grass(ctx, W, H, 61, { dry: 0.5, height: 6 }); ctx.restore();
   // Branches and trunks, drawn along the same lines the silk can attach to
   WEB_ANCHORS.forEach((line, i) => {
     const w = i < 2 ? 46 : i === 2 ? 16 : i < 5 ? 10 : 7;
     ctx.beginPath(); line.forEach(([x, y], k) => k ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
     ctx.strokeStyle = i < 5 ? '#6a4a30' : '#5a4a2a'; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
     ctx.strokeStyle = 'rgba(255,230,190,.25)'; ctx.lineWidth = w * 0.3; ctx.stroke();
-    if (i < 2) for (let k = 0; k < 30; k++) { const y = r() * H; const x = line[0][0] + (r() - 0.5) * 30; plainLine(ctx, [x, y, x + (r() - 0.5) * 4, y + 12 + r() * 20], 'rgba(40,25,15,.35)', 1.5); }
+    if (i < 2) Ground.bark(ctx, line[0][0] - w / 2, 0, w, H, 7 + i, { axis: 'y', color: '#6a4a30' });
   });
   // Leaves on the high branch and the shrubs
   for (let i = 0; i < 70; i++) {
@@ -391,7 +391,6 @@ Backgrounds.webBush = function (ctx, W, H) {
     const x = line[k][0] + (line[k + 1][0] - line[k][0]) * f, y = line[k][1] + (line[k + 1][1] - line[k][1]) * f;
     ell(ctx, x + (r() - 0.5) * 30, y + (r() - 0.5) * 24, 9, 4, r() < 0.5 ? '#5a8a44' : '#6a9a50', r() * 3);
   }
-  storybookFinish(ctx, W, H, 9);
 };
 
 finishMissions();
