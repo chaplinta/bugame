@@ -11,7 +11,7 @@ Object.assign(Game, {
     const g = this.g, m = g.mission;
     if (g.event || g.netDone || g.frozen) return;
     if (g.netT > 0) { g.netT -= dt; return; }
-    if (this.inHome() || g.preds.length || (m.locked && m.locked(g)) || g.player.invuln > 0) return;
+    if ((this.inHome() && !m.netInHome) || g.preds.length || (m.locked && m.locked(g)) || g.player.invuln > 0) return;
     g.event = { phase: 'swoop', t: 0 };
     g.toasts.unshift({ text: m.id === 'nymph' ? 'Uh oh! A girl with a pond net!' : 'Uh oh! A girl with a bug net!', kind: 'hint' });
     g.toastT = 0;

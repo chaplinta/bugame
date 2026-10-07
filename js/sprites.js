@@ -682,14 +682,14 @@ const Sprites = {
   // Everlasting (paper daisy): pink papery petals, yellow centre. o.leaf 0..1 is how much leaf is left.
   everlasting(ctx, o) {
     const lf = o.leaf === undefined ? 1 : o.leaf;
-    for (let i = 0; i < 6; i++) { ctx.save(); ctx.rotate(i * 1.05 + 0.3); ell(ctx, 16, 0, 9 * (0.4 + lf * 0.6), 3.5, '#5f9a3a'); ctx.restore(); }
+    for (let i = 0; i < 6; i++) { ctx.save(); ctx.rotate(i * 1.05 + 0.3); ell(ctx, 16, 0, 9 * (0.7 + lf * 0.3), 3.5, '#5f9a3a'); chewed(ctx, 16, 9 * (0.7 + lf * 0.3), 3.5, lf, i); ctx.restore(); }
     for (let i = 0; i < 14; i++) { ctx.save(); ctx.rotate(i * TAU / 14); ell(ctx, 8, 0, 6, 2.2, o.nectar === false ? '#e8c8d0' : '#f2a8c0'); ctx.restore(); }
     ell(ctx, 0, 0, 4.5, 4.5, '#e8b030');
   },
   // Capeweed: a weed from South Africa with grey-green leaves and a yellow daisy.
   capeweed(ctx, o) {
     const lf = o.leaf === undefined ? 1 : o.leaf;
-    for (let i = 0; i < 7; i++) { ctx.save(); ctx.rotate(i * 0.9); ell(ctx, 13, 0, 11 * (0.4 + lf * 0.6), 4.5, '#8aa070'); ctx.restore(); }
+    for (let i = 0; i < 7; i++) { ctx.save(); ctx.rotate(i * 0.9); ell(ctx, 13, 0, 11 * (0.7 + lf * 0.3), 4.5, '#8aa070'); chewed(ctx, 13, 11 * (0.7 + lf * 0.3), 4.5, lf, i); ctx.restore(); }
     for (let i = 0; i < 12; i++) { ctx.save(); ctx.rotate(i * TAU / 12); ell(ctx, 6, 0, 4.5, 1.8, '#f2d040'); ctx.restore(); }
     ell(ctx, 0, 0, 3, 3, '#2a2418');
   },
@@ -878,6 +878,20 @@ function drawBanksia(ctx, x, y, r, rand) {
   }
 }
 
+// Bite holes and chewed edges on a leaf drawn along +x at cx (length rx, width ry). lf: 1 = whole, 0 = eaten.
+function chewed(ctx, cx, rx, ry, lf, seed) {
+  const n = Math.round((1 - lf) * 5);
+  for (let k = 0; k < n; k++) {
+    const a = ((seed * 7 + k * 3) % 10) / 10;
+    const x = cx - rx * 0.7 + a * rx * 1.4, edge = k % 2 ? -1 : 1;
+    // Notch bitten out of the edge, and a hole in the middle
+    const hx = x, hy = k % 3 === 2 ? 0 : edge * ry * 0.75, hr = k % 3 === 2 ? ry * 0.35 : ry * 0.55;
+    ctx.beginPath(); ctx.ellipse(hx, hy, hr * 1.3, hr, 0, 0, TAU);
+    ctx.fillStyle = '#d2c8a4'; ctx.fill();
+    ctx.strokeStyle = 'rgba(110,90,40,.7)'; ctx.lineWidth = 0.6; ctx.stroke();
+  }
+}
+
 function speckle(ctx, W, H, n, colors, rand, size) {
   const sh = Shade.on; Shade.on = false;
   for (let i = 0; i < n; i++) {
@@ -1062,11 +1076,8 @@ const Backgrounds = {
       for (let i = 0; i < 6; i++) ell(ctx, x + (r() - 0.5) * 40, y + (r() - 0.5) * 30, 14, 11, i % 2 ? '#6f8f50' : '#809f5c');
     });
     scatter(r, W, H, 80 * A, home, 60, (x, y) => ell(ctx, x, y, 2.2, 2.2, ['#f2f2f2', '#f0d040', '#c060c0'][Math.floor(r() * 3)]));
-    // Silk shelter / chrysalis stem at home
-    for (let i = 0; i < 5; i++) ell(ctx, home.x + (r() - 0.5) * 30, home.y + (r() - 0.5) * 30, 16, 7, '#5f9a3a', r() * TAU);
-    ctx.globalAlpha = 0.6;
-    for (let i = 0; i < 20; i++) { const a = r() * TAU; line(ctx, [home.x, home.y, home.x + Math.cos(a) * 26, home.y + Math.sin(a) * 26], '#fff', 0.8); }
-    ctx.globalAlpha = 1;
+    // Low daisy plant at home (the caterpillar's silk shelter is drawn on it in the caterpillar stage)
+    for (let i = 0; i < 7; i++) ell(ctx, home.x + Math.cos(i * 0.9) * 26, home.y + Math.sin(i * 0.9) * 22, 18, 7, '#5f9a3a', i * 0.9);
   },
   // Whiteman Park woodland: dry grass, fallen logs, a termite mound for home.
   woodland(ctx, W, H, home) {

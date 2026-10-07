@@ -259,8 +259,8 @@ Object.assign(Sprites, {
 
   // Painted lady caterpillar: dark and spiny with a pale yellow side stripe. o.size grows it.
   plCaterpillar(ctx, o, t) {
-    const s = o.size || 1, wig = o.moving ? 1 : 0;
-    ctx.save(); ctx.scale(s, s);
+    const s = o.size || 1, wig = o.moving ? 1 : 0, fat = o.fat || 1;
+    ctx.save(); ctx.scale(s, s * fat);   // grows longer, and fatter as it eats
     for (let k = 7; k >= 0; k--) {
       const x = -k * 4, y = Math.sin(k * 0.9 + t * 8) * wig * 1.2;
       // Prolegs underneath (back half) and true legs (front)
@@ -322,6 +322,37 @@ Object.assign(Sprites, {
     eye(ctx, 8, -1.3, 1, 1, '#3a3020'); eye(ctx, 8, 1.3, 1, 1, '#3a3020');
     for (const sg of [-1, 1]) { line(ctx, [8, sg, 16, sg * 5], '#2a221c', 0.7); plainEll(ctx, 16, sg * 5, 0.9, 0.9, '#2a221c'); }
     if (o.sip) { ctx.beginPath(); ctx.arc(11, 0, 2.5, -1.5, 1.5); ctx.strokeStyle = '#2a221c'; ctx.lineWidth = 0.8; ctx.stroke(); }
+  },
+
+  // Painted lady caterpillar's shelter: daisy leaves pulled together and tied with silk into a little tent.
+  silkShelter(ctx, o, t) {
+    softShadow(ctx, 4, 6, 40, 30, 0.35);
+    // Leaves folded up around the shelter
+    for (let i = 0; i < 6; i++) {
+      ctx.save(); ctx.rotate(i * 1.05 + 0.4);
+      ell(ctx, 20, 0, 18, 8, i % 2 ? '#5f9a3a' : '#6aa646');
+      plainLine(ctx, [6, 0, 36, 0], 'rgba(40,80,20,.5)', 0.8);
+      ctx.restore();
+    }
+    // The tent: two leaves curled over and stuck together
+    ctx.beginPath(); ctx.moveTo(-26, 4); ctx.quadraticCurveTo(-6, -30, 26, -6); ctx.quadraticCurveTo(10, 8, -26, 4); ctx.closePath();
+    let g = ctx.createLinearGradient(0, -24, 0, 8); g.addColorStop(0, '#8ac25a'); g.addColorStop(1, '#4a7a2a');
+    ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = 'rgba(30,60,10,.6)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-24, 8); ctx.quadraticCurveTo(0, 30, 26, 2); ctx.quadraticCurveTo(6, 6, -24, 8); ctx.closePath();
+    g = ctx.createLinearGradient(0, 2, 0, 26); g.addColorStop(0, '#5a8a34'); g.addColorStop(1, '#3a6a22');
+    ctx.fillStyle = g; ctx.fill(); ctx.stroke();
+    plainLine(ctx, [-20, 0, 22, -6], 'rgba(30,60,10,.45)', 0.8);
+    // Dark doorway at one end
+    plainEll(ctx, -24, 6, 6, 5, '#1e2a12');
+    // Silk threads stitched across, zigzag, shining
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    for (let k = 0; k < 9; k++) { const x = -18 + k * 5; ctx.moveTo(x, -16 + Math.abs(k - 4) * 2); ctx.lineTo(x + 3, 16 - Math.abs(k - 4) * 2); }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(-18, -12); ctx.quadraticCurveTo(0, -2, 22, -8); ctx.stroke();
+    // Frass (droppings) beside the door
+    for (let k = 0; k < 4; k++) plainEll(ctx, -34 + k * 3, 14 + (k % 2) * 3, 1.3, 1.1, '#3a2a1a');
   },
 
   chrysalis(ctx, o, t) {

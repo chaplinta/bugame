@@ -5,18 +5,28 @@
 // ------------------------------------------------------------------ Port Beach, side-on
 // The beach is seen from the side: sky and sea above, sand below, with the sandhopper's burrow dug into it.
 const Beach = {
-  W: 2400, H: 720, sea: 400, bx: 1300, depth: 105,
+  W: 4800, H: 720, sea: 400, bx: 2200, depth: 105, dunes: 4000,
   ground(x) {
-    let y = 520 - x * 0.07;
-    if (x > 1800) { const k = clamp((x - 1800) / 260, 0, 1); y -= k * k * (3 - 2 * k) * 80 - k * 22 * Math.sin((x - 1800) / 70); }
+    let y = 520 - Math.min(x, this.dunes) * 0.035 + Math.sin(x / 260) * 6;
+    if (x > this.dunes) { const k = clamp((x - this.dunes) / 300, 0, 1); y -= k * k * (3 - 2 * k) * 80 - k * 22 * Math.sin((x - this.dunes) / 70); }
     return y;
   },
+  // Limestone rocks and a driftwood log to hop up on: [left, right, height above the sand]
+  ledges: [[880, 1040, 46], [1180, 1250, 82], [1650, 1790, 24], [2900, 3060, 52], [3110, 3190, 96], [3550, 3680, 30]],
+  ledgeTop(l) { return this.ground((l[0] + l[1]) / 2) - l[2]; },
   inShaft(x) { return Math.abs(x - this.bx) < 18; },
   floor(x, y, enter) {
     // Inside the burrow shaft the floor is the chamber at the bottom. On the surface you only drop in
     // when you mean to (heading home, or pressing down), so walking past the hole never traps you.
     const gy = this.ground(x);
-    return this.inShaft(x) && (y > gy + 2 || (enter && y > gy - 30)) ? gy + this.depth : gy;
+    if (this.inShaft(x) && (y > gy + 2 || (enter && y > gy - 30))) return gy + this.depth;
+    // Standing on a rock or log when your feet are above its top
+    let f = gy;
+    for (const l of this.ledges) {
+      const top = this.ledgeTop(l);
+      if (x > l[0] && x < l[1] && y <= top + 6 && top < f) f = top;
+    }
+    return f;
   },
 };
 
@@ -36,7 +46,7 @@ Backgrounds.beach = function (ctx, W, H) {
   // Port cranes far off to the south
   ctx.strokeStyle = 'rgba(80,70,110,.55)'; ctx.lineWidth = 5;
   for (let i = 0; i < 4; i++) {
-    const x = 2050 + i * 80;
+    const x = Beach.dunes + 450 + i * 80;
     ctx.beginPath(); ctx.moveTo(x, 330); ctx.lineTo(x, 200); ctx.lineTo(x + 70, 200); ctx.moveTo(x - 30, 200); ctx.lineTo(x, 200); ctx.moveTo(x, 230); ctx.lineTo(x + 50, 200); ctx.stroke();
   }
   // Sea
@@ -77,16 +87,46 @@ Backgrounds.beach = function (ctx, W, H) {
   // Foam where the waves wash up
   for (let i = 0; i < 6; i++) ell(ctx, B.sea - 30 + i * 18, B.ground(B.sea - 30 + i * 18) - 2, 16, 4, '#ffffff');
   // Dunes: spinifex and coastal plants, and the beach-access sign
-  for (let i = 0; i < 26; i++) {
-    const x = 1820 + r() * 560, y = B.ground(x);
+  for (let i = 0; i < 34; i++) {
+    const x = B.dunes + 20 + r() * 760, y = B.ground(x);
     for (let k = 0; k < 14; k++) { const a = -Math.PI / 2 + (k / 13 - 0.5) * 2.2; plainLine(ctx, [x, y, x + Math.cos(a) * (26 + r() * 16), y + Math.sin(a) * (26 + r() * 16)], k % 2 ? '#8a9a52' : '#a8b06a', 1.6); }
   }
-  const sx = 1880, sy = B.ground(sx);
+  const sx = B.dunes + 80, sy = B.ground(sx);
   plainLine(ctx, [sx, sy, sx, sy - 70], '#6a4a2a', 5);
   ctx.fillStyle = '#2f6a9a'; ctx.fillRect(sx - 44, sy - 100, 88, 34);
   ctx.fillStyle = '#fff'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('PORT BEACH', sx, sy - 78);
   ctx.font = '10px sans-serif'; ctx.fillText('North Fremantle', sx, sy - 68);
   ctx.fillStyle = '#5a4a32'; ctx.font = 'bold 15px sans-serif'; ctx.fillText('Burrow', B.bx, gy + B.depth + 46);
+  // Rocks and driftwood to climb on
+  for (const l of B.ledges) {
+    const top = B.ledgeTop(l), x0 = l[0], x1 = l[1], base = Math.max(B.ground(x0), B.ground(x1)) + 6;
+    if (l[2] < 30) {
+      // Driftwood log
+      const lg = ctx.createLinearGradient(0, top, 0, base);
+      lg.addColorStop(0, '#b8a080'); lg.addColorStop(1, '#6a5a44');
+      ctx.fillStyle = lg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x0, top, x1 - x0, base - top, 12) : ctx.rect(x0, top, x1 - x0, base - top); ctx.fill();
+      for (let k = 0; k < 3; k++) plainLine(ctx, [x0 + 10, top + 6 + k * 6, x1 - 14, top + 5 + k * 6], 'rgba(80,60,40,.4)', 1.2);
+      ctx.beginPath(); ctx.ellipse(x1 - 4, (top + base) / 2, 7, (base - top) / 2, 0, 0, TAU); ctx.fillStyle = '#d8c4a0'; ctx.fill();
+    } else {
+      // Limestone rock, pitted and rounded
+      ctx.beginPath(); ctx.moveTo(x0 - 10, base);
+      ctx.quadraticCurveTo(x0 - 6, top + 4, x0 + 18, top);
+      ctx.lineTo(x1 - 18, top);
+      ctx.quadraticCurveTo(x1 + 6, top + 4, x1 + 10, base); ctx.closePath();
+      const rg = ctx.createLinearGradient(0, top, 0, base);
+      rg.addColorStop(0, '#e8dcc0'); rg.addColorStop(1, '#a8987a');
+      ctx.fillStyle = rg; ctx.fill(); ctx.strokeStyle = 'rgba(90,70,50,.4)'; ctx.lineWidth = 2; ctx.stroke();
+      for (let k = 0; k < 14; k++) plainEll(ctx, x0 + r() * (x1 - x0), top + 6 + r() * (base - top - 10), 1.5 + r() * 3, 1 + r() * 2, 'rgba(110,90,60,.35)');
+      ctx.fillStyle = 'rgba(70,110,50,.6)'; for (let k = 0; k < 5; k++) ctx.fillRect(x0 + 10 + r() * (x1 - x0 - 20), top - 2, 6, 3);
+    }
+  }
+  // Beach towel and umbrella someone left
+  const ux = 3350, uy = B.ground(ux);
+  ctx.fillStyle = '#e85a8a'; ctx.fillRect(ux - 60, uy - 3, 120, 5);
+  for (let k = 0; k < 6; k++) { ctx.fillStyle = k % 2 ? '#fff' : '#e85a8a'; ctx.fillRect(ux - 60 + k * 20, uy - 3, 20, 5); }
+  plainLine(ctx, [ux + 40, uy, ux + 30, uy - 140], '#ddd', 4);
+  ctx.beginPath(); ctx.moveTo(ux - 50, uy - 120); ctx.quadraticCurveTo(ux + 30, uy - 210, ux + 110, uy - 140); ctx.closePath();
+  ctx.fillStyle = '#f2c040'; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.stroke();
   storybookFinish(ctx, W, H, 12);
 };
 
@@ -222,14 +262,15 @@ Object.assign(Missions, {
       const p = g.player;
       p.vy = 0; p.vx = 0; p.face = 1; p.angle = 0; p.onGround = true; p.munchT = 0; p.flat = true;
       for (const f of g.finds) f.y = Beach.ground(f.x) - 6;
-      for (let i = 0; i < 7; i++) this.addWrack(i < 4 ? 520 + i * 150 + Math.random() * 40 : 1500 + (i - 4) * 160);
+      for (let i = 0; i < 11; i++) this.addWrack(560 + i * 320 + Math.random() * 80);
       g.nextPred = 12;
       Game.later(5, () => Game.fact('pouch'));
       Game.later(14, () => Game.fact('damp'));
     },
     addWrack(x) {
-      x = x || 520 + Math.random() * 1300;
+      x = x || 520 + Math.random() * (Beach.dunes - 700);
       if (Beach.inShaft(x) || Math.abs(x - Beach.bx) < 60) x += 90;
+      for (const l of Beach.ledges) if (x > l[0] - 30 && x < l[1] + 30) x = l[1] + 60;   // not hidden under a rock
       Game.g.items.push({ sprite: 'wrack', kind: 'wrack', x, y: Beach.ground(x) - 4, r: 22, amount: 1, seed: (Math.random() * 1000) | 0, scale: 1.2, flat: true, angle: 0 });
     },
     inBurrow(g) { const p = g.player; return Beach.inShaft(p.x) && p.y > Beach.ground(p.x) + 10; },
@@ -268,13 +309,15 @@ Object.assign(Missions, {
       Sound.play('jump');
       Game.fact('hop');
     },
+    netInHome: true,   // the girl can scoop you out of the burrow too
     onCaught(g) { const p = g.player; p.vx = 0; p.vy = 0; },
     update(g, dt, input) {
       const p = g.player;
       // Babies climbing out of the pouch after the win
       for (const b of g.babies || []) { b.x += b.face * 30 * dt; b.y = Beach.floor(b.x, b.y) - 5; }
       for (const w of g.items) w.y = Beach.ground(w.x) - 4;
-      const on = p.onGround && g.score < this.goal ? g.items.find(i => i.kind === 'wrack' && Math.abs(i.x - p.x) < 30 && i.amount > 0) : null;
+      const on = p.onGround && g.score < this.goal ? nearest(g.items.filter(i => i.kind === 'wrack' && i.amount > 0 && Math.abs(i.y - p.y) < 40), p, 52) : null;
+      g.canEat = on;
       setAction(on ? 'Eat' : 'Hop', on || p.onGround);
       if (on && working(input)) {
         const w = work(input, dt);
@@ -285,7 +328,7 @@ Object.assign(Missions, {
           p.munchT = 0; g.score++;
           Game.pop(p.x, p.y - 26, 'Yum!', '#a8d060');
           if (g.score === this.goal) { Sound.play('score'); g.toasts.unshift({ text: 'Full up! Hop home to your burrow.', kind: 'hint' }); g.toastT = 0; }
-          g.items.splice(g.items.indexOf(on), 1); Game.later(4, () => this.addWrack(p.x < Beach.bx ? Beach.bx + 150 + Math.random() * 500 : Beach.sea + 120 + Math.random() * 600));
+          g.items.splice(g.items.indexOf(on), 1); Game.later(4, () => this.addWrack(p.x < Beach.bx ? Beach.bx + 200 + Math.random() * 1500 : Beach.sea + 160 + Math.random() * 1500));
         }
         p.progress = Math.min(1, p.munchT);
       } else if (input.pressed) this.hop(g);
@@ -302,7 +345,7 @@ Object.assign(Missions, {
     },
     makeGull(g) {
       const p = g.player, m = this, face = Math.random() < 0.5 ? 1 : -1;
-      g.toasts.unshift({ text: 'Look out! A silver gull is flying over. Hide in your burrow, or hop away when it dives!', kind: 'hint' });
+      g.toasts.unshift({ text: 'Look out! A silver gull is flying over. Keep moving and hop away when it dives. It can reach into your burrow!', kind: 'hint' });
       g.toastT = 0; Sound.play('caught'); Game.fact('gull');
       return { sprite: 'gull', name: 'silver gull', x: p.x - face * 500, y: 90, r: 18, scale: 1.6, face, angle: 0, ground: true, flat: true, state: 'wander', t: 0,
         update(pr, dt) {
@@ -313,17 +356,19 @@ Object.assign(Missions, {
             const tx = p.x + Math.sin(pr.t * 1.3) * 160;
             pr.x += clamp(tx - pr.x, -200 * dt, 200 * dt); pr.y += (110 - pr.y) * dt;
             pr.face = Math.cos(pr.t * 1.3) > 0 ? 1 : -1;
-            if (pr.t > 5 && !hidden && p.invuln <= 0) { pr.state = 'alert'; pr.t = 0; }
+            if (pr.t > 5 && p.invuln <= 0) { pr.state = 'alert'; pr.t = 0; }
             if (pr.t > 14) pr.state = 'leave';
           } else if (pr.state === 'alert') {
             // Hover, then dive at where you are now
-            if (pr.t > 0.9) { pr.state = 'chase'; pr.dive = true; pr.tx = p.x; pr.ty = p.y; pr.face = pr.tx > pr.x ? 1 : -1; }
+            // Gulls will dive at the burrow too, and poke their beak down the hole
+            if (pr.t > 0.9) { pr.state = 'chase'; pr.dive = true; pr.tx = p.x; pr.ty = hidden ? Beach.ground(p.x) - 14 : p.y; pr.face = pr.tx > pr.x ? 1 : -1; }
           } else if (pr.state === 'chase') {
             const d = Math.hypot(pr.tx - pr.x, pr.ty - pr.y);
             const sp = 520 * dt;
             if (d > sp) { pr.x += (pr.tx - pr.x) / d * sp; pr.y += (pr.ty - pr.y) / d * sp; }
             else { pr.state = 'wander'; pr.dive = false; pr.t = 2; Game.burst(pr.x, pr.y + 10, '#e8d4a0', 10); }
-            if (!hidden && p.invuln <= 0 && dist(pr, p) < 26) { pr.dive = false; Game.caught(pr); }
+            const reach = hidden ? Math.abs(pr.x - p.x) < 26 && pr.y > Beach.ground(p.x) - 30 && p.y < Beach.ground(p.x) + Beach.depth - 30 : dist(pr, p) < 26;
+            if (p.invuln <= 0 && reach) { pr.dive = false; Game.caught(pr); }
           } else {
             pr.y -= 160 * dt; pr.x += pr.face * 180 * dt; pr.dive = false;
             if (pr.y < -60) pr.gone = true;
@@ -355,6 +400,15 @@ Object.assign(Missions, {
         } };
     },
     drawExtra(ctx, g) {
+      // Seaweed you can eat right now glows, with a little Eat sign
+      const w = g.canEat;
+      if (w) {
+        const k = 0.5 + 0.5 * Math.sin(g.t * 6);
+        ctx.beginPath(); ctx.ellipse(w.x, w.y, 34, 12, 0, 0, TAU);
+        ctx.strokeStyle = 'rgba(140,255,120,' + (0.5 + k * 0.4) + ')'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('Eat!', w.x, w.y - 44 - k * 4);
+      }
       // Shadows of birds on the sand, and babies after the win
       for (const pr of g.preds) {
         const gy = Beach.ground(pr.x);

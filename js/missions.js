@@ -754,15 +754,17 @@ const Missions = {
         }
       }
       if (host && pl.leaf > 0.05) p.progress = Math.min(1, p.munchT);
-      p.size = 1 + g.score * 0.07;
+      p.size = 1 + g.score * 0.05;
+      p.fat = 1 + g.score * 0.05;
       p.r = 16 * p.size;
       p.speed = 75 + g.score * 3;
     },
+    drawBuild(ctx, g) { Game.drawSprite('silkShelter', { x: g.home.x, y: g.home.y, angle: 0.2, flat: true }, 1.5); },
     drawExtra(ctx, g) {
       if (g.moultT > 0) {
         ctx.globalAlpha = Math.min(1, g.moultT);
         ctx.save(); ctx.translate(g.player.x - 30, g.player.y + 4);
-        Sprites.plCaterpillar(ctx, { size: g.player.size * 0.9 }, 0);
+        Sprites.plCaterpillar(ctx, { size: g.player.size * 0.9, fat: g.player.fat * 0.9 }, 0);
         ctx.restore();
         ctx.globalAlpha = 1;
       }

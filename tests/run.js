@@ -302,6 +302,13 @@ test('sandhopper: tapping Hop gets you out of the burrow, and walking over it do
   await p.evaluate(() => { Game.g.player.x = Beach.bx; });
   await p.keyboard.down('ArrowDown'); await p.waitForTimeout(800); await p.keyboard.up('ArrowDown');
   check(await p.evaluate(() => Missions.sandhopper.inBurrow(Game.g)), 'could not drop into the burrow');
+  // The girl's net can reach you in the burrow
+  await p.evaluate(() => { Game.g.netT = 0; Game.g.netDone = false; Game.g.player.invuln = 0; });
+  await p.waitForFunction(() => !!Game.g.event, null, { timeout: 3000 });
+  // Seaweed you're standing next to can be eaten
+  await p.evaluate(() => { Game.g.event = null; Game.g.netDone = true; const w = Game.g.items.find(i => i.kind === 'wrack'); Game.g.player.x = w.x + 40; Game.g.player.y = Beach.ground(w.x) - 30; });
+  await p.waitForTimeout(500);
+  check(await p.textContent('#actionBtn') === 'Eat', 'no Eat button next to seaweed');
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
@@ -316,6 +323,19 @@ test('an error in a level returns to the map and other levels still work', async
   const t0 = await p.evaluate(() => Game.g.t);
   await p.waitForTimeout(500);
   check(await p.evaluate((t0) => Game.running && Game.g.t > t0, t0), 'game loop stopped after the crash');
+});
+
+test('a side-on and an isometric level are open from the start, and tagged on the map', async (b) => {
+  const p = await openGame(b);
+  for (const [name, tag] of [['Sandhopper', 'Side-on'], ['Mosquito', 'Isometric']]) {
+    const pin = p.locator('.pin', { hasText: name });
+    check((await pin.locator('.viewTag').textContent()) === tag, name + ' not tagged ' + tag);
+    await pin.click();
+    check(!(await p.locator('#bugStart').isDisabled()) && !/locked/.test(await p.textContent('#stages')), name + ' locked');
+    await p.click('#bugStart');
+    check(await p.isVisible('#play.active'), name + ' did not start');
+    await p.click('#menuBtn');
+  }
 });
 
 test('messages do not pile up', async (b) => {

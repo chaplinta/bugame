@@ -50,6 +50,8 @@ function portrait(canvas, sprite, size) {
 }
 
 function bugSprite(bug) { return bug.sprite; }
+// How a level is seen, when it isn't the usual top-down view.
+function viewTag(m) { return { side: 'Side-on', iso: 'Isometric', '3d': '3D' }[m && m.view] || ''; }
 function bugStars(bug) { return bug.stages.reduce((n, id) => n + Progress.stars(id), 0); }
 
 function fillList(el, items) {
@@ -78,7 +80,9 @@ function buildMap() {
     b.style.left = (bug.pin.x / W * 100) + '%';
     b.style.top = (bug.pin.y / H * 100) + '%';
     const max = bug.stages.length * 3, got = bugStars(bug);
-    b.innerHTML = '<canvas></canvas><span class="pinName"></span><span class="pinPlace"></span><span class="pinStars"></span>';
+    b.innerHTML = '<span class="viewTag"></span><canvas></canvas><span class="pinName"></span><span class="pinPlace"></span><span class="pinStars"></span>';
+    const vt = viewTag(Missions[bug.stages[0]]);
+    b.querySelector('.viewTag').textContent = vt;
     portrait(b.querySelector('canvas'), bugSprite(bug), 56);
     b.querySelector('.pinName').textContent = bug.name;
     b.querySelector('.pinPlace').textContent = bug.place;
@@ -90,7 +94,7 @@ function buildMap() {
     const row = document.createElement('button');
     row.innerHTML = '<canvas></canvas><span><b></b><small></small></span>';
     portrait(row.querySelector('canvas'), bugSprite(bug), 44);
-    row.querySelector('b').textContent = bug.name;
+    row.querySelector('b').textContent = bug.name + (vt ? ' (' + vt + ')' : '');
     row.querySelector('small').textContent = bug.place + (got ? ' \u00b7 \u2605 ' + got + ' / ' + max : '');
     row.addEventListener('click', () => { Sound.play('tap'); openBug(bug); });
     places.appendChild(row);
@@ -130,11 +134,11 @@ function selectStage(id) {
     b.className = 'stageBtn' + (sid === id ? ' on' : '');
     b.disabled = !open;
     const st = Progress.stars(sid);
-    b.textContent = (i + 1) + '. ' + sm.stage + (open ? (st ? ' ' + '★'.repeat(st) : '') : ' (locked)');
+    b.textContent = (i + 1) + '. ' + sm.stage + (viewTag(sm) ? ' · ' + viewTag(sm) : '') + (open ? (st ? ' ' + '★'.repeat(st) : '') : ' (locked)');
     b.addEventListener('click', () => selectStage(sid));
     box.appendChild(b);
   });
-  $('stagePlace').textContent = (bug.stages.length > 1 ? '' : m.stage + ' · ') + m.place;
+  $('stagePlace').textContent = (bug.stages.length > 1 ? '' : m.stage + ' · ') + m.place + (viewTag(m) ? ' · ' + viewTag(m) + ' view' : '');
   $('stageSex').textContent = m.sex || '';
   fillList($('stageFacts'), m.facts);
   fillList($('stageHow'), m.gentle ? m.how.concat('You can\u2019t lose this one. If you get caught you just go home.') : m.how);
