@@ -7,7 +7,7 @@ const FAMILY = {
   kids: [
     { name: 'Molluscs', fact: 'Snails are molluscs, like slugs, octopuses and mussels. They are only distant cousins of insects.', kids: [{ bug: 'snail' }] },
     { name: 'Arthropods', fact: 'Arthropods have a hard skeleton on the outside and legs with joints. They moult to grow.', kids: [
-      { name: 'Spiders & scorpions', fact: 'Spiders, scorpions and mites have 8 legs and fangs called chelicerae.', kids: [{ bug: 'spider' }] },
+      { name: 'Spiders & scorpions', fact: 'Spiders, scorpions and mites have 8 legs and fangs called chelicerae.', kids: [{ bug: 'spider' }, { bug: 'orbweaver' }] },
       { name: 'Crustaceans & insects', fact: 'Surprise! Insects are a branch of the crustacean family tree. Their ancestors lived in water.', kids: [
         { name: 'Crustaceans', fact: 'Crabs, prawns, gilgies and sandhoppers are crustaceans. Most breathe with gills.', kids: [{ bug: 'sandhopper' }] },
         { name: 'Insects', fact: 'Insects have 6 legs and 3 body parts. There are more kinds of insects than any other animal.', kids: [
@@ -100,6 +100,9 @@ const Tree = {
       ctx.fillText(played ? bug.name : bug.name + '  ?', leafX + 34, y + 1);
       ctx.fillStyle = '#6a5a42'; ctx.font = 'italic 12px Georgia, serif';
       ctx.fillText(bug.sci, leafX + 34, y + 16);
+      if (this.from && this.from.id === bug.id) {
+        ctx.beginPath(); ctx.arc(leafX, y, 31, 0, TAU); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 5; ctx.stroke();
+      }
       this.hits.push({ x: leafX - 28, y: y - 28, w: 300, h: 56, bug });
     }
   },
@@ -117,13 +120,27 @@ const Tree = {
     Speech.say(hit.node.name + '. ' + hit.node.fact);
   },
 
-  open() {
+  // from: the bug page we came from, if any. That bug is ringed on the tree and its group named.
+  open(from) {
+    this.from = from || null;
+    $('treeBack').textContent = from ? 'Back' : 'Map';
     $('treeFact').textContent = 'Tap a branch to learn about that group. Tap a bug to play it.';
     show('tree');
     this.draw();
+    if (from) {
+      const path = [];
+      const find = (n) => { if (n.bug === from.id) return true; if (!n.kids) return false; for (const k of n.kids) if (find(k)) { path.unshift(n); return true; } return false; };
+      if (find(FAMILY) && path.length) {
+        const grp = path[path.length - 1];
+        $('treeFact').innerHTML = '';
+        const b = document.createElement('b'); b.textContent = from.name + ': ';
+        $('treeFact').append(b, 'part of the ' + grp.name.toLowerCase() + ' group. Its family line: ' + path.map(n => n.name).join(' → ') + '.');
+      }
+    }
   },
 };
 
 $('treeBtn').addEventListener('click', () => Tree.open());
-$('treeBack').addEventListener('click', () => buildMap());
+$('treeBack').addEventListener('click', () => { if (Tree.from) openBug(Tree.from); else buildMap(); });
+$('bugTree').addEventListener('click', () => { Speech.stop(); Tree.open(currentBug); });
 $('treeCanvas').addEventListener('click', (e) => Tree.tap(e));

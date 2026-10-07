@@ -166,9 +166,20 @@ const Game = {
       return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
     };
     let down = false;
-    this.canvas.addEventListener('pointerdown', (e) => { down = true; Input.target = toWorld(e); this.canvas.setPointerCapture(e.pointerId); });
-    this.canvas.addEventListener('pointermove', (e) => { if (down) Input.target = toWorld(e); });
-    const up = () => { down = false; Input.target = null; };
+    // Building levels (garden, web, nest) get taps and drags in world coordinates through mission.onPointer.
+    const tell = (type, e) => {
+      const g = this.g, m = g && g.mission;
+      if (!this.running || !m || !m.onPointer || g.event || g.night) return false;
+      const s = toWorld(e), z = this.zoom || 1;
+      m.onPointer(g, type, s.x / z + g.cam.x, s.y / z + g.cam.y);
+      return !!m.pointerOnly;
+    };
+    this.canvas.addEventListener('pointerdown', (e) => {
+      down = true; this.canvas.setPointerCapture(e.pointerId);
+      if (!tell('down', e)) Input.target = toWorld(e);
+    });
+    this.canvas.addEventListener('pointermove', (e) => { if (down && !tell('move', e)) Input.target = toWorld(e); });
+    const up = (e) => { if (down) tell('up', e); down = false; Input.target = null; };
     this.canvas.addEventListener('pointerup', up);
     this.canvas.addEventListener('pointercancel', up);
 
@@ -195,6 +206,7 @@ const Game = {
       { x: d.fx * World.w, y: d.fy * World.h }));
     this.g = g;
     mission.setup(g);
+    if (typeof Tools !== 'undefined') Tools.build(mission, g);
     if (this.setupSecret) this.setupSecret();
     this.updateZoom();
     this.updateCamera();
@@ -216,6 +228,7 @@ const Game = {
 
   stop() {
     this.running = false; this.showToast(null); Speech.stop();
+    if (typeof Tools !== 'undefined') Tools.hide();
     if (this.g && this.g.mission.teardown) this.g.mission.teardown(this.g);
   },
 

@@ -271,7 +271,7 @@ test('family tree: branches give facts, bugs open their page', async (b) => {
   const insects = await p.evaluate(() => Tree.hits.find(h => h.node && h.node.name === 'Insects'));
   await p.mouse.click(...at(insects));
   check(/6 legs/.test(await p.textContent('#treeFact')), 'no fact for a branch');
-  check(await p.evaluate(() => Tree.hits.filter(h => h.bug).length === Bugs.length), 'not every bug is on the tree');
+  check(await p.evaluate(() => Tree.hits.filter(h => h.bug).length === Bugs.filter(b => b.kind !== 'sandbox').length), 'not every bug is on the tree');
   const snail = await p.evaluate(() => Tree.hits.find(h => h.bug && h.bug.id === 'snail'));
   await p.mouse.click(...at(snail));
   check(await p.isVisible('#bug.active') && (await p.textContent('#bugName')) === 'Native Snail', 'bug page not opened');
@@ -302,11 +302,12 @@ test('sandhopper: tapping Hop gets you out of the burrow, and walking over it do
   await p.evaluate(() => { Game.g.player.x = Beach.bx; });
   await p.keyboard.down('ArrowDown'); await p.waitForTimeout(800); await p.keyboard.up('ArrowDown');
   check(await p.evaluate(() => Missions.sandhopper.inBurrow(Game.g)), 'could not drop into the burrow');
-  // The girl's net can reach you in the burrow
-  await p.evaluate(() => { Game.g.netT = 0; Game.g.netDone = false; Game.g.player.invuln = 0; });
-  await p.waitForFunction(() => !!Game.g.event, null, { timeout: 3000 });
+  // Safe in the burrow: the girl's net doesn't come, and a gull won't dive
+  await p.evaluate(() => { Game.g.netT = 0; Game.g.netDone = false; Game.g.player.invuln = 0; Game.g.preds.push(Missions.sandhopper.makeGull(Game.g)); Game.g.preds[0].t = 6; Game.g.preds[0].x = Game.g.player.x; });
+  await p.waitForTimeout(1500);
+  check(await p.evaluate(() => !Game.g.event && Game.g.lives === 3 && Game.g.preds[0].state !== 'chase'), 'not safe in the burrow');
   // Seaweed you're standing next to can be eaten
-  await p.evaluate(() => { Game.g.event = null; Game.g.netDone = true; const w = Game.g.items.find(i => i.kind === 'wrack'); Game.g.player.x = w.x + 40; Game.g.player.y = Beach.ground(w.x) - 30; });
+  await p.evaluate(() => { Game.g.preds = []; Game.g.event = null; Game.g.netDone = true; const w = Game.g.items.find(i => i.kind === 'wrack'); Game.g.player.x = w.x + 40; Game.g.player.y = Beach.ground(w.x) - 30; });
   await p.waitForTimeout(500);
   check(await p.textContent('#actionBtn') === 'Eat', 'no Eat button next to seaweed');
   check(p.errors.length === 0, p.errors.join('; '));
@@ -336,6 +337,52 @@ test('a side-on and an isometric level are open from the start, and tagged on th
     check(await p.isVisible('#play.active'), name + ' did not start');
     await p.click('#menuBtn');
   }
+});
+
+test('native garden: paint, plant, wildlife arrives, garden is saved', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'garden', {});
+  check(await p.isVisible('#tools') && !(await p.isVisible('#actionBtn')), 'tool palette not shown');
+  const box = await p.locator('#game').boundingBox();
+  const at = (x, y) => [box.x + x / 960 * box.width, box.y + y / 600 * box.height];
+  // Real drag with the pond tool
+  await p.locator('#tools .tool', { hasText: 'Pond' }).click();
+  await p.mouse.move(...at(500, 300)); await p.mouse.down();
+  for (let x = 500; x <= 700; x += 20) for (const y of [300, 340]) await p.mouse.move(...at(x, y));
+  await p.mouse.up();
+  check(await p.evaluate(() => gardenCounts(Game.g).water >= 6), 'pond not painted');
+  await p.locator('#tools .tool', { hasText: 'Everlasting' }).click();
+  await p.mouse.click(...at(250, 150)); await p.mouse.click(...at(300, 180));
+  check(await p.evaluate(() => gardenCounts(Game.g).everlasting === 2), 'plants not placed');
+  await p.evaluate(() => { Game.timeScale = 8; });
+  await p.waitForFunction(() => Game.g.score >= 2, null, { timeout: 20000 });
+  // Saved: reopen and it's still there
+  await p.click('#menuBtn');
+  await startMission(p, 'garden', {});
+  check(await p.evaluate(() => gardenCounts(Game.g).everlasting === 2 && gardenCounts(Game.g).water >= 6), 'garden not saved');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('orb web: spin threads between branches, spiral, wrap stuck insects', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'web', {});
+  const box = await p.locator('#game').boundingBox();
+  const at = (x, y) => [box.x + x / 960 * box.width, box.y + y / 600 * box.height];
+  const drag = async (a, c) => { await p.mouse.move(...at(...a)); await p.mouse.down(); await p.mouse.move(...at(...c)); await p.mouse.up(); };
+  await drag([158, 300], [898, 260]);
+  for (const e of [[520, 80], [700, 66], [740, 262], [650, 510], [430, 470], [330, 318], [300, 72]]) await drag([520, 280], e);
+  check(await p.evaluate(() => Game.g.threads.length >= 9), 'threads not spun');
+  await drag([520, 280], [520, 400]);   // ends in mid-air: not allowed
+  check(await p.evaluate(() => Game.g.threads.length < 10), 'thread ending in the air was allowed');
+  await p.locator('#tools .tool', { hasText: 'Spiral' }).click();
+  await p.mouse.click(...at(520, 280));
+  check(await p.evaluate(() => Game.g.threads.some(t => t.type === 'sticky')), 'no spiral');
+  await p.evaluate(() => { Game.timeScale = 4; });
+  await p.waitForFunction(() => Game.g.prey.some(q => q.stuck && !q.wrapped), null, { timeout: 30000 });
+  const q = await p.evaluate(() => { const q = Game.g.prey.find(q => q.stuck && !q.wrapped); return [q.x, q.y]; });
+  await p.mouse.click(...at(...q));
+  await p.waitForFunction(() => Game.g.score >= 1, null, { timeout: 10000 });
+  check(p.errors.length === 0, p.errors.join('; '));
 });
 
 test('messages do not pile up', async (b) => {

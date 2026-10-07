@@ -80,6 +80,15 @@ function buildHeath(scene) {
   // Distant sea to the west and white clouds
   const sea = new T.Mesh(new T.PlaneGeometry(400, 600), new T.MeshLambertMaterial({ color: '#4a9ad0' }));
   sea.rotation.x = -Math.PI / 2; sea.position.set(-380, -1, 0); scene.add(sea);
+  // Perth city skyline in the distance to the east, on a painted billboard
+  const sc = document.createElement('canvas'); sc.width = 512; sc.height = 256;
+  const sctx = sc.getContext('2d');
+  drawPerthSkyline(sctx, 70, 250, 360, 1, 0.2);
+  const stex = new T.CanvasTexture(sc); stex.colorSpace = T.SRGBColorSpace;
+  for (const [x, z, ry] of [[195, -40, -Math.PI / 2], [150, -150, -Math.PI / 4]]) {
+    const city = new T.Mesh(new T.PlaneGeometry(90, 45), new T.MeshBasicMaterial({ map: stex, transparent: true, fog: true }));
+    city.position.set(x, 18, z); city.rotation.y = ry; scene.add(city);
+  }
   const cloudMat = new T.MeshLambertMaterial({ color: '#ffffff', emissive: '#556070' });
   for (let i = 0; i < 14; i++) {
     const g = new T.Group();

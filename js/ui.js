@@ -51,7 +51,7 @@ function portrait(canvas, sprite, size) {
 
 function bugSprite(bug) { return bug.sprite; }
 // How a level is seen, when it isn't the usual top-down view.
-function viewTag(m) { return { side: 'Side-on', iso: 'Isometric', '3d': '3D' }[m && m.view] || ''; }
+function viewTag(m) { return { side: 'Side-on', iso: 'Isometric', '3d': '3D', build: 'Build' }[m && m.view] || ''; }
 function bugStars(bug) { return bug.stages.reduce((n, id) => n + Progress.stars(id), 0); }
 
 function fillList(el, items) {
@@ -107,6 +107,7 @@ function buildMap() {
 
 function openBug(bug, missionId) {
   currentBug = bug;
+  $('bugTree').hidden = bug.kind === 'sandbox';
   $('bugName').textContent = bug.name;
   $('bugSci').textContent = bug.sci;
   portrait($('bugPic'), bugSprite(bug), 120);

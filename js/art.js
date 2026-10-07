@@ -248,3 +248,58 @@ drawPerthMap = function (ctx, W, H) {
 function softBlob(ctx, x, y, rr, col) {
   ctx.beginPath(); ctx.ellipse(x, y, rr, rr * 0.75, 0, 0, TAU); ctx.fillStyle = col; ctx.fill();
 }
+
+// ------------------------------------------------------------------ Perth landmarks for backgrounds
+// The Dingo Flour mill in North Fremantle: a tall white mill with a giant red dingo painted on the side.
+function drawDingoMill(ctx, x, base, s, haze) {
+  ctx.save(); ctx.translate(x, base); ctx.scale(s, s);
+  ctx.globalAlpha *= 1 - (haze || 0);
+  // Silos behind
+  for (let i = 0; i < 4; i++) { ctx.fillStyle = i % 2 ? '#d8d2c4' : '#e4dece'; ctx.fillRect(120 + i * 22, -150, 20, 150); ell(ctx, 130 + i * 22, -150, 10, 4, '#cfc8b8'); }
+  // Main mill block, stepped roof
+  ctx.fillStyle = '#efeadc'; ctx.fillRect(0, -190, 120, 190);
+  ctx.fillStyle = '#e2dccc'; ctx.fillRect(20, -220, 70, 30);
+  ctx.fillStyle = '#d4cebe'; ctx.fillRect(40, -236, 30, 16);
+  ctx.fillStyle = 'rgba(120,110,90,.25)'; for (let r = 0; r < 6; r++) for (let c = 0; c < 4; c++) ctx.fillRect(10 + c * 28, -175 + r * 28, 12, 8);
+  // The painted dingo (red-orange, leaping), and DINGO lettering
+  ctx.fillStyle = '#d0402a';
+  ctx.beginPath();
+  ctx.moveTo(14, -78); ctx.quadraticCurveTo(40, -96, 70, -90); ctx.lineTo(86, -104); ctx.lineTo(90, -96); ctx.lineTo(100, -98);
+  ctx.lineTo(96, -88); ctx.quadraticCurveTo(102, -80, 94, -76); ctx.lineTo(80, -78); ctx.quadraticCurveTo(70, -66, 66, -54);
+  ctx.lineTo(58, -54); ctx.lineTo(60, -68); ctx.quadraticCurveTo(44, -70, 34, -64); ctx.lineTo(24, -52); ctx.lineTo(16, -54);
+  ctx.lineTo(22, -68); ctx.quadraticCurveTo(10, -66, 4, -60); ctx.quadraticCurveTo(6, -72, 14, -78); ctx.closePath(); ctx.fill();
+  ctx.font = 'bold 22px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('DINGO', 60, -24);
+  ctx.restore();
+}
+
+// Perth city skyline across the river, softened by distance.
+function drawPerthSkyline(ctx, x, base, w, s, haze) {
+  ctx.save(); ctx.translate(x, base); ctx.scale(s, s);
+  const cols = ['#9aa8b8', '#8a98aa', '#aab6c4', '#7a889c'];
+  // [x, width, height, top style]
+  const towers = [[0, 26, 70], [30, 22, 96], [56, 30, 120], [90, 24, 150, 'spire'], [118, 34, 210, 'central'], [156, 28, 170], [188, 30, 186, 'slope'],
+    [222, 22, 130], [248, 30, 160], [282, 20, 100], [306, 26, 80], [336, 18, 60, 'bell']];
+  for (const [tx, tw, th, top] of towers) {
+    ctx.fillStyle = cols[(tx / 2 | 0) % 4];
+    ctx.fillRect(tx, -th, tw, th);
+    if (top === 'spire') { ctx.beginPath(); ctx.moveTo(tx + 4, -th); ctx.lineTo(tx + tw / 2, -th - 30); ctx.lineTo(tx + tw - 4, -th); ctx.fill(); }
+    if (top === 'central') { ctx.fillRect(tx + 8, -th - 18, tw - 16, 18); plainLine(ctx, [tx + tw / 2, -th - 18, tx + tw / 2, -th - 44], cols[1], 2); }
+    if (top === 'slope') { ctx.beginPath(); ctx.moveTo(tx, -th); ctx.lineTo(tx + tw, -th - 22); ctx.lineTo(tx + tw, -th); ctx.fill(); }
+    if (top === 'bell') {   // the Bell Tower by the river
+      ctx.fillStyle = '#a8b4c0'; ctx.beginPath(); ctx.moveTo(tx - 4, 0); ctx.lineTo(tx + tw / 2, -th - 40); ctx.lineTo(tx + tw + 4, 0); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    for (let k = 8; k < th - 4; k += 9) ctx.fillRect(tx + 3, -th + k, tw - 6, 2);
+  }
+  if (haze) { ctx.fillStyle = 'rgba(220,235,245,' + haze + ')'; ctx.fillRect(-10, -260, 380, 262); }
+  ctx.restore();
+}
+
+// Wadjemup (Rottnest) lighthouse: a white tower on the island.
+function drawRottnestLighthouse(ctx, x, base, s) {
+  ctx.save(); ctx.translate(x, base); ctx.scale(s, s);
+  ctx.fillStyle = '#f4f0e6'; ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(-3.5, -30); ctx.lineTo(3.5, -30); ctx.lineTo(5, 0); ctx.fill();
+  ctx.fillStyle = '#5a5a5a'; ctx.fillRect(-4, -36, 8, 6);
+  ctx.fillStyle = '#ffe9a0'; ctx.fillRect(-2.5, -35, 5, 3);
+  ctx.restore();
+}

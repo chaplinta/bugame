@@ -43,6 +43,9 @@ Backgrounds.beach = function (ctx, W, H) {
   ctx.fillStyle = '#6a5a7a';
   ctx.beginPath(); ctx.moveTo(-20, 470); ctx.quadraticCurveTo(120, 452, 300, 466); ctx.lineTo(300, 472); ctx.lineTo(-20, 472); ctx.fill();
   for (let i = 0; i < 6; i++) { ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.beginPath(); ctx.ellipse(500 + r() * 1700, 60 + r() * 200, 60 + r() * 80, 10 + r() * 8, 0, 0, TAU); ctx.fill(); }
+  // Rottnest's lighthouse on the island, and the Dingo Flour mill inland at North Fremantle
+  drawRottnestLighthouse(ctx, 150, 458, 0.7);
+  drawDingoMill(ctx, 2480, 418, 0.9, 0.2);
   // Port cranes far off to the south
   ctx.strokeStyle = 'rgba(80,70,110,.55)'; ctx.lineWidth = 5;
   for (let i = 0; i < 4; i++) {
@@ -309,7 +312,6 @@ Object.assign(Missions, {
       Sound.play('jump');
       Game.fact('hop');
     },
-    netInHome: true,   // the girl can scoop you out of the burrow too
     onCaught(g) { const p = g.player; p.vx = 0; p.vy = 0; },
     update(g, dt, input) {
       const p = g.player;
@@ -345,7 +347,7 @@ Object.assign(Missions, {
     },
     makeGull(g) {
       const p = g.player, m = this, face = Math.random() < 0.5 ? 1 : -1;
-      g.toasts.unshift({ text: 'Look out! A silver gull is flying over. Keep moving and hop away when it dives. It can reach into your burrow!', kind: 'hint' });
+      g.toasts.unshift({ text: 'Look out! A silver gull is flying over. Hide in your burrow, or hop away when it dives!', kind: 'hint' });
       g.toastT = 0; Sound.play('caught'); Game.fact('gull');
       return { sprite: 'gull', name: 'silver gull', x: p.x - face * 500, y: 90, r: 18, scale: 1.6, face, angle: 0, ground: true, flat: true, state: 'wander', t: 0,
         update(pr, dt) {
@@ -356,19 +358,18 @@ Object.assign(Missions, {
             const tx = p.x + Math.sin(pr.t * 1.3) * 160;
             pr.x += clamp(tx - pr.x, -200 * dt, 200 * dt); pr.y += (110 - pr.y) * dt;
             pr.face = Math.cos(pr.t * 1.3) > 0 ? 1 : -1;
-            if (pr.t > 5 && p.invuln <= 0) { pr.state = 'alert'; pr.t = 0; }
+            if (pr.t > 5 && !hidden && p.invuln <= 0) { pr.state = 'alert'; pr.t = 0; }
             if (pr.t > 14) pr.state = 'leave';
           } else if (pr.state === 'alert') {
             // Hover, then dive at where you are now
-            // Gulls will dive at the burrow too, and poke their beak down the hole
-            if (pr.t > 0.9) { pr.state = 'chase'; pr.dive = true; pr.tx = p.x; pr.ty = hidden ? Beach.ground(p.x) - 14 : p.y; pr.face = pr.tx > pr.x ? 1 : -1; }
+            if (hidden) { pr.state = 'wander'; pr.t = 2; }   // you ducked into the burrow in time
+            else if (pr.t > 0.9) { pr.state = 'chase'; pr.dive = true; pr.tx = p.x; pr.ty = p.y; pr.face = pr.tx > pr.x ? 1 : -1; }
           } else if (pr.state === 'chase') {
             const d = Math.hypot(pr.tx - pr.x, pr.ty - pr.y);
             const sp = 520 * dt;
             if (d > sp) { pr.x += (pr.tx - pr.x) / d * sp; pr.y += (pr.ty - pr.y) / d * sp; }
             else { pr.state = 'wander'; pr.dive = false; pr.t = 2; Game.burst(pr.x, pr.y + 10, '#e8d4a0', 10); }
-            const reach = hidden ? Math.abs(pr.x - p.x) < 26 && pr.y > Beach.ground(p.x) - 30 && p.y < Beach.ground(p.x) + Beach.depth - 30 : dist(pr, p) < 26;
-            if (p.invuln <= 0 && reach) { pr.dive = false; Game.caught(pr); }
+            if (!hidden && p.invuln <= 0 && dist(pr, p) < 26) { pr.dive = false; Game.caught(pr); }
           } else {
             pr.y -= 160 * dt; pr.x += pr.face * 180 * dt; pr.dive = false;
             if (pr.y < -60) pr.gone = true;
