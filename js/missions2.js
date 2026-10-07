@@ -153,7 +153,8 @@ Object.assign(Sprites, {
     // Curved body of overlapping plates
     for (let i = 7; i >= 0; i--) {
       const a = -0.5 + i * 0.16, x = 9 - i * 3.3, y = -1 + Math.sin(i * 0.45) * 2.4 - (i > 5 ? (i - 5) * 1.5 : 0);
-      ell(ctx, x, y, 3.6, 5 - i * 0.18, i % 2 ? '#c8ab88' : '#d4b894', a * 0.3);
+      ell(ctx, x, y, 3.6, 5 - i * 0.18, i % 2 ? '#c8ab88' : '#d4b894', a * 0.3, 'chitin');
+      plainEll(ctx, x - 1.2, y - 2.6, 1.6, 0.7, 'rgba(255,255,245,.4)', a * 0.3);
     }
     // Tail flaps (uropods): the hop comes from flicking these
     for (const k of [0, 1]) line(ctx, [-16, -4, -21 - k * 2, 1 + k * 3 - air * 4], '#a88a6a', 1.2);

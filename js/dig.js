@@ -288,6 +288,9 @@ Missions.nest = {
       return;
     }
     ctx.fillStyle = base; ctx.fillRect(x, y, N, N);
+    // Soil grain, and a little sun on the top edge of every cell so the cross-section has some depth
+    ctx.beginPath(); ctx.rect(x, y, N, N);
+    if (Shade.rich && t !== 4) Tex.fillPath(ctx, t === 3 ? 'grain' : 'soil', 1, t === 6 ? 0.55 : 0.4, 'multiply');
     if (t === 4) {
       ell(ctx, x + N / 2, y + N / 2, N * 0.6, N * 0.5, '#a8a296');
     } else if (t === 5) {
