@@ -4,7 +4,9 @@
 // - creatures cast soft shadows;
 // - backgrounds get paper grain, dappled sunlight and a gentle vignette.
 
-const Shade = { on: true, maxR: 1e9 };
+const Shade = { on: true, maxR: 1e9, rich: true, mat: 'grain', light: null };
+// rich: material texture, specular and rim light on every shaded shape (textures.js). mat: default material.
+// light: [lx, ly] override in user space, used while pre-rendering sprites (sprite-cache.js).
 
 // Lighter or darker versions of a #rgb / #rrggbb colour (cached).
 const shadeCache = new Map();
@@ -24,34 +26,70 @@ function tint(hex, k) {
 }
 
 // The light comes from the top-left of the screen whichever way the sprite is turned.
+// Returns [lx, ly, s]: the light in user space and how many device pixels one user unit is.
 function lightDir(ctx) {
   const m = ctx.getTransform();
   const det = m.a * m.d - m.b * m.c || 1;
+  const s = Math.sqrt(Math.abs(det));
+  if (Shade.light) return [Shade.light[0], Shade.light[1], s];
   // Inverse of the transform's linear part, applied to the screen direction (-0.55, -0.83).
   const wx = -0.55, wy = -0.83;
   let lx = (m.d * wx - m.c * wy) / det, ly = (-m.b * wx + m.a * wy) / det;
   const l = Math.hypot(lx, ly) || 1;
-  return [lx / l, ly / l];
+  return [lx / l, ly / l, s];
 }
+// rgba() version of tint.
+function tintA(hex, k, a) { return tint(hex, k).replace('rgb(', 'rgba(').replace(')', ',' + a + ')'); }
+const SPECULAR = { chitin: 0.34, shell: 0.4, scale: 0.22, wet: 0.5 };
 
-ell = function (ctx, x, y, rx, ry, fill, rot) {
+// A shaded body part: gradient lit from the light, a material texture, a rim of light on the lit edge and
+// shadow on the far edge, and a specular glint on shiny materials. mat: 'chitin', 'hair', 'leaf', 'scale',
+// 'shell', 'wet', 'grain' (default) or 'none'.
+ell = function (ctx, x, y, rx, ry, fill, rot, mat) {
   ctx.beginPath();
   ctx.ellipse(x, y, rx, ry, rot || 0, 0, TAU);
   const r = Math.max(rx, ry);
   if (Shade.on && typeof fill === 'string' && fill[0] === '#' && r > 2 && Math.min(rx, ry) > 1.2 && r < Shade.maxR) {
-    const [lx, ly] = lightDir(ctx);
+    const [lx, ly, s] = lightDir(ctx);
+    mat = mat || Shade.mat;
+    const fur = mat === 'hair';
     const gr = ctx.createRadialGradient(x + lx * rx * 0.45, y + ly * ry * 0.45, r * 0.08, x, y, r * 1.08);
-    gr.addColorStop(0, tint(fill, 0.42));
-    gr.addColorStop(0.5, fill);
-    gr.addColorStop(1, tint(fill, -0.38));
+    gr.addColorStop(0, tint(fill, fur ? 0.28 : 0.42));
+    gr.addColorStop(fur ? 0.62 : 0.5, fill);
+    gr.addColorStop(1, tint(fill, fur ? -0.3 : -0.38));
     ctx.fillStyle = gr;
     ctx.fill();
+    const rich = Shade.rich && r >= 3 && typeof Tex !== 'undefined';
+    if (rich && mat !== 'none') {
+      const tile = mat === 'shell' || mat === 'wet' ? 'grain' : mat;
+      Tex.fillPath(ctx, tile, Math.max(0.6, s) * (fur ? 0.5 : 0.8), mat === 'grain' ? 0.22 : 0.32, 'multiply');
+      if (mat === 'hair') Tex.fillPath(ctx, 'hairHi', Math.max(0.6, s) * 0.5, 0.25, 'screen');
+      if (mat === 'chitin') Tex.fillPath(ctx, 'chitinHi', Math.max(0.6, s), 0.14, 'screen');
+    }
     if (r > 3) {
-      ctx.strokeStyle = tint(fill, -0.6);
-      ctx.globalAlpha *= 0.55;
-      ctx.lineWidth = Math.min(1.1, r * 0.12);
+      // Rim: light on the side facing the light, darker where the part turns away
+      if (rich) {
+        const lg = ctx.createLinearGradient(x + lx * rx, y + ly * ry, x - lx * rx, y - ly * ry);
+        lg.addColorStop(0, tintA(fill, 0.55, 0.5));
+        lg.addColorStop(0.45, tintA(fill, -0.25, 0.35));
+        lg.addColorStop(1, tintA(fill, -0.7, 0.75));
+        ctx.strokeStyle = lg;
+      } else {
+        ctx.strokeStyle = tint(fill, -0.6);
+        ctx.globalAlpha *= 0.55;
+      }
+      ctx.lineWidth = Math.min(1.2, r * 0.12);
       ctx.stroke();
-      ctx.globalAlpha /= 0.55;
+      if (!rich) ctx.globalAlpha /= 0.55;
+    }
+    const sp = rich && r >= 4 && SPECULAR[mat];
+    if (sp) {
+      // A small bright streak across the lit side, lying along the surface
+      const hx = x + lx * rx * 0.5, hy = y + ly * ry * 0.5;
+      ctx.beginPath();
+      ctx.ellipse(hx, hy, Math.max(0.8, rx * 0.32), Math.max(0.5, ry * 0.13), Math.atan2(ly * ry, lx * rx) + Math.PI / 2, 0, TAU);
+      ctx.fillStyle = 'rgba(255,255,255,' + sp + ')';
+      ctx.fill();
     }
   } else {
     ctx.fillStyle = fill;

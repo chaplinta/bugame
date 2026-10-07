@@ -205,6 +205,8 @@ const Game = {
     g.finds = (mission.discoveries || []).map(d => Object.assign({ found: false, angle: 0 }, d,
       { x: d.fx * World.w, y: d.fy * World.h }));
     this.g = g;
+    if (typeof SpriteCache !== 'undefined') SpriteCache.clear();
+    if (typeof Tex !== 'undefined') Tex.ready();
     mission.setup(g);
     if (typeof Tools !== 'undefined') Tools.build(mission, g);
     if (this.setupSecret) this.setupSecret();
@@ -537,8 +539,12 @@ const Game = {
     ctx.save();
     ctx.translate(e.x, e.y);
     ctx.rotate(e.angle || 0);
-    ctx.scale(scale || 1, scale || 1);
-    Sprites[name](ctx, e, this.g.t);
+    // Pre-rendered where possible (sprite-cache.js); otherwise drawn live
+    const px = (this.dpr || 1) * (this.zoom || 1) * (scale || 1);
+    if (!(typeof SpriteCache !== 'undefined' && SpriteCache.enabled && SpriteCache.draw(ctx, name, e, this.g.t, scale || 1, px))) {
+      ctx.scale(scale || 1, scale || 1);
+      Sprites[name](ctx, e, this.g.t);
+    }
     ctx.restore();
   },
 
