@@ -90,6 +90,68 @@
       else if (g.phase === 'sac') { if (Game.inHome()) { hold = true; goal = null; } else goal = g.home; }
       else if (g.ant && !g.ant.flee) { if (dist(g.ant, p) < 150) act = true; else goal = g.ant; }
       else goal = g.sac;
+    } else if (id === 'nest') {
+      const N = NEST.cell, S = NEST.surf, ec = Math.floor(960 / N);
+      const cellPt = (r, c) => ({ x: c * N + N / 2, y: S + r * N + N / 2 });
+      const ent = { x: ec * N + N / 2, y: S - 8 };
+      const up = m.above(g);
+      // Plan: a shaft down the entrance column, a nursery at rows 7-9 and a food store at rows 12-14
+      if (!g.botPlan) {
+        g.botPlan = [];
+        for (let r = 5; r <= 14; r++) g.botPlan.push([r, ec]);
+        for (const [r0, c0] of [[7, ec + 2], [12, ec - 3]]) for (let r = r0; r <= r0 + 2; r++) for (let c = c0 - 2; c <= c0 + 2; c++) g.botPlan.push([r, c]);
+      }
+      const todo = g.botPlan.filter(([r, c]) => g.grid[r][c] !== 0 && g.grid[r][c] !== 4 && g.grid[r][c] !== 5);
+      const plugged = !m.entrances(g).length;
+      if ((g.warned || g.raining > 0) && !plugged) {
+        goal = ent; if (up && Math.abs(p.x - ent.x) < 20) act = true;
+      } else if (plugged && !(g.raining > 0)) {
+        // After the rain, dig the plug out again
+        goal = up && Math.abs(p.x - ent.x) > 10 ? { x: ent.x, y: S - 8 } : { x: ent.x, y: S + 80 };
+      } else if (m.openSpace(g) && g.rooms.length < 2) act = true;
+      else if (p.crumbs >= 4 || (p.crumbs > 0 && !todo.length)) goal = ent;
+      else if (todo.length) goal = cellPt(...todo[0]);
+      else if (g.mound < 30) { let r = 15; while (r < NEST.rows - 1 && g.grid[r][ec] === 0) r++; goal = cellPt(r, ec); }
+      else if (g.rooms.some(r => r.type === 'food') && g.food < 3) {
+        if (p.honey) { const f = g.rooms.find(r => r.type === 'food'); goal = cellPt(f.r, f.c); }
+        else if (up && Math.abs(p.x - g.plant.x) < 40) { hold = true; goal = null; }
+        else goal = up ? { x: g.plant.x, y: S - 8 } : ent;
+      }
+      // Get into the nest from the entrance
+      if (goal && up && goal.y > S && Math.abs(p.x - ent.x) > 10) goal = { x: ent.x, y: S - 8 };
+      if (goal && goal.y > S && up && Math.abs(p.x - ent.x) <= 10) goal = { x: ent.x, y: S + 60 };
+      // Underground: shortest route (Dijkstra) through tunnels, digging soil only if the jaws have room; rocks and roots block
+      if (goal && !up) {
+        const from = m.cellOf(p.x, p.y), to = goal.y < S ? { r: -1, c: ec } : m.cellOf(goal.x, goal.y);
+        const R = NEST.rows, C = NEST.cols, key = (r, c) => (r + 1) * 1000 + c;
+        const dist = new Map([[key(from.r, from.c), 0]]), prev = new Map(), open = [[0, from.r, from.c]];
+        let found = null;
+        while (open.length) {
+          let bi = 0; for (let i = 1; i < open.length; i++) if (open[i][0] < open[bi][0]) bi = i;
+          const [d, r, c] = open.splice(bi, 1)[0];
+          if (d > (dist.get(key(r, c)) ?? 1e9)) continue;
+          if (r === to.r && c === to.c) { found = [r, c]; break; }
+          if (r === -1) continue;
+          for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+            if (!dr === !dc) continue;   // up, down, left, right only
+            const nr = r + dr, nc = c + dc;
+            if (nc < 0 || nc >= C || nr >= R || nr < -1) continue;
+            if (nr === -1 && nc !== ec) continue;
+            const t = nr === -1 ? 0 : g.grid[nr][nc];
+            if (t === 4 || t === 5) continue;
+            if (t !== 0 && p.crumbs >= 4 && !(nr === to.r && nc === to.c)) continue;
+            if (dr && dc && t !== 0) continue;   // dig straight, not diagonally
+            const nd = d + (t === 0 ? (dr && dc ? 1.4 : 1) : 4);
+            if (nd < (dist.get(key(nr, nc)) ?? 1e9)) { dist.set(key(nr, nc), nd); prev.set(key(nr, nc), [r, c]); open.push([nd, nr, nc]); }
+          }
+        }
+        if (found) {
+          const steps = [];
+          for (let cur = found; cur; cur = prev.get(key(cur[0], cur[1]))) steps.unshift(cur);
+          const nxt = steps[Math.min(1, steps.length - 1)];
+          goal = nxt[0] === -1 ? { x: ent.x, y: S - 40 } : cellPt(nxt[0], nxt[1]);
+        }
+      }
     } else if (id === 'dragonfly') {
       goal = near(g.items);
     }

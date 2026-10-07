@@ -303,3 +303,56 @@ function drawRottnestLighthouse(ctx, x, base, s) {
   ctx.fillStyle = '#ffe9a0'; ctx.fillRect(-2.5, -35, 5, 3);
   ctx.restore();
 }
+
+// An election corflute stuck in the Cottesloe dunes.
+function drawCorflute(ctx, x, y) {
+  softShadow(ctx, x + 14, y + 40, 46, 12, 0.3);
+  plainLine(ctx, [x - 30, y + 40, x - 30, y - 10], '#8a7a5a', 3);
+  plainLine(ctx, [x + 30, y + 40, x + 30, y - 10], '#8a7a5a', 3);
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-0.06);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(-46, -52, 92, 64);
+  ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1; ctx.strokeRect(-46, -52, 92, 64);
+  ctx.fillStyle = '#1a4a9a'; ctx.fillRect(-46, -52, 92, 20);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('VOTE 1', 0, -37);
+  ctx.fillStyle = '#1a4a9a'; ctx.font = 'bold 15px sans-serif'; ctx.fillText('LIBERAL', 0, -12);
+  ctx.font = '9px sans-serif'; ctx.fillText('for Cottesloe', 0, 4);
+  ctx.restore();
+}
+
+// Water slides over the fence at Bibra Lake: twisting tubes, a splash pool and the park's sign.
+function drawWaterSlides(ctx, x0, y0) {
+  // Fence line
+  for (let i = 0; i < 26; i++) plainLine(ctx, [x0 - 20 + i * 18, y0 + 300, x0 - 10 + i * 18, y0 + 300], '#7a7a7a', 3);
+  plainLine(ctx, [x0 - 20, y0 + 304, x0 + 450, y0 + 304], 'rgba(90,90,90,.6)', 1.5);
+  // Concrete and pool
+  ctx.fillStyle = '#d8d4c8'; ctx.fillRect(x0, y0, 440, 290);
+  ctx.beginPath(); ctx.ellipse(x0 + 300, y0 + 200, 110, 60, 0, 0, TAU);
+  const pg = ctx.createRadialGradient(x0 + 280, y0 + 180, 10, x0 + 300, y0 + 200, 110);
+  pg.addColorStop(0, '#9ae0f0'); pg.addColorStop(1, '#3aa0d0');
+  ctx.fillStyle = pg; ctx.fill(); ctx.strokeStyle = '#f4f2ec'; ctx.lineWidth = 6; ctx.stroke();
+  for (let i = 0; i < 6; i++) plainLine(ctx, [x0 + 230 + i * 22, y0 + 190 + (i % 2) * 14, x0 + 246 + i * 22, y0 + 190 + (i % 2) * 14], 'rgba(255,255,255,.6)', 2);
+  // Twisting slides from a tower into the pool
+  const slide = (col, pts, w) => {
+    ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 4) ctx.quadraticCurveTo(pts[i], pts[i + 1], pts[i + 2], pts[i + 3]);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = w + 6; ctx.stroke();
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = w * 0.3; ctx.stroke();
+  };
+  slide('#e8402a', [x0 + 60, y0 + 50, x0 + 180, y0 - 10, x0 + 160, y0 + 90, x0 + 120, y0 + 190, x0 + 230, y0 + 180], 18);
+  slide('#f2c030', [x0 + 70, y0 + 60, x0 + 20, y0 + 160, x0 + 120, y0 + 240, x0 + 200, y0 + 280, x0 + 250, y0 + 220], 16);
+  slide('#2a80d0', [x0 + 80, y0 + 40, x0 + 300, y0 + 20, x0 + 380, y0 + 90, x0 + 420, y0 + 160, x0 + 370, y0 + 200], 20);
+  // Tower platform
+  ctx.fillStyle = '#b84a2a'; ctx.fillRect(x0 + 40, y0 + 20, 60, 60);
+  ctx.fillStyle = '#f2c030'; ctx.fillRect(x0 + 34, y0 + 14, 72, 10);
+  // Sign
+  ctx.fillStyle = '#1a6a3a'; ctx.fillRect(x0 + 150, y0 + 262, 170, 30);
+  ctx.fillStyle = '#ffe680'; ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('ADVENTURE WORLD', x0 + 235, y0 + 283);
+}
+
+{
+  const spider = Backgrounds.spider, litter = Backgrounds.litter;
+  Backgrounds.spider = function (ctx, W, H, home) { spider(ctx, W, H, home); drawCorflute(ctx, W * 0.82, H * 0.18); };
+  Backgrounds.litter = function (ctx, W, H, home) { litter(ctx, W, H, home); drawWaterSlides(ctx, W - 470, 10); };
+}

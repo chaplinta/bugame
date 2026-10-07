@@ -385,6 +385,29 @@ test('orb web: spin threads between branches, spiral, wrap stuck insects', async
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+test('sugar ant nest: dig, build the mound, plug the entrance before rain', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'nest', { noNet: true });
+  await p.keyboard.down('ArrowDown'); await p.waitForTimeout(1500); await p.keyboard.up('ArrowDown');
+  check(await p.evaluate(() => Game.g.player.crumbs >= 2), 'no soil dug');
+  // Carry it up: walk to the surface through the shaft
+  await p.keyboard.down('ArrowUp'); await p.waitForTimeout(2500); await p.keyboard.up('ArrowUp');
+  check(await p.evaluate(() => Game.g.mound >= 2 && Game.g.player.crumbs === 0), 'soil not added to the mound');
+  // Rain coming: plug the entrance (soil comes from the mound)
+  await p.evaluate(() => { Game.g.rainT = 9; });
+  await p.waitForTimeout(300);
+  check(await p.textContent('#actionBtn') === 'Plug', 'no Plug button on the entrance');
+  await p.click('#actionBtn');
+  await p.evaluate(() => { Game.g.rainT = 0; Game.timeScale = 4; });
+  await p.waitForTimeout(2500);
+  check(await p.evaluate(() => Game.g.water.flat().every(w => !w)), 'water got into a plugged nest');
+  // Press down on the plug to open it again
+  await p.evaluate(() => { Game.g.raining = 0; Game.timeScale = 1; });
+  await p.keyboard.down('ArrowDown'); await p.waitForTimeout(800); await p.keyboard.up('ArrowDown');
+  check(await p.evaluate(() => Game.g.mission.entrances(Game.g).length === 1), 'could not reopen the entrance');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('messages do not pile up', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'ant', { noNet: true, noPred: true });

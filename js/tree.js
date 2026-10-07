@@ -14,7 +14,7 @@ const FAMILY = {
           { name: 'Dragonflies', fact: 'Dragonflies are an ancient group. Giant ones flew 300 million years ago, before the dinosaurs.', kids: [{ bug: 'dragonfly' }] },
           { name: 'Cockroaches & termites', fact: 'Termites are really a kind of cockroach that lives in big families.', kids: [{ bug: 'termite' }] },
           { name: 'Complete change', fact: 'These insects change completely as they grow: egg, larva, pupa, then adult.', kids: [
-            { name: 'Ants, bees & wasps', fact: 'Ants, bees and wasps have a narrow waist. Many live in colonies with a queen.', kids: [{ bug: 'ant' }, { bug: 'bee' }] },
+            { name: 'Ants, bees & wasps', fact: 'Ants, bees and wasps have a narrow waist. Many live in colonies with a queen.', kids: [{ bug: 'ant' }, { bug: 'sugarant' }, { bug: 'bee' }] },
             { name: 'Butterflies & moths', fact: 'Butterflies and moths have wings covered in tiny coloured scales.', kids: [{ bug: 'butterfly' }] },
             { name: 'Flies', fact: 'True flies have only 2 wings. Their back wings are tiny knobs that help them balance.', kids: [{ bug: 'fly' }, { bug: 'mosquito' }] },
           ] },

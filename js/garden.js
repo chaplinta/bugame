@@ -303,7 +303,7 @@ const GardenStore = {
 };
 
 Bugs.push({ id: 'garden', name: 'Native Garden', sci: 'Build your own', place: 'Your backyard', sprite: 'gardenIcon',
-  pin: { x: 845, y: 545 }, stages: ['garden'], kind: 'sandbox' });
+  pin: { x: 872, y: 552 }, stages: ['garden'], kind: 'sandbox' });
 
 Missions.garden = {
   id: 'garden', bug: 'garden', stage: 'Gardener', place: 'Your own backyard', view: 'build',

@@ -25,7 +25,8 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - **Life stages**: several bugs have more than one stage, including female stages. Finishing a stage unlocks the next. Each bug page says who you are (female, male, worker, or both).
 - **Different views**: most levels are top-down; the sandhopper's beach is side-on with gravity and hopping; the mosquito's backyard is isometric; the painted lady's third stage is 3D flight (three.js, `vendor/three.min.js`, loaded only for that stage).
 - **Ten-minute day**: a sky dial shows the sun crossing the sky. The light warms in the last two minutes, then night falls, every bug goes to sleep and the game is over until you start a new day. The clock runs only while the game is on screen and lasts the browser session.
-- **Family tree**: a cladogram showing how all the bugs are related; tap a branch for a fact.
+- **Family tree**: a cladogram showing how all the bugs are related; tap a branch for a fact. Each bug page has a Family tree button that rings that bug.
+- **Building levels**: the native garden, orb web and ant nest let you build, dig and destroy. Tap or drag with tools from the palette on the left.
 - **Storybook art**: everything is drawn in code (`js/art.js` adds soft shading, shadows, grain and vignette; `js/art-bugs.js` has the hand-drawn bugs).
 - **Gentle first stages**: on a bug's first stage you can't run out of hearts. Later stages end when all 3 hearts are gone.
 - **Bug Book**: every fact you've found, plus "???" for the ones still to find. Progress is saved in the browser.
@@ -51,6 +52,9 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 | Peacock spider: adult female | Cottesloe dunes | watch males dance and choose one, spin an egg sac, chase ants away from it |
 | Painted lady: flying high (3D) | Above Bold Park | take off, fly to glowing flowers, land and sip; dodge a willie wagtail |
 | Sandhopper, female (Talitridae) | Port Beach, North Fremantle (side-on) | hop along the beach eating seaweed wrack, then get back to your burrow; dodge a silver gull and a red-capped plover |
+| Native garden (build your own) | Your backyard | paint soils and ponds, plant natives, add rocks, logs and nest boxes; 23 kinds of wildlife move in when the garden suits them; saved between visits |
+| Golden orb-weaver, female (*Trichonephila edulis*) | Wireless Hill | spin dry and sticky silk between branches, lay a spiral, cut and repair, wrap stuck insects; beetles smash through |
+| Sugar ant worker (*Camponotus*) | Under a Bull Creek backyard (side-on) | dig tunnels, carry soil up to build the mound, make a nursery and food store, fetch honeydew, plug the entrance before rain |
 | Mosquito, female (*Culex quinquefasciatus*) | Backyard barbecue, Bassendean (isometric) | bite people while they chat, fly off before they swat, lay egg rafts on still water |
 
 ## Code
@@ -63,6 +67,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - `js/flight.js`: the 3D painted lady flight stage
 - `js/tank.js`: the girl-with-a-net event, the catch animation and the bug tank
 - `js/night.js`: the ten-minute day and the night screen
+- `js/tools.js`: tool palette for building levels; `js/garden.js`, `js/web.js`, `js/dig.js`: the garden, orb web and ant nest
 - `js/tree.js`: the bug family tree
 - `js/secrets.js`: Easter eggs
 - `js/ui.js`: map, bug page, end screen, Bug Book, saved progress

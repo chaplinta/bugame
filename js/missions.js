@@ -76,7 +76,7 @@ function drawSilk(ctx, p) {
 // Map pins are in the 960x600 map box (see drawPerthMap).
 const Bugs = [
   { id: 'ant', name: 'Bull Ant', sci: 'Myrmecia', place: 'Kings Park', sprite: 'ant', pin: { x: 455, y: 330 }, stages: ['ant', 'queen'] },
-  { id: 'bee', name: 'Blue-banded Bee', sci: 'Amegilla', place: 'A backyard', sprite: 'bee', pin: { x: 700, y: 455 }, stages: ['bee'] },
+  { id: 'bee', name: 'Blue-banded Bee', sci: 'Amegilla', place: 'A backyard', sprite: 'bee', pin: { x: 718, y: 468 }, stages: ['bee'] },
   { id: 'fly', name: 'Bush Fly', sci: 'Musca vetustissima', place: 'Swan Valley', sprite: 'bushFly', pin: { x: 780, y: 185 }, stages: ['fly'] },
   { id: 'butterfly', name: 'Painted Lady', sci: 'Vanessa kershawi', place: 'Bold Park', sprite: 'butterfly', pin: { x: 300, y: 300 }, stages: ['caterpillar', 'butterfly'] },
   { id: 'termite', name: 'Termite', sci: 'Coptotermes', place: 'Whiteman Park', sprite: 'termiteWorker', pin: { x: 640, y: 100 }, stages: ['termite'] },
@@ -1011,7 +1011,7 @@ const Missions = {
       'Watch out for the bobtail lizard.',
     ],
     discoveries: [
-      { key: 'd_frog', sprite: 'frog', fx: 0.85, fy: 0.15 },
+      { key: 'd_frog', sprite: 'frog', fx: 0.6, fy: 0.15 },
       { key: 'd_shell', sprite: 'shell', fx: 0.4, fy: 0.3 },
       { key: 'd_quenda', sprite: 'dig', fx: 0.7, fy: 0.75 },
     ],

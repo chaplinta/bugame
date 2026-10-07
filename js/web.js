@@ -48,7 +48,7 @@ Object.assign(Sprites, {
 });
 
 Bugs.push({ id: 'orbweaver', name: 'Golden Orb-weaver', sci: 'Trichonephila edulis', place: 'Wireless Hill', sprite: 'orbSpider',
-  pin: { x: 560, y: 452 }, stages: ['web'] });
+  pin: { x: 600, y: 362 }, stages: ['web'] });
 
 Missions.web = {
   id: 'web', bug: 'orbweaver', stage: 'Adult female', place: 'Wireless Hill bushland', view: 'build',

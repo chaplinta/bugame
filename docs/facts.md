@@ -211,6 +211,50 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - *Bothriembryon* and other land snails are hermaphrodites. AM; WAM.
 - Juvenile spiderlings and odonate nymphs can't be sexed by eye. General.
 
+## Native garden (build your own)
+- Native plants support native wildlife (nectar, seed, shelter); Perth councils and the Water Corporation promote waterwise native gardens. Water Corporation; City of Melville/Bayswater wildlife-garden guides.
+- Earthworms break down organic matter and improve soil. CSIRO.
+- Bull ants nest in sandy soil. AM.
+- Blue-banded bees (Amegilla) nest in burrows in clay or soft banks; buzz-pollinate Dianella and Hibbertia. AM; Houston, *A Guide to Native Bees of Australia*.
+- Resin bees (Megachilidae) nest in existing holes and seal cells with resin; use bee hotels. AM; Houston.
+- Painted lady larvae feed on everlastings and other daisies. Braby.
+- Ladybirds eat aphids and other sap-suckers. AM.
+- Dragonflies and damselflies lay eggs in or near water; damselflies often insert eggs into plant tissue. Theischinger & Hawking.
+- Motorbike frog (*Litoria moorei*) and western banjo frog (*Limnodynastes dorsalis*) live around Perth wetlands; banjo frogs burrow backwards. WAM; Frogwatch WA.
+- Bobtails eat snails, insects and flowers; shelter under logs and leaf litter. WAM.
+- Dwarf skinks (*Menetia greyii*) forage in leaf litter. WAM.
+- Golden orb-weavers web between shrubs and trees. AM.
+- New Holland honeyeaters and red wattlebirds feed on nectar of grevillea, banksia, bottlebrush and kangaroo paw. BirdLife Australia.
+- Splendid fairy-wrens need dense low shrubs. BirdLife Australia.
+- Willie wagtails flush insects with tail movements. BirdLife Australia.
+- Magpies probe soil for grubs. BirdLife Australia.
+- Carnaby's black cockatoo is endemic to south-west WA, feeds on banksia and marri seeds, and is endangered. DBCA; BirdLife Australia.
+- Quenda (*Isoodon fusciventer*) live in some Perth suburbs, dig conical foraging holes. DBCA.
+- Rainbow bee-eaters nest in tunnels in sandy ground and catch flying insects. BirdLife Australia.
+
+## Golden orb-weaver (*Trichonephila edulis*)
+- Found across Australia including Perth; webs of yellow-gold silk; females large, males tiny and often on the web edge. AM; WAM.
+- Orb webs: frame and radial (dry) threads plus a sticky capture spiral with glue droplets. Foelix, *Biology of Spiders*.
+- Silk is made in glands and drawn from spinnerets. Foelix.
+- Prey is wrapped in silk then bitten. AM.
+- Webs are repaired often; golden orb-weaver webs can persist for long periods. AM.
+- Dewdrop spiders (*Argyrodes*) live in orb webs and steal small prey (kleptoparasites). AM.
+- Spider silk is among the strongest natural materials for its weight. General.
+- Christmas beetles (*Anoplognathus*) are heavy fliers. AM.
+
+## Sugar ant (*Camponotus*)
+- *Camponotus* sugar ants are common in Perth; mostly active at dusk and night. AM; WAM.
+- Workers excavate soil and deposit it around the entrance as a mound. Hölldobler & Wilson.
+- Nests have chambers for brood and food; ants keep rubbish in middens. Hölldobler & Wilson; Tschinkel (nest architecture).
+- Camponotus tend sap-sucking bugs (lerps, scale insects, aphids) for honeydew. AM.
+- Ants share food by trophallaxis. Hölldobler & Wilson.
+- Some ants plug nest entrances before rain; flooding prompts brood relocation. Hölldobler & Wilson.
+- Eggs hatch into larvae fed by workers. AM.
+- Colonies can reach thousands of workers. AM.
+
+## Landmarks in backgrounds
+- Dingo Flour mill (North Fremantle) with its painted dingo; Fremantle Harbour cranes; Wadjemup (Rottnest) lighthouse; Perth CBD seen from Wireless Hill; Adventure World water park at Bibra Lake; election corflutes in Cottesloe. Scenery only.
+
 ## Secrets
 - Quokkas live on Rottnest Island; in 1696 Dutch explorer Willem de Vlamingh mistook them for large rats and named the island "Rottenest" (rat's nest). Rottnest Island Authority; WAM.
 
@@ -236,4 +280,7 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Mosquito bite spots are marked; people swat only when looking around, so there is a fair chance to fly away.
 - The 3D butterfly flies at a steady speed and lands automatically on a flower's ring.
 - The female peacock spider sees three males in quick succession; any choice is fine in the game.
+- The garden: animals arrive within seconds of the right plants going in; really it takes seasons. Visitors' needs are simplified rules.
+- The orb web: threads must attach to branches or threads, but there is no tension physics; the spiral is laid automatically.
+- The ant nest: one ant digs the whole nest; really thousands of workers share the work. Floods wash you out rather than drowning you.
 - The family tree is simplified: only the bugs in the game are shown, and springtails and other branches are left out.
