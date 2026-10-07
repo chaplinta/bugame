@@ -113,18 +113,25 @@ const Game = {
     const loop = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      requestAnimationFrame(loop);   // first, so one bad frame can never stop the game for good
       if (this.running) {
-        // Tests can fast-forward (timeScale) and drive a bot every tick (testHook). Normal play: one tick.
-        const n = this.timeScale || 1;
-        for (let i = 0; i < n && this.running; i++) {
-          if (this.testHook) this.testHook(dt);
-          this.update(dt);
-          Input.pressed = false;
+        try {
+          // Tests can fast-forward (timeScale) and drive a bot every tick (testHook). Normal play: one tick.
+          const n = this.timeScale || 1;
+          for (let i = 0; i < n && this.running; i++) {
+            if (this.testHook) this.testHook(dt);
+            this.update(dt);
+            Input.pressed = false;
+          }
+          if (this.running) this.draw();
+        } catch (e) {
+          // Something broke in this level: leave it cleanly so the rest of the game still works.
+          console.error(e);
+          this.running = false;
+          if (this.onCrash) this.onCrash(e);
         }
-        if (this.running) this.draw();
       }
       Input.pressed = false;
-      requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
   },

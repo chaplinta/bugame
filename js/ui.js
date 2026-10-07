@@ -145,12 +145,20 @@ function readStage() {
   Speech.say(currentBug.name + '. ' + m.facts.join(' ') + ' How to play. ' + m.how.join(' '), true);
 }
 
+// If a level hits an error, go back to the map with a friendly note instead of freezing.
+Game.onCrash = () => {
+  Game.stop();
+  buildMap();
+  $('crashNote').hidden = false;
+  setTimeout(() => { $('crashNote').hidden = true; }, 6000);
+};
+
 function startGame() {
   if (typeof Night !== 'undefined' && Night.fallen) { Night.showScreen(); return; }
   Speech.stop();
   show('play');
   syncToggles();
-  Game.start(currentMission);
+  try { Game.start(currentMission); } catch (e) { console.error(e); Game.onCrash(e); }
 }
 
 // ---------------------------------------------------------------- End

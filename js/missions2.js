@@ -12,10 +12,11 @@ const Beach = {
     return y;
   },
   inShaft(x) { return Math.abs(x - this.bx) < 18; },
-  floor(x, y) {
-    // Inside the burrow shaft the floor is the chamber at the bottom.
+  floor(x, y, enter) {
+    // Inside the burrow shaft the floor is the chamber at the bottom. On the surface you only drop in
+    // when you mean to (heading home, or pressing down), so walking past the hole never traps you.
     const gy = this.ground(x);
-    return this.inShaft(x) && y > gy - 30 ? gy + this.depth : gy;
+    return this.inShaft(x) && (y > gy + 2 || (enter && y > gy - 30)) ? gy + this.depth : gy;
   },
 };
 
@@ -197,7 +198,7 @@ Object.assign(Missions, {
       'This beach is side-on! Walk left and right with the arrow keys, or touch and drag.',
       'Press Hop to jump. Hopping is how you escape.',
       'Find the seaweed washed up on the beach and hold or tap Eat. Eat 10 piles.',
-      'Then hop back home to your burrow in the damp sand.',
+      'Then go back to your burrow in the damp sand and drop in. To hide there any time, stand on it and press down (or drag down).',
     ],
     discoveries: [
       { key: 'd_shell', sprite: 'seashell', fx: 0.3, fy: 0 },
@@ -232,8 +233,9 @@ Object.assign(Missions, {
       Game.g.items.push({ sprite: 'wrack', kind: 'wrack', x, y: Beach.ground(x) - 4, r: 22, amount: 1, seed: (Math.random() * 1000) | 0, scale: 1.2, flat: true, angle: 0 });
     },
     inBurrow(g) { const p = g.player; return Beach.inShaft(p.x) && p.y > Beach.ground(p.x) + 10; },
-    move(g, dt, dx) {
+    move(g, dt, dx, dy) {
       const p = g.player;
+      const enter = dy > 0.5 || g.score >= this.goal || g.preds.some(pr => pr.state === 'chase' || pr.state === 'alert');
       dx = Math.abs(dx) < 0.15 ? 0 : Math.sign(dx);
       p.angle = 0;
       if (dx) p.face = dx > 0 ? 1 : -1;
@@ -241,10 +243,12 @@ Object.assign(Missions, {
       p.vx *= Math.pow(0.04, dt);
       p.x += (dx * sp + p.vx) * dt;
       if (this.inBurrow(g)) p.x = clamp(p.x, Beach.bx - 14, Beach.bx + 14);
+      // Hopping out of the burrow: once clear of the hole, land beside it, not back in it
+      if (p.exiting && p.y < Beach.ground(p.x) - 14) { p.vx = p.face * 320; p.exiting = false; }
       p.x = clamp(p.x, Beach.sea + 10, Beach.W - 20);
       p.vy += 1100 * dt;
       p.y += p.vy * dt;
-      const fl = Beach.floor(p.x, p.y) - 12;
+      const fl = Beach.floor(p.x, p.y + 12, enter && !p.exiting && p.vy >= 0) - 12;
       p.onGround = p.y >= fl;
       if (p.onGround) { if (p.vy > 300) Game.burst(p.x, fl + 8, '#e8d4a0', 5); p.y = fl; p.vy = 0; }
       p.air = !p.onGround;
@@ -254,7 +258,12 @@ Object.assign(Missions, {
       const p = g.player;
       if (!p.onGround) return;
       p.vy = -560; p.vx = p.face * 260;
-      if (this.inBurrow(g)) { p.vx = 0; p.vy = -620; }
+      if (this.inBurrow(g)) {
+        // Jump straight up the shaft, then out toward the nearest seaweed
+        const w = nearest(g.items.filter(i => i.kind === 'wrack'), p, 99999);
+        if (w) p.face = w.x > p.x ? 1 : -1;
+        p.vx = 0; p.vy = -620; p.exiting = true;
+      }
       p.onGround = false;
       Sound.play('jump');
       Game.fact('hop');
@@ -263,7 +272,7 @@ Object.assign(Missions, {
     update(g, dt, input) {
       const p = g.player;
       // Babies climbing out of the pouch after the win
-      if (g.done) { for (const b of g.babies || []) { b.x += b.face * 30 * dt; b.y = Beach.floor(b.x, b.y) - 5; } return; }
+      for (const b of g.babies || []) { b.x += b.face * 30 * dt; b.y = Beach.floor(b.x, b.y) - 5; }
       for (const w of g.items) w.y = Beach.ground(w.x) - 4;
       const on = p.onGround && g.score < this.goal ? g.items.find(i => i.kind === 'wrack' && Math.abs(i.x - p.x) < 30 && i.amount > 0) : null;
       setAction(on ? 'Eat' : 'Hop', on || p.onGround);

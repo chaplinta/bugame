@@ -286,6 +286,38 @@ test('bug pages say who you are (female, male, both)', async (b) => {
   check(/male and female/i.test(await p.textContent('#stageSex')), 'snail not both');
 });
 
+test('sandhopper: tapping Hop gets you out of the burrow, and walking over it does not trap you', async (b) => {
+  const p = await openGame(b, { width: 844, height: 390 });
+  await startMission(p, 'sandhopper', { noNet: true, noPred: true });
+  await p.evaluate(() => { Game.g.nextPred = 1e9; });
+  check(await p.evaluate(() => Missions.sandhopper.inBurrow(Game.g)), 'does not start in the burrow');
+  for (let i = 0; i < 3; i++) { await p.click('#actionBtn'); await p.waitForTimeout(700); }
+  await p.waitForTimeout(600);
+  check(await p.evaluate(() => !Missions.sandhopper.inBurrow(Game.g) && Game.g.player.onGround), 'still stuck in the burrow');
+  // Walk right across the hole: stays on the surface
+  await p.evaluate(() => { Game.g.player.x = Beach.bx - 80; });
+  await p.keyboard.down('ArrowRight'); await p.waitForTimeout(1500); await p.keyboard.up('ArrowRight');
+  check(await p.evaluate(() => Game.g.player.x > Beach.bx + 20 && !Missions.sandhopper.inBurrow(Game.g)), 'fell into the burrow walking past');
+  // Pressing down on the hole drops you in to hide
+  await p.evaluate(() => { Game.g.player.x = Beach.bx; });
+  await p.keyboard.down('ArrowDown'); await p.waitForTimeout(800); await p.keyboard.up('ArrowDown');
+  check(await p.evaluate(() => Missions.sandhopper.inBurrow(Game.g)), 'could not drop into the burrow');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('an error in a level returns to the map and other levels still work', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'bee', { noNet: true, noPred: true });
+  await p.evaluate(() => { window.realHud = Missions.bee.hud; Missions.bee.hud = () => { throw new Error('test crash'); }; });
+  await p.waitForSelector('#map.active', { timeout: 5000 });
+  check(await p.isVisible('#crashNote'), 'no crash note');
+  await p.evaluate(() => { Missions.bee.hud = window.realHud; });
+  await startMission(p, 'ant', { noNet: true, noPred: true });
+  const t0 = await p.evaluate(() => Game.g.t);
+  await p.waitForTimeout(500);
+  check(await p.evaluate((t0) => Game.running && Game.g.t > t0, t0), 'game loop stopped after the crash');
+});
+
 test('messages do not pile up', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'ant', { noNet: true, noPred: true });

@@ -161,3 +161,5 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
 .treeFact { margin-top: 12px; max-width: none; font-size: 1.1rem; line-height: 1.4; }
 .treeFact b { color: var(--accent); }
 .version { text-align: center; margin: 14px 0 4px; font-size: .85rem; color: #8a7a5c; }
+.crashNote { background: #fff1d6; border: 2px solid #e0a040; border-radius: 12px; padding: 8px 14px; font-weight: bold; }
+.crashNote[hidden] { display: none; }
