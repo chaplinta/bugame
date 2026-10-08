@@ -60,8 +60,13 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 ## Code
 
 - `js/engine.js`: loop, input, movement, predators, fact pop-ups
-- `js/sprites.js`: bug, predator, plant and background drawings
-- `js/art.js`, `js/art-bugs.js`: storybook shading, painted map, hand-drawn player bugs
+- `js/sprites.js`: the plain drawings of bugs, predators, plants and backgrounds (the base the art files build on)
+- `js/art.js`: shaded shapes (gradient, material texture, rim light, specular), the painted map and landmarks
+- `js/textures.js`: seamless material tiles made in code (chitin, hair, leaf, wing, scales, sand, soil, bark, caustics)
+- `js/sprite-cache.js`: pre-renders still and simply looping sprites into bitmaps keyed by state and heading
+- `js/ground.js`, `js/art-ground.js`: lit noise ground (sand, soil, grass, lawn, water, leaf litter, bark, rock, canopy shade) and the level backgrounds
+- `js/art-bugs.js`, `js/art-bugs2.js`: field-guide drawings of the bugs you play
+- `js/art-world.js`, `js/art-world2.js`: field-guide drawings of predators, birds, reptiles, plants, scenery and the garden visitors
 - `js/missions.js`: `Bugs` (map pins, stage order) and `Missions` (one per stage, with all its facts in `factText`)
 - `js/missions2.js`: sandhopper (side-on), mosquito (isometric), female skimmer and spider stages
 - `js/flight.js`: the 3D painted lady flight stage
@@ -72,6 +77,6 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - `js/secrets.js`: Easter eggs
 - `js/ui.js`: map, bug page, end screen, Bug Book, saved progress
 
-Tests: `node tests/run.js` (see `tests/README.md`).
+Tests: `node tests/run.js` (see `tests/README.md`). Draw cost per level: `node tests/perf.js`.
 
 Design and plans: `docs/DESIGN.md`. In-game facts and simplifications: `docs/facts.md`.

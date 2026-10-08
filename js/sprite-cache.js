@@ -36,6 +36,9 @@ const SpriteCache = {
     if (o.stunned) k += 'T';
     if (o.hop) k += 'h';
     if (o.stuck) k += 'k';
+    if (o.face !== undefined) k += 'F' + (o.face < 0 ? 0 : 1);
+    if (o.dive) k += 'D';
+    if (o.pose) k += 'P' + o.pose;
     if (o.water !== undefined) k += 'w' + (o.water ? 1 : 0);
     if (o.seed !== undefined) k += 'd' + o.seed;
     if (o.kind) k += 'K' + o.kind;

@@ -373,8 +373,23 @@ Backgrounds.webBush = function (ctx, W, H) {
   // Perth city across the Swan River, seen from Wireless Hill
   ctx.fillStyle = 'rgba(120,170,200,.55)'; ctx.fillRect(0, 392, W, 26);
   drawPerthSkyline(ctx, 380, 396, 360, 0.75, 0.35);
-  // Distant bush
-  for (let i = 0; i < 40; i++) { const x = r() * W, y = 380 + r() * 120; softBlob(ctx, x, y, 30 + r() * 40, 'rgba(110,140,90,' + (0.25 + r() * 0.2) + ')'); }
+  // Distant bush: rows of gum crowns, bluer and paler the further back they are, over a dark understorey
+  for (let row = 0; row < 3; row++) {
+    const far = 1 - row / 2, base = 418 + row * 42, col = mixHex('#4f7a3a', '#a8c4cc', far * 0.65);
+    for (let x = -20; x < W + 40; x += 34 + r() * 30) {
+      const cw = 26 + r() * 26, ch = 22 + r() * 22, cx = x, cy = base - ch * 0.5 - r() * 10;
+      plainLine(ctx, [cx, base + 6, cx + (r() - 0.5) * 6, cy + ch * 0.3], mixHex('#5a4430', '#a8b8c0', far * 0.6), 2 + (1 - far) * 2);
+      for (let k = 0; k < 7; k++) {
+        const a = r() * TAU, d = r() * 0.6, px = cx + Math.cos(a) * cw * d, py = cy + Math.sin(a) * ch * d, rr = cw * (0.35 + r() * 0.25);
+        const g2 = ctx.createRadialGradient(px - rr * 0.3, py - rr * 0.3, rr * 0.1, px, py, rr);
+        g2.addColorStop(0, tint(col, 0.25)); g2.addColorStop(1, tint(col, -0.2));
+        ctx.globalAlpha = 0.75 + (1 - far) * 0.25; ctx.fillStyle = g2; ctx.beginPath(); ctx.ellipse(px, py, rr, rr * 0.75, 0, 0, TAU); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    const u = ctx.createLinearGradient(0, base - 10, 0, base + 30); u.addColorStop(0, hexA(mixHex('#3a5a2a', '#9ab4bc', far * 0.6), 0)); u.addColorStop(1, hexA(mixHex('#3a5a2a', '#9ab4bc', far * 0.6), 0.8));
+    ctx.fillStyle = u; ctx.fillRect(0, base - 10, W, 40);
+  }
   ctx.save(); ctx.beginPath(); ctx.rect(0, 540, W, 60); ctx.clip(); Ground.grass(ctx, W, H, 61, { dry: 0.5, height: 6 }); ctx.restore();
   // Branches and trunks, drawn along the same lines the silk can attach to
   WEB_ANCHORS.forEach((line, i) => {

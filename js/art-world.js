@@ -463,3 +463,4 @@ Object.assign(Sprites, {
     if (o.band) plainEll(ctx, -5, 0, 3, 4, o.band);
   },
 });
+

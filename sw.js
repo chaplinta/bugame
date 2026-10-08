@@ -3,7 +3,7 @@
 // Bump VERSION whenever any file below changes, so players get the update.
 // For a release, also update the version and date shown on the map screen (index.html, .version).
 
-const VERSION = 'bugame-v28';
+const VERSION = 'bugame-v29';
 const FILES = [
   './',
   'index.html',
@@ -16,7 +16,7 @@ const FILES = [
   'js/engine.js', 'js/sprite-cache.js',
   'js/tank.js', 'js/tools.js',
   'js/secrets.js',
-  'js/missions.js', 'js/missions2.js', 'js/flight.js', 'js/garden.js', 'js/web.js', 'js/dig.js', 'vendor/three.min.js',
+  'js/missions.js', 'js/missions2.js', 'js/flight.js', 'js/garden.js', 'js/web.js', 'js/dig.js', 'js/art-world2.js', 'vendor/three.min.js',
   'js/ui.js', 'js/night.js', 'js/tree.js',
 ];
 

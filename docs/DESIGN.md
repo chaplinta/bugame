@@ -77,7 +77,12 @@ Each bug gets 2–3 short stages (2–4 min each). Verbs stay to two at most: **
 ## Technical requirements
 - Plain HTML5 Canvas + vanilla JS, no build step. Runs from `index.html` or GitHub Pages. Classic `<script>` tags so `file://` works.
 - Fixed 960×600 logical canvas scaled to fit, DPR-aware, works in portrait with letterboxing.
-- Art: procedural canvas drawings at first (shapes, top-down bugs). Can swap to sprite sheets later.
+- Art: everything is drawn in code, no image files. The look is field-guide realism: correct anatomy, real colours, natural light from the top-left of the screen. How it is done:
+  - `ell()` in `art.js` is the unit of shading: radial gradient, a material tile multiplied over it (chitin, hair, leaf, scales), a rim of light on the lit edge and shadow on the far edge, a specular glint on shiny materials.
+  - `textures.js` makes seamless 128 px tiles from seeded value noise and Worley cells once per page. Tiles are pure black or white with alpha, so a plain overlay gives the same result as multiply or screen and is cheaper.
+  - `sprite-cache.js` pre-renders anything that stands still or loops simply (plants, scenery, visiting creatures) into bitmaps keyed by state, heading (light turned in 8 steps) and resolution. The bug you play is drawn live every frame.
+  - `ground.js` paints each level once: a quarter-resolution noise field colour-ramped and lit like a relief map, then fine detail (grass blades, soil crumbs, sand grit, leaf litter) drawn once into a seamless tile and repeated, then canopy shade at a third of the resolution. Backgrounds keep their own scenery on top (`art-ground.js`).
+  - Budgets are checked by `tests/perf.js`: with the CPU throttled four times, a frame's draw must stay under 9 ms at the 95th percentile and a level must be up in 1.6 s including rasterisation.
 - Data-driven: bugs, stages, facts and places in `js/data/*.js`; shared engine (movement, predator AI, collisions, toasts, timers) in `js/engine.js`; per-mission logic in small modules.
 - Progress saved in `localStorage` (wrapped in try/catch, game works without it).
 - Audio optional and muted by default; read-aloud toggle.
