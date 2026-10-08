@@ -1,12 +1,12 @@
 'use strict';
 // Material textures, made once in code: seamless 128 px tiles of noise (chitin grain, hair, leaf cells,
 // wing membrane, lizard scales, sand, soil, bark, water caustics). Each is a canvas pattern that gets
-// laid over a shape with 'multiply' (dark detail) or 'screen' (bright detail), so the colour underneath
+// laid over a shape as translucent black (dark detail) or white (bright detail), so the colour underneath
 // still shows through. Nothing is fetched: it all comes from a seeded random number generator.
 
 const Tex = {
   N: 128,
-  blend: true,          // false: plain alpha overlay instead of multiply/screen (slow-device fallback)
+  blend: true,          // false: never use a composite operation at all (slow-device fallback)
   tiles: {},
   patterns: new WeakMap(),
 
@@ -119,22 +119,31 @@ const Tex = {
     ripple() { const f = Tex.fbm(17, 24, 2, 0.5, 3, 0.6); return Tex.make(i => Tex.dark((f[i] - 0.5) * 0.4 + 0.05)); },
   },
 
+  // A name, or several layered at given alphas as [[name, alpha], ...]: one tile, so one fill.
   tile(name) {
-    let t = this.tiles[name];
-    if (t) return t;
-    try { t = this.recipes[name] ? this.recipes[name]() : null; } catch (e) { t = null; }
+    const key = Array.isArray(name) ? name.map((p) => p.join(':')).join('+') : name;
+    let t = this.tiles[key];
+    if (t !== undefined) return t;
+    try {
+      if (Array.isArray(name)) {
+        t = document.createElement('canvas'); t.width = t.height = this.N;
+        const x = t.getContext('2d');
+        for (const [n, a] of name) { const s = this.tile(n); if (!s) continue; x.globalAlpha = a; x.drawImage(s, 0, 0); }
+      } else t = this.recipes[name] ? this.recipes[name]() : null;
+    } catch (e) { t = null; }
     if (!t) t = false;   // remembered as missing: never throw inside a draw
-    this.tiles[name] = t;
+    this.tiles[key] = t;
     return t;
   },
   pattern(ctx, name) {
     let m = this.patterns.get(ctx);
     if (!m) { m = new Map(); this.patterns.set(ctx, m); }
-    let p = m.get(name);
+    const key = Array.isArray(name) ? name.map((p) => p.join(':')).join('+') : name;
+    let p = m.get(key);
     if (p !== undefined) return p;
     const t = this.tile(name);
     p = t ? ctx.createPattern(t, 'repeat') : null;
-    m.set(name, p);
+    m.set(key, p);
     return p;
   },
   // Fill the current path with a material. `px` = texture pixels per user unit (bigger = finer grain).
@@ -143,7 +152,10 @@ const Tex = {
     if (!p) return;
     ctx.save();
     ctx.globalAlpha *= alpha === undefined ? 0.3 : alpha;
-    if (this.blend) ctx.globalCompositeOperation = op || 'multiply';
+    // Every tile is pure black or pure white with an alpha, so multiply/screen give exactly the same
+    // result as a plain overlay, and the plain overlay is a good deal faster on big canvases.
+    // (`op` is kept for callers; set Tex.blend to use it.)
+    if (this.blend && op && op !== 'multiply' && op !== 'screen') ctx.globalCompositeOperation = op;
     const k = 1 / (px || 1);
     ctx.scale(k, k);   // the path is already set, so only the pattern scales
     ctx.fillStyle = p;

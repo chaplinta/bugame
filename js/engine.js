@@ -214,12 +214,17 @@ const Game = {
     this.updateCamera();
     this.bg = document.createElement('canvas');
     // Painted at a higher resolution so it stays sharp when zoomed in.
-    const k = Math.min(1.8, Math.sqrt(8e6 / (World.w * World.h)), (this.zoom || 1) * (window.devicePixelRatio || 1));
+    const k = Math.min(1.6, Math.sqrt(4.5e6 / (World.w * World.h)), (this.zoom || 1) * (window.devicePixelRatio || 1));
     this.bg.width = Math.round(World.w * k); this.bg.height = Math.round(World.h * k);
     const bctx = this.bg.getContext('2d');
     bctx.scale(k, k);
     if (typeof Ground !== 'undefined') Ground.paint(mission.bg || mission.id, bctx, World.w, World.h, home);
     else Backgrounds[mission.bg || mission.id](bctx, World.w, World.h, home);
+    // Thumbnail for the mini map, so the full background isn't downscaled every frame
+    const mw = 150 * (this.dpr || 1), mh = Math.round(mw * World.h / World.w);
+    this.bgMini = document.createElement('canvas');
+    this.bgMini.width = mw; this.bgMini.height = mh;
+    this.bgMini.getContext('2d').drawImage(this.bg, 0, 0, mw, mh);
     Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false;
     const btn = document.getElementById('actionBtn');
     btn.textContent = mission.action;
@@ -683,7 +688,7 @@ const Game = {
     const sx = mw / World.w, sy = mh / World.h;
     ctx.fillStyle = 'rgba(255,250,240,.75)';
     ctx.fillRect(x0 - 3, y0 - 3, mw + 6, mh + 6);
-    ctx.drawImage(this.bg, 0, 0, this.bg.width, this.bg.height, x0, y0, mw, mh);
+    ctx.drawImage(this.bgMini || this.bg, x0, y0, mw, mh);
     ctx.strokeStyle = 'rgba(43,33,24,.8)';
     ctx.lineWidth = 1.5;
     const z = this.zoom || 1;

@@ -56,6 +56,45 @@ drawBanksia = function (ctx, x, y, r, rand) {
   }
 };
 
+// A low heath shrub from above: many small leaves on radiating twigs, lit from the sun, a shadow underneath.
+function drawShrub(ctx, x, y, rad, seed, cols) {
+  const r = rng(seed || 1), [sx, sy] = Ground.SUN;
+  cols = cols || ['#5a7a3c', '#6f8f50', '#809f5c', '#4a6a30'];
+  Ground.contact(ctx, x, y, rad * 1.2, rad * 0.9, 0.4);
+  for (let i = 0; i < 10; i++) {
+    const a = r() * TAU, l = rad * (0.5 + r() * 0.5);
+    plainLine(ctx, [x, y, x + Math.cos(a) * l, y + Math.sin(a) * l], '#5a4028', 1.4);
+    for (let k = 0; k < 7; k++) {
+      const d = l * (0.25 + k / 7 * 0.75), px = x + Math.cos(a) * d, py = y + Math.sin(a) * d;
+      const lit = Math.cos(a) * sx + Math.sin(a) * sy > 0, c = cols[(i + k) % cols.length];
+      ell(ctx, px, py, 5 + r() * 3, 2.4 + r(), lit ? tint(c, 0.12) : tint(c, -0.15), a + (k % 2 ? 0.7 : -0.7), 'leaf');
+    }
+  }
+  for (let i = 0; i < 4; i++) { const a = r() * TAU, d = r() * rad * 0.7; plainEll(ctx, x + Math.cos(a) * d, y + Math.sin(a) * d, 1.8, 1.8, ['#f2f2f2', '#f0d040', '#e08ad0'][i % 3]); }
+}
+
+// A eucalypt crown from above: branches radiating from the trunk, clusters of sickle leaves, gumnuts and blossom.
+function drawGumCrown(ctx, x, y, rad, seed) {
+  const r = rng(seed || 2), [sx, sy] = Ground.SUN;
+  Ground.contact(ctx, x + 10, y + 12, rad * 1.3, rad * 1.1, 0.4);
+  for (let i = 0; i < 7; i++) {
+    const a = r() * TAU, l = rad * (0.6 + r() * 0.4);
+    plainLine(ctx, [x, y, x + Math.cos(a) * l * 0.5, y + Math.sin(a) * l * 0.5], '#b8a890', 5);
+    plainLine(ctx, [x + Math.cos(a) * l * 0.5, y + Math.sin(a) * l * 0.5, x + Math.cos(a) * l, y + Math.sin(a) * l], '#c8b8a0', 3);
+    for (let k = 0; k < 12; k++) {
+      const d = l * (0.3 + k / 12 * 0.75), px = x + Math.cos(a) * d + (r() - 0.5) * 14, py = y + Math.sin(a) * d + (r() - 0.5) * 14;
+      const la = a + (r() - 0.5) * 2.4, lit = Math.cos(la) * sx + Math.sin(la) * sy > 0, c = k % 3 ? '#6b8f4a' : '#7ea35a';
+      ctx.save(); ctx.translate(px, py); ctx.rotate(la);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(7, -4, 13, -1); ctx.quadraticCurveTo(7, 0.5, 0, 0); ctx.closePath();
+      ctx.fillStyle = lit ? tint(c, 0.15) : tint(c, -0.2); ctx.fill(); ctx.strokeStyle = 'rgba(30,50,20,.45)'; ctx.lineWidth = 0.4; ctx.stroke();
+      ctx.restore();
+      if (r() < 0.12) ell(ctx, px, py, 2, 2, '#8a6a3a', 0, 'grain');
+      if (r() < 0.08) { for (let q = 0; q < 8; q++) plainLine(ctx, [px, py, px + Math.cos(q * 0.8) * 3, py + Math.sin(q * 0.8) * 3], '#f8f0d0', 0.8); }
+    }
+  }
+  ell(ctx, x, y, 7, 7, '#9a8a70', 0, 'bark');
+}
+
 // Reeds and sedges from above: a clump of flat blades with a dark heart.
 function drawReeds(ctx, x, y, n, spread, seed) {
   const r = rng(seed || Math.round(x * 3 + y));
@@ -93,7 +132,8 @@ Object.assign(Backgrounds, {
     // Veggie patch
     Ground.contact(ctx, W * 0.7 + 110, H * 0.12 + 60, 150, 90, 0.25);
     ctx.save(); ctx.beginPath(); ctx.rect(W * 0.7, H * 0.12, 220, 120); ctx.clip();
-    Ground.soil(ctx, W, H, 25, { base: '#5a4028', dark: '#3a2818', light: '#7a5a3a', stones: 0.6 });
+    ctx.translate(W * 0.7, H * 0.12);
+    Ground.soil(ctx, 220, 120, 25, { base: '#5a4028', dark: '#3a2818', light: '#7a5a3a', stones: 0.6 });
     ctx.restore();
     for (let i = 0; i < 5; i++) for (let k = 0; k < 9; k++) { const x = W * 0.7 + 20 + k * 22, y = H * 0.12 + 18 + i * 22; Ground.contact(ctx, x, y, 9, 7, 0.3); for (let q = 0; q < 5; q++) ell(ctx, x + Math.cos(q * 1.26) * 4, y + Math.sin(q * 1.26) * 4, 5, 3.2, q % 2 ? '#4f8f3a' : '#5a9a44', q * 1.26, 'leaf'); }
     // Shed
@@ -105,7 +145,8 @@ Object.assign(Backgrounds, {
     // Bare patch and burrow
     Ground.contact(ctx, home.x, home.y, 120, 100, 0.2);
     ctx.save(); ctx.beginPath(); ctx.ellipse(home.x, home.y, 110, 90, 0, 0, TAU); ctx.clip();
-    Ground.soil(ctx, W, H, 26, { base: '#c08a4a', dark: '#8a5a30', light: '#d8a868', stones: 0.5 });
+    ctx.translate(home.x - 110, home.y - 90);
+    Ground.soil(ctx, 220, 180, 26, { base: '#c08a4a', dark: '#8a5a30', light: '#d8a868', stones: 0.5 });
     ctx.restore();
     ell(ctx, home.x, home.y, home.r * 0.28, home.r * 0.25, '#2a1a0c', 0, 'none');
     scatter(r, W, H, 4 * A, home, 160, (x, y) => drawGrassTree(ctx, x, y, 34, Math.round(r() * 1e6)));
@@ -115,7 +156,7 @@ Object.assign(Backgrounds, {
     const r = rng(37), A = W * H / (960 * 600);
     Ground.sand(ctx, W, H, 37, { pale: '#fbf3dc', mid: '#efe2c0', dark: '#cdbd92', ripples: 1.6, wind: -0.2, cell: 220, relief: 0.5 });
     ctx.save(); ctx.beginPath(); ctx.rect(0, 0, 80, H); ctx.clip();
-    Ground.water(ctx, W, H, 38, { shallow: '#8ad0e8', deep: '#2a78b0', caustics: 0.2, weed: 0 });
+    Ground.water(ctx, 80, H, 38, { shallow: '#8ad0e8', deep: '#2a78b0', caustics: 0.2, weed: 0 });
     ctx.restore();
     // Foam and wet sand at the edge
     for (let y = 0; y < H; y += 26) { plainEll(ctx, 78 + Math.sin(y / 40) * 4, y, 12, 6, 'rgba(255,255,255,.75)'); }
@@ -177,7 +218,8 @@ Object.assign(Backgrounds, {
     for (let i = 0; i < 3 * A; i++) {
       const cx = 60 + r() * (W - 120), cy = 60 + r() * (H - 120), rad = 40 + r() * 60;
       ctx.save(); ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * 0.7, r() * 3, 0, TAU); ctx.clip();
-      Ground.soil(ctx, W, H, 92 + i, { base: '#c8a870', dark: '#a08050', light: '#e0c890', stones: 0.5, relief: 0.2 });
+      ctx.translate(cx - rad, cy - rad);   // paint only the patch, not the whole paddock
+      Ground.soil(ctx, rad * 2, rad * 2, 92 + i, { base: '#c8a870', dark: '#a08050', light: '#e0c890', stones: 0.5, relief: 0.2 });
       ctx.restore();
       const edge = ctx.createRadialGradient(cx, cy, rad * 0.6, cx, cy, rad); edge.addColorStop(0, 'rgba(200,170,110,0)'); edge.addColorStop(1, 'rgba(200,170,110,.5)');
       ctx.fillStyle = edge; ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * 0.7, 0, 0, TAU); ctx.fill();
@@ -190,25 +232,19 @@ Object.assign(Backgrounds, {
     ctx.fillStyle = '#8a9298'; ctx.fillRect(W * 0.5, H * 0.08, 120, 40);
     ctx.fillStyle = '#b8c0c6'; ctx.fillRect(W * 0.5, H * 0.08, 120, 4);
     ctx.save(); ctx.beginPath(); ctx.rect(W * 0.5 + 6, H * 0.08 + 6, 108, 28); ctx.clip();
-    Ground.water(ctx, W, H, 93, { shallow: '#7ac0d8', deep: '#3a80a8', caustics: 0.3, weed: 0 });
+    ctx.translate(W * 0.5 + 6, H * 0.08 + 6);
+    Ground.water(ctx, 108, 28, 93, { shallow: '#7ac0d8', deep: '#3a80a8', caustics: 0.3, weed: 0 });
     ctx.restore();
     // Shady gum (home): crown of sickle leaves over a big shadow
     Ground.contact(ctx, home.x + 14, home.y + 18, home.r * 1.7, home.r * 1.4, 0.45);
-    for (let i = 0; i < 70; i++) {
-      const a = r() * TAU, d = r() * home.r * 0.95, x = home.x + Math.cos(a) * d, y = home.y + Math.sin(a) * d;
-      ell(ctx, x, y, 9 + r() * 4, 3 + r(), i % 3 ? '#6b8f4a' : '#7ea35a', r() * TAU, 'leaf');
-    }
-    for (let i = 0; i < 6; i++) { const a = r() * TAU, d = r() * home.r * 0.6; plainEll(ctx, home.x + Math.cos(a) * d, home.y + Math.sin(a) * d, 3, 3, '#f4f0d8'); }
+    drawGumCrown(ctx, home.x, home.y, home.r * 1.05, 91);
     scatter(r, W, H, 6 * A, home, 200, (x, y) => Ground.tuft(ctx, x, y, 18 + r() * 8, Math.round(r() * 1e6), ['#b8a858', '#c8b868', '#a89848']));
   },
   // Bold Park heath in spring: grey sand, low shrubs, wildflowers.
   heath(ctx, W, H, home) {
     const r = rng(101), A = W * H / (960 * 600);
     Ground.sand(ctx, W, H, 101, { pale: '#e2dac0', mid: '#c8c0a4', dark: '#a0987c', ripples: 0.2, cell: 180 });
-    scatter(r, W, H, 18 * A, home, 120, (x, y) => {
-      Ground.contact(ctx, x, y, 34, 26, 0.35);
-      for (let i = 0; i < 9; i++) ell(ctx, x + (r() - 0.5) * 40, y + (r() - 0.5) * 30, 12 + r() * 4, 9 + r() * 3, i % 2 ? '#6f8f50' : '#809f5c', r() * 3, 'leaf');
-    });
+    scatter(r, W, H, 18 * A, home, 120, (x, y) => drawShrub(ctx, x, y, 26 + r() * 10, Math.round(r() * 1e6)));
     scatter(r, W, H, 8 * A, home, 100, (x, y) => Ground.tuft(ctx, x, y, 16 + r() * 8, Math.round(r() * 1e6), ['#a8a860', '#b8b870', '#8a8a4a']));
     scatter(r, W, H, 80 * A, home, 60, (x, y) => { const c = ['#f2f2f2', '#f0d040', '#c060c0'][Math.floor(r() * 3)]; for (let k = 0; k < 5; k++) plainEll(ctx, x + Math.cos(k * 1.26) * 2.2, y + Math.sin(k * 1.26) * 2.2, 1.6, 1.1, c, k * 1.26); plainEll(ctx, x, y, 1, 1, '#e8a000'); });
     for (let i = 0; i < 7; i++) ell(ctx, home.x + Math.cos(i * 0.9) * 26, home.y + Math.sin(i * 0.9) * 22, 18, 7, '#5f9a3a', i * 0.9, 'leaf');

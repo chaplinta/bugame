@@ -60,11 +60,14 @@ ell = function (ctx, x, y, rx, ry, fill, rot, mat) {
     ctx.fillStyle = gr;
     ctx.fill();
     const rich = Shade.rich && r >= 3 && typeof Tex !== 'undefined';
-    if (rich && mat !== 'none') {
+    if (rich && mat !== 'none' && r >= 4) {
+      // Texture only where it can be seen: tiny parts get the gradient and rim alone
       const tile = mat === 'shell' || mat === 'wet' ? 'grain' : mat;
       Tex.fillPath(ctx, tile, Math.max(0.6, s) * (fur ? 0.5 : 0.8), mat === 'grain' ? 0.22 : 0.32, 'multiply');
-      if (mat === 'hair') Tex.fillPath(ctx, 'hairHi', Math.max(0.6, s) * 0.5, 0.25, 'screen');
-      if (mat === 'chitin') Tex.fillPath(ctx, 'chitinHi', Math.max(0.6, s), 0.14, 'screen');
+      if (r >= 7) {
+        if (mat === 'hair') Tex.fillPath(ctx, 'hairHi', Math.max(0.6, s) * 0.5, 0.25, 'screen');
+        if (mat === 'chitin') Tex.fillPath(ctx, 'chitinHi', Math.max(0.6, s), 0.14, 'screen');
+      }
     }
     if (r > 3) {
       // Rim: light on the side facing the light, darker where the part turns away

@@ -61,54 +61,87 @@ const Ground = {
     }
     x.putImageData(img, 0, 0);
     ctx.save();
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'low';
     ctx.globalAlpha = opts.alpha === undefined ? 1 : opts.alpha;
     ctx.drawImage(c, 0, 0, fw, fh, 0, 0, W, H);
     ctx.restore();
     return { f, fw, fh };
   },
 
+  // Fine detail (blades, crumbs, leaves) drawn once into a seamless tile and repeated over W x H, so a
+  // big world costs the same as a small one. fn(ctx, tw, th, put) draws into the tile; `put(x, y, draw)`
+  // calls draw(x, y) and again shifted by a tile width or height when (x, y) is within `m` of an edge,
+  // so nothing is cut off at the seams. The tile is rendered at the canvas's own resolution.
+  micro(ctx, W, H, seed, m, fn, o) {
+    o = o || {};
+    const tw = o.tw || 448, th = o.th || 416;
+    const s = Math.min(2, Math.max(0.5, ctx.getTransform().a || 1));
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(tw * s); c.height = Math.ceil(th * s);
+    const x = c.getContext('2d');
+    x.scale(s, s);
+    const put = (px, py, draw) => {
+      draw(px, py);
+      const dx = px < m ? tw : px > tw - m ? -tw : 0, dy = py < m ? th : py > th - m ? -th : 0;
+      if (dx) draw(px + dx, py);
+      if (dy) draw(px, py + dy);
+      if (dx && dy) draw(px + dx, py + dy);
+    };
+    fn(x, tw, th, put);
+    ctx.save();
+    ctx.globalAlpha *= o.alpha === undefined ? 1 : o.alpha;
+    ctx.scale(1 / s, 1 / s);
+    ctx.fillStyle = ctx.createPattern(c, 'repeat');
+    ctx.fillRect(0, 0, W * s, H * s);
+    ctx.restore();
+  },
+
   // Soft dark ring where something sits on the ground (ambient occlusion), slightly offset from the sun.
   contact(ctx, x, y, rx, ry, a) {
-    const gr = ctx.createRadialGradient(x + 2, y + 3, 0, x + 2, y + 3, rx);
+    // offset away from the light, whichever way the sprite is turned
+    const [lx, ly] = typeof lightDir === 'function' ? lightDir(ctx) : [-0.55, -0.83];
+    x -= lx * 2.5; y -= ly * 2.5;
+    const gr = ctx.createRadialGradient(x, y, 0, x, y, rx);
     gr.addColorStop(0, 'rgba(25,15,5,' + (a === undefined ? 0.35 : a) + ')');
     gr.addColorStop(0.7, 'rgba(25,15,5,' + (a === undefined ? 0.35 : a) * 0.5 + ')');
     gr.addColorStop(1, 'rgba(25,15,5,0)');
     ctx.fillStyle = gr;
-    ctx.beginPath(); ctx.ellipse(x + 2, y + 3, rx, ry, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill();
   },
 
-  // Shade from trees overhead: clusters of leaf shadows with sunny gaps.
+  // Shade from trees overhead: clusters of leaf shadows with sunny gaps. Shadows are soft anyway, so
+  // the whole layer is drawn at a third of the resolution and scaled up once.
   canopy(ctx, W, H, seed, opts) {
     opts = opts || {};
-    const r = rng(seed), n = Math.round(W * H / 60000 * (opts.density || 1));
-    ctx.save();
-    if (Tex.blend) ctx.globalCompositeOperation = 'multiply';
+    const r = rng(seed), n = Math.round(W * H / 60000 * (opts.density || 1)), alpha = opts.alpha || 0.25;
+    const res = 0.34, lw = Math.ceil(W * res), lh = Math.ceil(H * res);
+    const layer = document.createElement('canvas'); layer.width = lw; layer.height = lh;
+    const x = layer.getContext('2d');
+    x.scale(res, res);
     for (let i = 0; i < n; i++) {
       const cx = r() * W, cy = r() * H, rad = 120 + r() * 160;
-      const gr = ctx.createRadialGradient(cx, cy, rad * 0.3, cx, cy, rad);
-      gr.addColorStop(0, 'rgba(60,70,40,' + (opts.alpha || 0.25) + ')');
-      gr.addColorStop(1, 'rgba(60,70,40,0)');
-      ctx.fillStyle = gr; ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
-      // soft leaf shadows inside the cluster, blurred by their own gradient
+      const gr = x.createRadialGradient(cx, cy, rad * 0.3, cx, cy, rad);
+      gr.addColorStop(0, 'rgba(15,25,10,' + alpha + ')'); gr.addColorStop(1, 'rgba(15,25,10,0)');
+      x.fillStyle = gr; x.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+      // soft leaf shadows inside the cluster
       for (let k = 0; k < 30; k++) {
         const a = r() * TAU, dd = r() * rad * 0.8, lx = cx + Math.cos(a) * dd, ly = cy + Math.sin(a) * dd, lr = 6 + r() * 8;
-        const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, lr);
-        lg.addColorStop(0, 'rgba(50,60,35,' + (opts.alpha || 0.25) * 0.5 + ')'); lg.addColorStop(1, 'rgba(50,60,35,0)');
-        ctx.fillStyle = lg; ctx.beginPath(); ctx.ellipse(lx, ly, lr * 1.6, lr * 0.7, r() * TAU, 0, TAU); ctx.fill();
+        const lg = x.createRadialGradient(lx, ly, 0, lx, ly, lr);
+        lg.addColorStop(0, 'rgba(15,25,10,' + alpha * 0.5 + ')'); lg.addColorStop(1, 'rgba(15,25,10,0)');
+        x.fillStyle = lg; x.beginPath(); x.ellipse(lx, ly, lr * 1.6, lr * 0.7, r() * TAU, 0, TAU); x.fill();
       }
     }
-    ctx.restore();
     // Sun gaps
-    ctx.save();
-    if (Tex.blend) ctx.globalCompositeOperation = 'screen';
     for (let i = 0; i < n * 3; i++) {
       const cx = r() * W, cy = r() * H, rad = 12 + r() * 30;
-      const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+      const gr = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
       gr.addColorStop(0, 'rgba(255,245,200,' + (opts.sun || 0.14) + ')');
       gr.addColorStop(1, 'rgba(255,245,200,0)');
-      ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * 0.6, r() * TAU, 0, TAU); ctx.fill();
+      x.fillStyle = gr; x.beginPath(); x.ellipse(cx, cy, rad, rad * 0.6, r() * TAU, 0, TAU); x.fill();
     }
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(layer, 0, 0, lw, lh, 0, 0, W, H);
     ctx.restore();
   },
 
@@ -124,11 +157,11 @@ const Ground = {
     o = o || {};
     const pale = o.pale || '#efe0bc', mid = o.mid || '#dcc58f', dark = o.dark || '#b89a62';
     this.macro(ctx, W, H, seed, [[0, dark], [0.45, mid], [1, pale]], { cell: o.cell || 160, relief: o.relief === undefined ? 0.35 : o.relief });
-    Tex.fillRect(ctx, 'sand', 0, 0, W, H, 1.4, 0.55, 'multiply');
-    Tex.fillRect(ctx, 'sandHi', 0, 0, W, H, 1.4, 0.5, 'screen');
+    Tex.fillRect(ctx, [['sand', 0.55], ['sandHi', 0.5]], 0, 0, W, H, 1.4, 1);
     const r = rng(seed + 1);
     if (o.ripples !== false) {
-      // Wind ripples: long gentle waves, a bright crest line and a shadow line beside it
+      // Wind ripples: long gentle waves, a bright crest line and a shadow line beside it (drawn over the
+      // whole area, not tiled, so the repeat never shows on these long lines)
       const n = Math.round(W * H / 9000 * (o.ripples || 1));
       for (let i = 0; i < n; i++) {
         const x0 = r() * W, y0 = r() * H, len = 60 + r() * 120, a = (o.wind || -0.3) + (r() - 0.5) * 0.5;
@@ -140,29 +173,33 @@ const Ground = {
       }
     }
     // Shell grit and dark grains
-    for (let i = 0; i < W * H / 2500; i++) {
-      const x = r() * W, y = r() * H, s = 0.8 + r() * 1.6;
-      ctx.fillStyle = r() < 0.6 ? 'rgba(255,255,250,.55)' : 'rgba(70,50,30,.35)';
-      ctx.beginPath(); ctx.ellipse(x, y, s, s * 0.7, r() * 3, 0, TAU); ctx.fill();
-    }
+    this.micro(ctx, W, H, seed, 4, (x, tw, th, put) => {
+      for (let i = 0; i < tw * th / 2500; i++) {
+        const s = 0.8 + r() * 1.6, col = r() < 0.6 ? 'rgba(255,255,250,.55)' : 'rgba(70,50,30,.35)', rot = r() * 3;
+        put(r() * tw, r() * th, (qx, qy) => { x.fillStyle = col; x.beginPath(); x.ellipse(qx, qy, s, s * 0.7, rot, 0, TAU); x.fill(); });
+      }
+    });
   },
 
   soil(ctx, W, H, seed, o) {
     o = o || {};
     const base = o.base || '#9a7a52', dark = o.dark || '#5a4028', light = o.light || '#b89a6e';
     this.macro(ctx, W, H, seed, [[0, dark], [0.5, base], [1, light]], { cell: o.cell || 120, relief: o.relief === undefined ? 0.5 : o.relief });
-    Tex.fillRect(ctx, 'soil', 0, 0, W, H, 1.2, 0.5, 'multiply');
-    Tex.fillRect(ctx, 'sandHi', 0, 0, W, H, 1.2, 0.18, 'screen');
+    Tex.fillRect(ctx, [['soil', 0.5], ['sandHi', 0.18]], 0, 0, W, H, 1.2, 1);
     const r = rng(seed + 2);
     // Crumbs and small stones, each with a little shadow
-    const n = Math.round(W * H / 700 * (o.stones === undefined ? 1 : o.stones));
-    for (let i = 0; i < n; i++) {
-      const x = r() * W, y = r() * H, s = 1 + r() * 2.5, st = r() < 0.15;
-      ctx.fillStyle = 'rgba(30,20,10,.3)'; ctx.beginPath(); ctx.ellipse(x + 1.2, y + 1.6, s * 1.1, s * 0.8, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = st ? ['#b8b0a0', '#a89c88', '#c8c0b0'][i % 3] : tint(base, (r() - 0.5) * 0.5);
-      ctx.beginPath(); ctx.ellipse(x, y, s, s * 0.75, r() * 3, 0, TAU); ctx.fill();
-      if (st) { ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(x - s * 0.3, y - s * 0.3, s * 0.4, s * 0.25, 0, 0, TAU); ctx.fill(); }
-    }
+    const stones = o.stones === undefined ? 1 : o.stones;
+    if (stones > 0) this.micro(ctx, W, H, seed, 8, (x, tw, th, put) => {
+      const n = Math.round(tw * th / 700 * stones);
+      for (let i = 0; i < n; i++) {
+        const px = r() * tw, py = r() * th, s = 1 + r() * 2.5, st = r() < 0.15, rot = r() * 3, col = st ? ['#b8b0a0', '#a89c88', '#c8c0b0'][i % 3] : tint(base, (r() - 0.5) * 0.5);
+        put(px, py, (qx, qy) => {
+          x.fillStyle = 'rgba(30,20,10,.3)'; x.beginPath(); x.ellipse(qx + 1.2, qy + 1.6, s * 1.1, s * 0.8, 0, 0, TAU); x.fill();
+          x.fillStyle = col; x.beginPath(); x.ellipse(qx, qy, s, s * 0.75, rot, 0, TAU); x.fill();
+          if (st) { x.fillStyle = 'rgba(255,255,255,.4)'; x.beginPath(); x.ellipse(qx - s * 0.3, qy - s * 0.3, s * 0.4, s * 0.25, 0, 0, TAU); x.fill(); }
+        });
+      }
+    });
     if (o.cracks) {
       ctx.strokeStyle = 'rgba(40,25,10,' + 0.35 * o.cracks + ')'; ctx.lineWidth = 1.2;
       for (let i = 0; i < W * H / 40000 * o.cracks; i++) {
@@ -182,33 +219,27 @@ const Ground = {
     const cols = green.map((g, i) => mixHex(g, straw[i], dry));
     this.macro(ctx, W, H, seed, [[0, mixHex('#3a5a22', '#8a7a40', dry)], [0.5, mixHex('#4f7a30', '#a89860', dry)], [1, mixHex('#6a9a44', '#c8b878', dry)]], { cell: o.cell || 140, relief: 0.2 });
     Tex.fillRect(ctx, 'soil', 0, 0, W, H, 1, 0.25, 'multiply');
-    const r = rng(seed + 3), n = Math.round(W * H / 28 * (o.density || 1)), len = o.height || 7;
+    const len = o.height || 7;
     const [sx, sy] = this.SUN;
-    // Shadows first, then blades, batched by colour
-    ctx.lineCap = 'round';
-    for (let pass = 0; pass < 2; pass++) {
-      const rr = rng(seed + 3);
+    // Shadows first, then blades, batched by colour; all drawn once into a repeating tile
+    this.micro(ctx, W, H, seed, len * 1.5 + 3, (x, tw, th, put) => {
+      const rr = rng(seed + 3), n = Math.round(tw * th / 28 * (o.density || 1));
       const buckets = cols.map(() => []);
       for (let i = 0; i < n; i++) {
-        const x = rr() * W, y = rr() * H, a = rr() * TAU, l = len * (0.6 + rr() * 0.8), c = Math.floor(rr() * cols.length);
-        buckets[c].push(x, y, x + Math.cos(a) * l, y + Math.sin(a) * l, Math.cos(a) * sx + Math.sin(a) * sy);
+        const a = rr() * TAU, l = len * (0.6 + rr() * 0.8);
+        buckets[Math.floor(rr() * cols.length)].push(rr() * tw, rr() * th, Math.cos(a) * l, Math.sin(a) * l, Math.cos(a) * sx + Math.sin(a) * sy);
       }
+      x.lineCap = 'round';
+      const blades = (b, test, ox, oy) => { x.beginPath(); for (let i = 0; i < b.length; i += 5) if (test(b[i + 4])) put(b[i], b[i + 1], (px, py) => { x.moveTo(px + ox, py + oy); x.lineTo(px + ox + b[i + 2], py + oy + b[i + 3]); }); x.stroke(); };
+      x.strokeStyle = 'rgba(20,30,10,.22)'; x.lineWidth = 1.6;
+      for (const b of buckets) blades(b, () => true, 1.5, 2.2);
+      // blades pointing at the sun are lit, blades pointing away are darker
+      x.lineWidth = 1.35;
       for (let c = 0; c < cols.length; c++) {
-        const b = buckets[c];
-        if (pass === 0) {
-          ctx.strokeStyle = 'rgba(20,30,10,.22)'; ctx.lineWidth = 1.6;
-          ctx.beginPath(); for (let i = 0; i < b.length; i += 5) { ctx.moveTo(b[i] + 1.5, b[i + 1] + 2.2); ctx.lineTo(b[i + 2] + 1.5, b[i + 3] + 2.2); } ctx.stroke();
-        } else {
-          // blades pointing at the sun are lit, blades pointing away are darker
-          for (const [name, lit] of [['lit', 1], ['dark', 0]]) {
-            ctx.strokeStyle = tint(cols[c], lit ? 0.18 : -0.22); ctx.lineWidth = 1.35;
-            ctx.beginPath();
-            for (let i = 0; i < b.length; i += 5) if ((b[i + 4] > 0) === !!lit) { ctx.moveTo(b[i], b[i + 1]); ctx.lineTo(b[i + 2], b[i + 3]); }
-            ctx.stroke();
-          }
-        }
+        x.strokeStyle = tint(cols[c], 0.18); blades(buckets[c], (d) => d > 0, 0, 0);
+        x.strokeStyle = tint(cols[c], -0.22); blades(buckets[c], (d) => d <= 0, 0, 0);
       }
-    }
+    });
   },
 
   lawn(ctx, W, H, seed, o) {
@@ -261,21 +292,25 @@ const Ground = {
   litter(ctx, W, H, seed, o) {
     o = o || {};
     this.soil(ctx, W, H, seed, { base: '#6a5238', dark: '#3e2e1c', light: '#8a6e4c', stones: 0.3 });
-    const r = rng(seed + 6), n = Math.round(W * H / 1100 * (o.density || 1));
+    const r = rng(seed + 6);
     const layers = [
       ['#4a3a26', '#5a4630', '#3e3020', '#6a5436'],
       ['#7a5a34', '#8a6a3e', '#6a4e2e', '#9a7a4a'],
       ['#b08a4a', '#c89a56', '#a07040', '#d8b070'],
     ];
-    for (let L = 0; L < 3; L++) {
-      const cols = layers[L], shade = 0.25 + L * 0.08;
-      for (let i = 0; i < n / 3; i++) {
-        const x = r() * W, y = r() * H, len = 10 + r() * 16, wid = len * (0.28 + r() * 0.2), a = r() * TAU, k = r();
-        if (k < 0.1) { this.twig(ctx, x, y, len * 2, a, shade); continue; }
-        if (k < 0.16) { this.gumnut(ctx, x, y, 3 + r() * 2, shade); continue; }
-        this.leafShape(ctx, x, y, len, wid, a, cols[i % cols.length], shade, r());
+    // A bigger tile than usual, so the repeat is harder to spot among the leaves
+    this.micro(ctx, W, H, seed, 32, (x, tw, th, put) => {
+      const n = Math.round(tw * th / 1100 * (o.density || 1));
+      for (let L = 0; L < 3; L++) {
+        const cols = layers[L], shade = 0.25 + L * 0.08;
+        for (let i = 0; i < n / 3; i++) {
+          const px = r() * tw, py = r() * th, len = 10 + r() * 16, wid = len * (0.28 + r() * 0.2), a = r() * TAU, k = r(), v = r(), col = cols[i % cols.length];
+          if (k < 0.1) put(px, py, (qx, qy) => this.twig(x, qx, qy, len * 2, a, shade));
+          else if (k < 0.16) put(px, py, (qx, qy) => this.gumnut(x, qx, qy, 3 + v * 2, shade));
+          else put(px, py, (qx, qy) => this.leafShape(x, qx, qy, len, wid, a, col, shade, v));
+        }
       }
-    }
+    }, { tw: 640, th: 576 });
   },
   leafShape(ctx, x, y, len, wid, a, col, shade, v) {
     ctx.save(); ctx.translate(x, y); ctx.rotate(a);

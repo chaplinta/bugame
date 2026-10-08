@@ -3,7 +3,7 @@
 // resolution, into little bitmaps and then just blitted each frame. That keeps the detailed
 // shading cheap enough for phones. The bug you play, and anything with state the cache can't name,
 // is still drawn live. Lighting stays fixed to the screen: the bitmap is rendered with the light
-// turned to match the sprite's heading (in 16 steps), then drawn with the exact rotation.
+// turned to match the sprite's heading (in 8 steps), then drawn with the exact rotation.
 
 const SpriteCache = {
   enabled: !/[?&]nocache=1/.test(location.search),
@@ -51,14 +51,16 @@ const SpriteCache = {
     if (!reg) return false;
     const Sp = Sprites[name];
     if (!Sp) return false;
-    // Light turned into the sprite's frame, in 16 steps
-    const a = e.angle || 0, bucket = ((Math.round(a / (TAU / 16)) % 16) + 16) % 16;
+    // Light turned into the sprite's frame, in 8 steps (fewer for things lying flat on the ground)
+    const nb = reg.buckets || 8, a = e.angle || 0, bucket = nb === 1 ? 0 : ((Math.round(a / (TAU / nb)) % nb) + nb) % nb;
     const P = px <= 2 ? 2 : px <= 3 ? 3 : px <= 4 ? 4 : px <= 6 ? 6 : 8;
-    const key = name + '|' + (reg.key ? reg.key(e, t) : this.defaultKey(e, t)) + '|' + bucket + '|' + P;
+    const vk = reg.key ? reg.key(e, t) : this.defaultKey(e, t);
+    if (vk === null) return false;   // this one wants to be drawn live right now
+    const key = name + '|' + vk + '|' + bucket + '|' + P;
     let ent = this.entries.get(key);
     if (!ent) {
       this.misses++;
-      ent = this.render(name, reg, e, t, bucket, P);
+      ent = this.render(name, reg, e, t, bucket * TAU / nb, P);
       if (!ent) return false;
       this.entries.set(key, ent);
       this.bytes += ent.bytes;
@@ -75,14 +77,14 @@ const SpriteCache = {
     return true;
   },
 
-  render(name, reg, e, t, bucket, P) {
+  render(name, reg, e, t, ang, P) {
     let box = reg.box;
     const c = document.createElement('canvas');
     const paint = (bx) => {
       c.width = Math.ceil((bx[2] - bx[0]) * P); c.height = Math.ceil((bx[3] - bx[1]) * P);
       const x = c.getContext('2d');
       x.setTransform(P, 0, 0, P, -bx[0] * P, -bx[1] * P);
-      const ang = bucket * TAU / 16, wx = -0.55, wy = -0.83;
+      const wx = -0.55, wy = -0.83;
       Shade.light = [wx * Math.cos(ang) + wy * Math.sin(ang), -wx * Math.sin(ang) + wy * Math.cos(ang)];
       try { Sprites[name](x, e, t); } catch (err) { Shade.light = null; return null; }
       Shade.light = null;
@@ -122,6 +124,8 @@ SpriteCache.registerAll([
   'springtail', 'caterpillar', 'fly', 'dungBeetle', 'termite', 'gull', 'plover', 'moth', 'beetle', 'resinBee', 'ladybird', 'skink',
   'orbSpider', 'honeyeater', 'wattlebird', 'fairyWren', 'cockatoo', 'quenda', 'banjoFrog', 'worm', 'skimmerF', 'queenSugar',
 ]);
+// Mosquitoes the dragonfly hunts: the player's own mosquito level draws it live (o.blood changes)
+SpriteCache.register('mosquito', { key(o, t) { return o.blood ? null : 'w' + SpriteCache.phase(t, 90, 3); } });
 SpriteCache.registerAll(['nativeGrass', 'rush'], { key(o, t) { return 'd' + (o.seed || 0) + 'y' + SpriteCache.phase(t, 1.5, 6); } });
-SpriteCache.register('cow', { box: [-90, -90, 90, 90], key(o, t) { return 'z' + Math.round((o.size || 1) * 10) + 'm' + (o.moving ? SpriteCache.phase(t, 8, 6) : 'x'); } });
-SpriteCache.register('pat', { key(o, t) { return 'z' + Math.round((o.size || 1) * 10) + 'r' + Math.round((o.fresh || 0) * 4) + 'e' + (o.eggs ? 1 : 0) + 'g' + (o.maggots ? SpriteCache.phase(t, 6, 4) : 'x'); } });
+SpriteCache.register('cow', { box: [-90, -90, 90, 90], buckets: 4, key(o, t) { return 'z' + Math.round((o.size || 1) * 10) + 'm' + (o.moving ? SpriteCache.phase(t, 8, 6) : 'x'); } });
+SpriteCache.register('pat', { buckets: 1, key(o, t) { return 'z' + Math.round((o.size || 1) * 10) + 'r' + Math.round((o.fresh || 0) * 4) + 'e' + (o.eggs ? 1 : 0) + 'g' + (o.maggots ? SpriteCache.phase(t, 6, 4) : 'x'); } });
