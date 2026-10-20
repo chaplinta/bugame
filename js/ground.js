@@ -98,12 +98,16 @@ const Ground = {
 
   // The same detail as a 3D tile (js/models-plants.js, rendered by js/render3d.js) when that is available:
   // fn3d(api) places instanced blades, leaves or grains; otherwise fn2d draws the 2D tile as micro() does.
+  tiles3d: new Map(),
   micro3d(ctx, W, H, seed, m, fn3d, fn2d, o) {
     o = o || {};
     if (fn3d && typeof Render3D !== 'undefined' && Render3D.ok) {
-      const tw = o.tw3d || 448, s = Math.min(2, Math.max(0.5, ctx.getTransform().a || 1));
-      let c = null;
-      try { c = Render3D.tile(tw, s, m, fn3d); } catch (e) { c = null; }
+      const tw = o.tw3d || 448, s = Math.min(2, Math.max(0.5, ctx.getTransform().a || 1)), key = o.key ? o.key + '|' + tw + '|' + s.toFixed(2) : null;
+      let c = key ? this.tiles3d.get(key) : null;
+      if (!c) {
+        try { c = Render3D.tile(tw, s, m, fn3d); } catch (e) { c = null; }
+        if (c && key) { this.tiles3d.set(key, c); if (this.tiles3d.size > 8) this.tiles3d.delete(this.tiles3d.keys().next().value); }
+      }
       if (c) {
         ctx.save();
         ctx.globalAlpha *= o.alpha === undefined ? 1 : o.alpha;
@@ -195,12 +199,12 @@ const Ground = {
       }
     }
     // Shell grit and dark grains
-    this.micro(ctx, W, H, seed, 4, (x, tw, th, put) => {
+    this.micro3d(ctx, W, H, seed, 4, typeof TileModels !== 'undefined' ? (api) => TileModels.sand(api, o, seed) : null, (x, tw, th, put) => {
       for (let i = 0; i < tw * th / 2500; i++) {
         const s = 0.8 + r() * 1.6, col = r() < 0.6 ? 'rgba(255,255,250,.55)' : 'rgba(70,50,30,.35)', rot = r() * 3;
         put(r() * tw, r() * th, (qx, qy) => { x.fillStyle = col; x.beginPath(); x.ellipse(qx, qy, s, s * 0.7, rot, 0, TAU); x.fill(); });
       }
-    });
+    }, { key: 'sand|' + seed });
   },
 
   soil(ctx, W, H, seed, o) {
@@ -211,7 +215,7 @@ const Ground = {
     const r = rng(seed + 2);
     // Crumbs and small stones, each with a little shadow
     const stones = o.stones === undefined ? 1 : o.stones;
-    if (stones > 0) this.micro(ctx, W, H, seed, 8, (x, tw, th, put) => {
+    if (stones > 0) this.micro3d(ctx, W, H, seed, 8, typeof TileModels !== 'undefined' ? (api) => TileModels.soil(api, o, seed, base) : null, (x, tw, th, put) => {
       const n = Math.round(tw * th / 700 * stones);
       for (let i = 0; i < n; i++) {
         const px = r() * tw, py = r() * th, s = 1 + r() * 2.5, st = r() < 0.15, rot = r() * 3, col = st ? ['#b8b0a0', '#a89c88', '#c8c0b0'][i % 3] : tint(base, (r() - 0.5) * 0.5);
@@ -221,7 +225,7 @@ const Ground = {
           if (st) { x.fillStyle = 'rgba(255,255,255,.4)'; x.beginPath(); x.ellipse(qx - s * 0.3, qy - s * 0.3, s * 0.4, s * 0.25, 0, 0, TAU); x.fill(); }
         });
       }
-    });
+    }, { key: 'soil|' + seed + '|' + stones + '|' + base });
     if (o.cracks) {
       ctx.strokeStyle = 'rgba(40,25,10,' + 0.35 * o.cracks + ')'; ctx.lineWidth = 1.2;
       for (let i = 0; i < W * H / 40000 * o.cracks; i++) {
@@ -321,7 +325,7 @@ const Ground = {
       ['#b08a4a', '#c89a56', '#a07040', '#d8b070'],
     ];
     // A bigger tile than usual, so the repeat is harder to spot among the leaves
-    this.micro(ctx, W, H, seed, 32, (x, tw, th, put) => {
+    this.micro3d(ctx, W, H, seed, 32, typeof TileModels !== 'undefined' ? (api) => TileModels.litter(api, o, seed) : null, (x, tw, th, put) => {
       const n = Math.round(tw * th / 1100 * (o.density || 1));
       for (let L = 0; L < 3; L++) {
         const cols = layers[L], shade = 0.25 + L * 0.08;
@@ -332,7 +336,7 @@ const Ground = {
           else put(px, py, (qx, qy) => this.leafShape(x, qx, qy, len, wid, a, col, shade, v));
         }
       }
-    }, { tw: 640, th: 576 });
+    }, { tw: 640, th: 576, tw3d: 640, key: 'litter|' + seed + '|' + (o.density || 1) });
   },
   leafShape(ctx, x, y, len, wid, a, col, shade, v) {
     ctx.save(); ctx.translate(x, y); ctx.rotate(a);

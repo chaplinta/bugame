@@ -2,8 +2,14 @@
 // The places, repainted with real ground (ground.js): sand, soil, grass, water and leaf litter,
 // with trees and shrubs that sit on the ground with a shadow.
 
+// A 3D scenery model stamped into the background when the renderer is up (js/models-plants.js); false otherwise.
+function stamp3d(ctx, name, o, x, y, scale, angle) {
+  return typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, name, o, 0, { x, y, scale: scale || 1, angle: angle || 0 });
+}
+
 // Grass tree (Xanthorrhoea) from above: black stump, a dense skirt of needle leaves, sometimes a flower spike.
 drawGrassTree = function (ctx, x, y, r, seed) {
+  if (stamp3d(ctx, 'bgGrassTree', { seed: seed || 0 }, x, y, r / 32, 0)) return;
   const rr = rng(seed || Math.round(x + y));
   Ground.contact(ctx, x, y, r * 1.1, r * 0.9, 0.4);
   const [sx, sy] = Ground.SUN;
@@ -26,6 +32,7 @@ drawGrassTree = function (ctx, x, y, r, seed) {
 
 // Banksia from above: a rosette of long serrated leaves and upright cones.
 drawBanksia = function (ctx, x, y, r, rand) {
+  if (stamp3d(ctx, 'bgBanksia', { seed: Math.round(rand() * 6) }, x, y, r / 48, 0)) return;
   Ground.contact(ctx, x, y, r * 1.2, r, 0.45);
   const [sx, sy] = Ground.SUN;
   // Leaves: long, narrow, saw-edged, grey-green on top
@@ -58,6 +65,7 @@ drawBanksia = function (ctx, x, y, r, rand) {
 
 // A low heath shrub from above: many small leaves on radiating twigs, lit from the sun, a shadow underneath.
 function drawShrub(ctx, x, y, rad, seed, cols) {
+  if (!cols && stamp3d(ctx, 'bgShrub', { seed: seed || 0 }, x, y, rad / 30, 0)) return;
   const r = rng(seed || 1), [sx, sy] = Ground.SUN;
   cols = cols || ['#5a7a3c', '#6f8f50', '#809f5c', '#4a6a30'];
   Ground.contact(ctx, x, y, rad * 1.2, rad * 0.9, 0.4);
@@ -75,6 +83,7 @@ function drawShrub(ctx, x, y, rad, seed, cols) {
 
 // A eucalypt crown from above: branches radiating from the trunk, clusters of sickle leaves, gumnuts and blossom.
 function drawGumCrown(ctx, x, y, rad, seed) {
+  if (stamp3d(ctx, 'bgGum', { seed: seed || 0 }, x, y, rad / 55, 0)) return;
   const r = rng(seed || 2), [sx, sy] = Ground.SUN;
   Ground.contact(ctx, x + 10, y + 12, rad * 1.3, rad * 1.1, 0.4);
   for (let i = 0; i < 7; i++) {
@@ -98,7 +107,16 @@ function drawGumCrown(ctx, x, y, rad, seed) {
 // Reeds and sedges from above: a clump of flat blades with a dark heart.
 function drawReeds(ctx, x, y, n, spread, seed) {
   const r = rng(seed || Math.round(x * 3 + y));
-  for (let i = 0; i < n; i++) Ground.tuft(ctx, x + (r() - 0.5) * spread, y + (r() - 0.5) * spread, 16 + r() * 8, Math.round(r() * 1e6), ['#4a7a2c', '#5a8a36', '#6a9a42']);
+  for (let i = 0; i < n; i++) tuft(ctx, x + (r() - 0.5) * spread, y + (r() - 0.5) * spread, 16 + r() * 8, Math.round(r() * 1e6), ['#4a7a2c', '#5a8a36', '#6a9a42'], 'green');
+}
+// A grass tuft: the 3D stamp when it is there, else the painted one. kind names the stamp's colours.
+function tuft(ctx, x, y, rad, seed, cols, kind) {
+  if (stamp3d(ctx, 'bgTuft', { seed, kind: kind || 'dry' }, x, y, rad / 24, (seed % 8) * 0.8)) return;
+  Ground.tuft(ctx, x, y, rad, seed, cols);
+}
+function rock(ctx, x, y, rad, seed, o) {
+  if (stamp3d(ctx, 'bgRock', { seed, kind: o && o.kind, moss: !!(o && o.moss) }, x, y, rad / 12, (seed % 8) * 0.8)) return;
+  Ground.rock(ctx, x, y, rad, seed, o);
 }
 
 Object.assign(Backgrounds, {
@@ -111,10 +129,10 @@ Object.assign(Backgrounds, {
     ctx.strokeStyle = 'rgba(120,95,60,.18)'; ctx.lineWidth = 56; ctx.stroke();
     ctx.strokeStyle = 'rgba(248,236,205,.5)'; ctx.lineWidth = 40; ctx.stroke();
     Ground.canopy(ctx, W, H, 12, { density: 0.8, alpha: 0.2 });
-    scatter(r, W, H, 9 * A, home, 140, (x, y) => Ground.tuft(ctx, x, y, 22 + r() * 10, Math.round(r() * 1e6), ['#b8a860', '#a89850', '#c8b870']));
+    scatter(r, W, H, 9 * A, home, 140, (x, y) => tuft(ctx, x, y, 22 + r() * 10, Math.round(r() * 1e6), ['#b8a860', '#a89850', '#c8b870'], 'dry'));
     scatter(r, W, H, 7 * A, home, 140, (x, y) => drawBanksia(ctx, x, y, 38 + r() * 25, r));
     scatter(r, W, H, 5 * A, home, 120, (x, y) => drawGrassTree(ctx, x, y, 28 + r() * 8, Math.round(r() * 1e6)));
-    scatter(r, W, H, 5 * A, home, 100, (x, y) => Ground.rock(ctx, x, y, 8 + r() * 8, Math.round(r() * 1e6), { kind: 'laterite' }));
+    scatter(r, W, H, 5 * A, home, 100, (x, y) => rock(ctx, x, y, 8 + r() * 8, Math.round(r() * 1e6), { kind: 'laterite' }));
     Ground.contact(ctx, home.x, home.y, home.r * 1.4, home.r * 1.2, 0.3);
     ell(ctx, home.x, home.y, home.r * 0.9, home.r * 0.78, '#c9a868', 0, 'none');
     Tex.fillPath(ctx, 'sand', 1.4, 0.4, 'multiply');
@@ -162,8 +180,8 @@ Object.assign(Backgrounds, {
     for (let y = 0; y < H; y += 26) { plainEll(ctx, 78 + Math.sin(y / 40) * 4, y, 12, 6, 'rgba(255,255,255,.75)'); }
     const wet = ctx.createLinearGradient(80, 0, 150, 0); wet.addColorStop(0, 'rgba(120,100,70,.45)'); wet.addColorStop(1, 'rgba(120,100,70,0)');
     ctx.fillStyle = wet; ctx.fillRect(80, 0, 70, H);
-    scatter(r, W, H, 10 * A, home, 100, (x, y) => Ground.tuft(ctx, x, y, 26 + r() * 10, Math.round(r() * 1e6), ['#9aa85a', '#b7b86e', '#8a9a4a']));
-    scatter(r, W, H, 3 * A, home, 100, (x, y) => Ground.rock(ctx, x, y, 10 + r() * 10, Math.round(r() * 1e6), { kind: 'limestone' }));
+    scatter(r, W, H, 10 * A, home, 100, (x, y) => tuft(ctx, x, y, 26 + r() * 10, Math.round(r() * 1e6), ['#9aa85a', '#b7b86e', '#8a9a4a'], 'spinifex'));
+    scatter(r, W, H, 3 * A, home, 100, (x, y) => rock(ctx, x, y, 10 + r() * 10, Math.round(r() * 1e6), { kind: 'limestone' }));
     // Silk retreat
     ctx.globalAlpha = 0.8;
     for (let i = 0; i < 30; i++) { const a = r() * TAU; plainLine(ctx, [home.x, home.y, home.x + Math.cos(a) * home.r, home.y + Math.sin(a) * home.r], '#ffffff', 1); }
@@ -176,6 +194,7 @@ Object.assign(Backgrounds, {
     Ground.water(ctx, W, H, 51, { shallow: '#62a8c8', deep: '#1f4f72', depth: 'radial', caustics: 0.18, weed: 1.2 });
     scatter(r, W, H, 14 * A, home, 90, (x, y) => {
       const s = 14 + r() * 12;
+      if (stamp3d(ctx, 'bgLily', { seed: Math.round(r() * 6) }, x, y, s / 20, r() * TAU)) return;
       ctx.fillStyle = 'rgba(0,20,30,.25)'; ctx.beginPath(); ctx.ellipse(x + 2, y + 3, s, s * 0.95, 0, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, s, 0.12, TAU - 0.12); ctx.closePath();
       const g = ctx.createRadialGradient(x - s * 0.3, y - s * 0.3, 2, x, y, s);
@@ -194,6 +213,7 @@ Object.assign(Backgrounds, {
     Ground.soil(ctx, W, H, 77, { base: '#5a6a40', dark: '#303a22', light: '#7a8a52', stones: 0.5, relief: 0.3 });
     Tex.fillRect(ctx, 'caustic', 0, 0, W, H, 0.5, 0.25, 'screen');
     const weeds = (cx, cy, rad, n) => {
+      if (typeof SpriteCache !== 'undefined' && SpriteCache.is3D('bgWeed')) { for (let k = 0; k < Math.max(1, Math.round(n / 18)); k++) { const a = r() * TAU, d = r() * rad * 0.6; stamp3d(ctx, 'bgWeed', { seed: Math.round(r() * 6) }, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 1, r() * TAU); } return; }
       for (let i = 0; i < n; i++) {
         const a = r() * TAU, d = r() * rad, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d, l = 14 + r() * 18, b = r() * TAU;
         ctx.beginPath(); ctx.moveTo(x, y);
@@ -219,7 +239,7 @@ Object.assign(Backgrounds, {
       const cx = 60 + r() * (W - 120), cy = 60 + r() * (H - 120), rad = 40 + r() * 60;
       ctx.save(); ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * 0.7, r() * 3, 0, TAU); ctx.clip();
       ctx.translate(cx - rad, cy - rad);   // paint only the patch, not the whole paddock
-      Ground.soil(ctx, rad * 2, rad * 2, 92 + i, { base: '#c8a870', dark: '#a08050', light: '#e0c890', stones: 0.5, relief: 0.2 });
+      Ground.soil(ctx, rad * 2, rad * 2, 92, { base: '#c8a870', dark: '#a08050', light: '#e0c890', stones: 0.5, relief: 0.2 });
       ctx.restore();
       const edge = ctx.createRadialGradient(cx, cy, rad * 0.6, cx, cy, rad); edge.addColorStop(0, 'rgba(200,170,110,0)'); edge.addColorStop(1, 'rgba(200,170,110,.5)');
       ctx.fillStyle = edge; ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * 0.7, 0, 0, TAU); ctx.fill();
@@ -238,14 +258,14 @@ Object.assign(Backgrounds, {
     // Shady gum (home): crown of sickle leaves over a big shadow
     Ground.contact(ctx, home.x + 14, home.y + 18, home.r * 1.7, home.r * 1.4, 0.45);
     drawGumCrown(ctx, home.x, home.y, home.r * 1.05, 91);
-    scatter(r, W, H, 6 * A, home, 200, (x, y) => Ground.tuft(ctx, x, y, 18 + r() * 8, Math.round(r() * 1e6), ['#b8a858', '#c8b868', '#a89848']));
+    scatter(r, W, H, 6 * A, home, 200, (x, y) => tuft(ctx, x, y, 18 + r() * 8, Math.round(r() * 1e6), ['#b8a858', '#c8b868', '#a89848'], 'dry'));
   },
   // Bold Park heath in spring: grey sand, low shrubs, wildflowers.
   heath(ctx, W, H, home) {
     const r = rng(101), A = W * H / (960 * 600);
     Ground.sand(ctx, W, H, 101, { pale: '#e2dac0', mid: '#c8c0a4', dark: '#a0987c', ripples: 0.2, cell: 180 });
     scatter(r, W, H, 18 * A, home, 120, (x, y) => drawShrub(ctx, x, y, 26 + r() * 10, Math.round(r() * 1e6)));
-    scatter(r, W, H, 8 * A, home, 100, (x, y) => Ground.tuft(ctx, x, y, 16 + r() * 8, Math.round(r() * 1e6), ['#a8a860', '#b8b870', '#8a8a4a']));
+    scatter(r, W, H, 8 * A, home, 100, (x, y) => tuft(ctx, x, y, 16 + r() * 8, Math.round(r() * 1e6), ['#a8a860', '#b8b870', '#8a8a4a'], 'straw'));
     scatter(r, W, H, 80 * A, home, 60, (x, y) => { const c = ['#f2f2f2', '#f0d040', '#c060c0'][Math.floor(r() * 3)]; for (let k = 0; k < 5; k++) plainEll(ctx, x + Math.cos(k * 1.26) * 2.2, y + Math.sin(k * 1.26) * 2.2, 1.6, 1.1, c, k * 1.26); plainEll(ctx, x, y, 1, 1, '#e8a000'); });
     for (let i = 0; i < 7; i++) ell(ctx, home.x + Math.cos(i * 0.9) * 26, home.y + Math.sin(i * 0.9) * 22, 18, 7, '#5f9a3a', i * 0.9, 'leaf');
   },
@@ -258,6 +278,7 @@ Object.assign(Backgrounds, {
     scatter(r, W, H, 6 * A, home, 200, (x, y) => drawBanksia(ctx, x, y, 34 + r() * 20, r));
     scatter(r, W, H, 6 * A, home, 220, (x, y) => {
       const a = r() * TAU;
+      if (stamp3d(ctx, 'bgLog', { seed: Math.round(r() * 6) }, x, y, 1, a)) return;
       ctx.save(); ctx.translate(x, y); ctx.rotate(a);
       Ground.contact(ctx, 4, 8, 70, 22, 0.45);
       Ground.bark(ctx, -60, -14, 120, 28, Math.round(r() * 1e6), { axis: 'x', color: '#6a5034' });
@@ -274,15 +295,19 @@ Object.assign(Backgrounds, {
     Ground.litter(ctx, W, H, 127, { density: 1.1 });
     Ground.canopy(ctx, W, H, 128, { density: 1.4, alpha: 0.3, sun: 0.12 });
     scatter(r, W, H, 10 * A, home, 150, (x, y) => {
-      ctx.save(); ctx.translate(x, y); ctx.rotate(r() * TAU);
+      const a = r() * TAU;
+      if (stamp3d(ctx, 'bgLog', { seed: Math.round(r() * 6), thin: true }, x, y, 1, a)) return;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a);
       Ground.contact(ctx, 2, 5, 55, 10, 0.4);
       Ground.bark(ctx, -50, -3, 100, 6, Math.round(r() * 1e6), { axis: 'x', color: '#4a3420' });
       ctx.restore();
     });
     Ground.contact(ctx, home.x, home.y, home.r * 1.5, home.r * 1.2, 0.5);
     ell(ctx, home.x, home.y, home.r * 1.3, home.r, '#3a2e20', 0, 'none');
-    ctx.save(); ctx.translate(home.x, home.y - home.r * 0.6);
-    Ground.bark(ctx, -60, -14, 120, 28, 5, { axis: 'x', color: '#5a4030' }); Ground.endGrain(ctx, 60, 0, 8, 14);
-    ctx.restore();
+    if (!stamp3d(ctx, 'bgLog', { seed: 5 }, home.x, home.y - home.r * 0.6, 1, 0)) {
+      ctx.save(); ctx.translate(home.x, home.y - home.r * 0.6);
+      Ground.bark(ctx, -60, -14, 120, 28, 5, { axis: 'x', color: '#5a4030' }); Ground.endGrain(ctx, 60, 0, 8, 14);
+      ctx.restore();
+    }
   },
 });
