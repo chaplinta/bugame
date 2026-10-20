@@ -188,9 +188,9 @@ Object.assign(Game, {
     if (lift > 0) {
       const s = 1 + lift * 3.5;
       ctx.save(); ctx.translate(nx + Math.sin(t * 28) * 6 * lift, ny + nr * 0.2);
-      ctx.rotate(Math.sin(t * 26) * 0.4 - Math.PI / 2); ctx.scale(s * (g.mission.scale || 1), s * (g.mission.scale || 1));
-      const m = g.mission;
-      Sprites[m.playerSprite ? m.playerSprite(g) : (m.sprite || m.id)](ctx, Object.assign({}, p, { moving: true }), t);
+      ctx.rotate(Math.sin(t * 26) * 0.4 - Math.PI / 2);
+      const m = g.mission, name = m.playerSprite ? m.playerSprite(g) : (m.sprite || m.id), o = Object.assign({}, p, { moving: true, angle: 0 }), k = s * (m.scale || 1);
+      if (!(typeof SpriteCache !== 'undefined' && SpriteCache.is3D(name) && SpriteCache.draw(ctx, name, o, t, k, (Game.dpr || 1) * k))) { ctx.scale(k, k); Sprites[name](ctx, o, t); }
       ctx.restore();
     }
     // Mesh bag (closes over the bug after landing)

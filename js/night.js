@@ -162,9 +162,11 @@ function drawMoon(canvas) {
   for (let i = 0; i < 50; i++) { ctx.fillStyle = 'rgba(255,255,230,' + (0.4 + r() * 0.6) + ')'; ctx.beginPath(); ctx.arc(r() * w, r() * h * 0.8, 0.6 + r() * 1.4, 0, TAU); ctx.fill(); }
   ctx.save(); ctx.translate(230, 55); drawMoonShape(ctx, 28); ctx.restore();
   ell(ctx, 120, 150, 90, 22, '#3f7a3a', -0.1);
-  ctx.save(); ctx.translate(120, 136); ctx.scale(2, 2); ctx.rotate(-0.2);
-  Sprites.bee(ctx, { moving: false, load: 0 }, 0);
-  ctx.restore();
+  if (!(typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, 'bee', { moving: false, load: 0 }, 0, { x: 120, y: 136, scale: 2, angle: -0.2 }))) {
+    ctx.save(); ctx.translate(120, 136); ctx.scale(2, 2); ctx.rotate(-0.2);
+    Sprites.bee(ctx, { moving: false, load: 0 }, 0);
+    ctx.restore();
+  }
   ctx.fillStyle = '#fff'; ctx.font = 'bold 22px Georgia, serif';
   ctx.fillText('z', 160, 100); ctx.font = 'bold 28px Georgia, serif'; ctx.fillText('z', 178, 78); ctx.font = 'bold 34px Georgia, serif'; ctx.fillText('Z', 200, 50);
 }

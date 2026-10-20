@@ -38,16 +38,21 @@ const ICON_SCALE = { bushFly: 2.2, termiteWorker: 1.6, butterfly: 1.3, mosquito:
 const SIDE_VIEW = { sandhopper: true };   // drawn from the side, so not turned to face up
 
 function portrait(canvas, sprite, size) {
+  canvas.dataset.sprite = sprite; canvas.dataset.size = size;
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   canvas.width = size * dpr; canvas.height = size * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const k = size / 55 * (ICON_SCALE[sprite] || 1), angle = SIDE_VIEW[sprite] ? 0 : -Math.PI / 2;
+  // 3D models come as bitmaps; the 2D drawings draw live. The bug faces up the page either way.
+  if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, sprite, { moving: false, load: 0 }, 0.4, { x: size / 2, y: size / 2, scale: k, angle })) return;
   ctx.translate(size / 2, size / 2);
-  if (!SIDE_VIEW[sprite]) ctx.rotate(-Math.PI / 2);
-  const k = size / 55 * (ICON_SCALE[sprite] || 1);
+  ctx.rotate(angle);
   ctx.scale(k, k);
   Sprites[sprite](ctx, { moving: false, load: 0 }, 0.4);
 }
+// Redraw the map pins once the 3D renderer is up (the map is built before three.js has loaded).
+if (typeof Render3D !== 'undefined') Render3D.whenReady(() => { for (const el of document.querySelectorAll('canvas[data-sprite]')) portrait(el, el.dataset.sprite, +el.dataset.size || 56); });
 
 function bugSprite(bug) { return bug.sprite; }
 // How a level is seen, when it isn't the usual top-down view.
@@ -294,8 +299,9 @@ function bugParade() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     for (const m of marchers) {
-      const x = m.x + t * 180, y = m.y + Math.sin(t * 8 + m.x) * 6;
-      ctx.save(); ctx.translate(x, y); ctx.scale(1.6 * (ICON_SCALE[m.sprite] || 1), 1.6 * (ICON_SCALE[m.sprite] || 1));
+      const x = m.x + t * 180, y = m.y + Math.sin(t * 8 + m.x) * 6, k = 1.6 * (ICON_SCALE[m.sprite] || 1);
+      if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, m.sprite, { moving: true, load: 0 }, t, { x, y, scale: k })) continue;
+      ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
       Sprites[m.sprite](ctx, { moving: true, load: 0 }, t);
       ctx.restore();
     }

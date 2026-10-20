@@ -763,9 +763,12 @@ const Missions = {
     drawExtra(ctx, g) {
       if (g.moultT > 0) {
         ctx.globalAlpha = Math.min(1, g.moultT);
-        ctx.save(); ctx.translate(g.player.x - 30, g.player.y + 4);
-        Sprites.plCaterpillar(ctx, { size: g.player.size * 0.9, fat: g.player.fat * 0.9 }, 0);
-        ctx.restore();
+        const skin = { size: g.player.size * 0.9, fat: g.player.fat * 0.9 };
+        if (!(typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, 'plCaterpillar', skin, 0, { x: g.player.x - 30, y: g.player.y + 4 }))) {
+          ctx.save(); ctx.translate(g.player.x - 30, g.player.y + 4);
+          Sprites.plCaterpillar(ctx, skin, 0);
+          ctx.restore();
+        }
         ctx.globalAlpha = 1;
       }
     },

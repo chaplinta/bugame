@@ -169,6 +169,17 @@ function makeFlower(T, kind) {
 }
 
 function makeButterfly(T) {
+  // The sprite model, turned from its ground frame (x forward, z up) into the flight scene (z forward, y up)
+  if (typeof Models !== 'undefined' && typeof Render3D !== 'undefined' && Render3D.ok && Models.has('butterfly')) {
+    try {
+      const root = Models.build('butterfly', { landed: false }), mirror = new T.Group(), wrap = new T.Group(), g = new T.Group();
+      mirror.scale.set(1, -1, 1); mirror.add(root);
+      wrap.setRotationFromMatrix(new T.Matrix4().makeBasis(new T.Vector3(0, 0, 1), new T.Vector3(1, 0, 0), new T.Vector3(0, 1, 0)));
+      wrap.add(mirror); wrap.scale.setScalar(0.12); wrap.position.y = -0.5; g.add(wrap);
+      g.userData.wings = root.userData.wings.map((w) => ({ hinge: w.hinge, s: w.s, axis: 'x' }));
+      return g;
+    } catch (e) { /* fall through to the plain one */ }
+  }
   const g = new T.Group();
   const bodyMat = new T.MeshLambertMaterial({ color: '#3a2c22' });
   const body = new T.Mesh(new T.CapsuleGeometry ? new T.CapsuleGeometry(0.12, 1.1, 4, 8) : new T.CylinderGeometry(0.12, 0.12, 1.3, 8), bodyMat);
@@ -276,6 +287,7 @@ Missions.flight = {
     }
     const scene = new T.Scene();
     buildHeath(scene);
+    if (typeof Render3D !== 'undefined' && Render3D.ok) { try { scene.environment = Render3D.envMap(Flight3D.renderer); } catch (e) { /* plain lighting then */ } }
     const camera = new T.PerspectiveCamera(60, W / H, 0.1, 400);
     const bf = makeButterfly(T); scene.add(bf);
     // Empty chrysalis where you start
@@ -395,7 +407,7 @@ Missions.flight = {
     bf.rotation.x = (fl.flying && !fl.landed ? -0.45 : 0) + clamp(-fl.vy * 0.05, -0.25, 0.25);   // body angled nose-up in flight
     const flapSpeed = fl.landed ? 2 : fl.flying ? (fl.flap > 0 || fl.vy > 0 ? 22 : 9) : 1.5;
     const open = fl.landed ? 0.9 + Math.sin(fl.wingT * flapSpeed) * 0.25 : 0.15 + Math.sin(fl.wingT * flapSpeed) * 0.7;
-    for (const wg of bf.userData.wings) wg.hinge.rotation.z = wg.s * (fl.flying && !fl.landed ? open : 1.2 + Math.sin(fl.wingT * 2) * 0.1);
+    for (const wg of bf.userData.wings) { const a = wg.s * (fl.flying && !fl.landed ? open : 1.2 + Math.sin(fl.wingT * 2) * 0.1); if (wg.axis === 'x') wg.hinge.rotation.x = a; else wg.hinge.rotation.z = a; }
     // Flowers: rings spin and bob; visited flowers lose their ring
     for (const f of fl.flowers) if (f.mesh) { const rg = f.mesh.userData.ring; rg.rotation.z += 0.02; rg.position.y = 7 + Math.sin(g.t * 2 + f.x) * 0.4; }
     // Bird

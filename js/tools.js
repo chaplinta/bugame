@@ -52,10 +52,11 @@ const Tools = {
       if (t.speck) { const r = rng(4); for (let i = 0; i < 18; i++) plainEll(ctx, 5 + r() * (s - 10), 5 + r() * (s - 10), 1.4, 1, t.speck); }
     }
     if (t.sprite) {
+      const k = (t.iconScale || 0.6), o = Object.assign({ moving: false, grow: 1 }, t.o || {});
+      if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, t.sprite, o, 0.4, { x: s / 2, y: s / 2, scale: k })) return;
       ctx.translate(s / 2, s / 2);
-      const k = (t.iconScale || 0.6);
       ctx.scale(k, k);
-      Sprites[t.sprite](ctx, Object.assign({ moving: false, grow: 1 }, t.o || {}), 0.4);
+      Sprites[t.sprite](ctx, o, 0.4);
     }
   },
 };

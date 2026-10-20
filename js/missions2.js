@@ -75,7 +75,7 @@ Backgrounds.beach = function (ctx, W, H) {
     ctx.strokeStyle = 'rgba(120,90,50,.18)'; ctx.lineWidth = 3; ctx.stroke();
   }
   for (let i = 0; i < 260; i++) { const x = B.sea + r() * (W - B.sea), y = B.ground(x) + 6 + r() * 220; plainEll(ctx, x, y, 1 + r() * 2, 0.8 + r() * 1.4, r() < 0.5 ? 'rgba(255,250,230,.5)' : 'rgba(90,70,40,.35)'); }
-  for (let i = 0; i < 14; i++) { const x = B.sea + 100 + r() * (W - 300), y = B.ground(x) + 40 + r() * 160; ctx.save(); ctx.translate(x, y); ctx.rotate(r() * 6); ctx.scale(0.7, 0.7); Sprites.seashell(ctx); ctx.restore(); }
+  for (let i = 0; i < 14; i++) { const x = B.sea + 100 + r() * (W - 300), y = B.ground(x) + 40 + r() * 160, a = r() * 6; if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, 'seashell', { seed: i }, 0, { x, y, angle: a, scale: 0.7 })) continue; ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.scale(0.7, 0.7); Sprites.seashell(ctx); ctx.restore(); }
   // Wet sand near the water
   g = ctx.createLinearGradient(B.sea - 40, 0, B.sea + 260, 0);
   g.addColorStop(0, 'rgba(110,90,60,.5)'); g.addColorStop(1, 'rgba(110,90,60,0)');
@@ -754,7 +754,7 @@ Object.assign(Missions, {
       }
       // Egg rafts floating on the water, and a glow on water when you're full
       for (const w of g.items.filter(i => i.kind === 'water')) {
-        for (const rf of w.rafts) { ctx.save(); ctx.translate(w.x + rf.dx, w.y + w.wy + rf.dy); Sprites.eggRaft(ctx); ctx.restore(); }
+        for (const rf of w.rafts) { if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, 'eggRaft', {}, 0, { x: w.x + rf.dx, y: w.y + w.wy + rf.dy })) continue; ctx.save(); ctx.translate(w.x + rf.dx, w.y + w.wy + rf.dy); Sprites.eggRaft(ctx); ctx.restore(); }
         if (full) { ctx.beginPath(); ctx.ellipse(w.x, w.y + w.wy, 34, 14, 0, 0, TAU); ctx.strokeStyle = 'rgba(120,220,255,' + (0.5 + 0.4 * Math.sin(t * 5)) + ')'; ctx.lineWidth = 3; ctx.stroke(); }
       }
       // Hands coming down to swat

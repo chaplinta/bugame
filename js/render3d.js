@@ -80,8 +80,8 @@ const Render3D = {
   },
   // A gradient sky, made in code, as the environment map: zenith blue, pale horizon, warm ground.
   // Symmetric about z, so turning the sun per light bucket needs no new map.
-  envMap() {
-    const T = THREE, pm = new T.PMREMGenerator(this.renderer), sky = new T.Scene();
+  envMap(renderer) {
+    const T = THREE, pm = new T.PMREMGenerator(renderer || this.renderer), sky = new T.Scene();
     const g = new T.SphereGeometry(50, 32, 16), pos = g.attributes.position, col = [];
     const zen = new T.Color('#4f90d4'), hor = new T.Color('#e8f0f4'), gnd = new T.Color('#8a7448'), c = new T.Color();
     for (let i = 0; i < pos.count; i++) {
@@ -412,11 +412,12 @@ const Render3D = {
       const m = this.part(this.sphere(1, rx > 6 ? 28 : 18), mat, { at, scale: [rx, ry, rz], rot: rot || 0 });
       parent.add(m); return m;
     },
-    // An ellipsoid whose texture bands run across the body (poles along x), for striped abdomens.
+    // An ellipsoid whose texture bands run across the body (poles along x), for striped abdomens:
+    // the sphere is turned inside a group that carries the stretch, so rx really is along x.
     banded(parent, rx, ry, rz, mat, at) {
-      const m = this.part(this.sphere(1, 28), mat, { at, scale: [rx, ry, rz] });
-      m.rotation.set(0, 0, Math.PI / 2);   // sphere poles (its y axis) along the body's x
-      parent.add(m); return m;
+      const g = new THREE.Group(); g.position.set(at[0], at[1], at[2] || 0); g.scale.set(rx, ry, rz);
+      const m = this.part(this.sphere(1, 28), mat, { rot: [0, 0, Math.PI / 2] });
+      g.add(m); parent.add(g); return g;
     },
     // A capsule between two ground-frame points.
     seg(parent, a, b, r, mat, o) {
