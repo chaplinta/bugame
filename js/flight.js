@@ -8,6 +8,8 @@ const Flight3D = {
   // Load three.js from the vendor folder the first time it is needed (works offline and from file://).
   load(cb) {
     if (window.THREE) { cb(); return; }
+    // render3d.js loads three.js for the whole game; this is the same loader for when that is switched off.
+    if (typeof Render3D !== 'undefined' && !Render3D.disabled) { Render3D.load().then(() => { if (!window.THREE) this.failed = true; cb(); }); return; }
     const s = document.createElement('script');
     s.src = 'vendor/three.min.js';
     s.onload = () => cb();

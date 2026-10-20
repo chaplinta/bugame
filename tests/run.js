@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { launch, openGame, startMission, forceWin, serve, ROOT, MISSIONS } = require('./helpers');
+const { launch, openGame, startMission, forceWin, serve, ROOT, MISSIONS, FILE_URL } = require('./helpers');
 
 const quick = process.argv.includes('--quick');
 const BOT = fs.readFileSync(path.join(__dirname, 'bot.js'), 'utf8');
@@ -260,6 +260,55 @@ test('3D butterfly flight: three.js loads, renders, and falls back without WebGL
   await startMission(p, 'flight', { noNet: true, noPred: true });
   await p.waitForSelector('#end.active', { timeout: 10000 });
   check(p.errors.length === 0, p.errors.join('; '));
+});
+
+// The 3D sprite renderer (js/render3d.js). Headless Chromium only has software WebGL, which the game refuses,
+// so ?3d=force is used here: slow, but the same pixels a phone's GPU would draw.
+test('3D sprites: a model renders with a shadow, light turns with the heading, tiles wrap', async (b) => {
+  const p = await openGame(b, null, FILE_URL + '?3d=force');
+  await p.waitForFunction(() => typeof Render3D !== 'undefined' && (Render3D.ok || Render3D.failed), null, { timeout: 60000 });
+  check(await p.evaluate(() => Render3D.ok), 'Render3D did not start');
+  const r = await p.evaluate(() => {
+    const count = (c) => {
+      const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      let body = 0, soft = 0;
+      for (let i = 3; i < d.length; i += 4) { if (d[i] > 240) body++; else if (d[i] > 20) soft++; }
+      return { body, soft, px: c.width * c.height };
+    };
+    const a = SpriteCache.image('ant', { moving: false }, { px: 4, angle: 0 });
+    const b2 = SpriteCache.image('ant', { moving: false }, { px: 4, angle: Math.PI });
+    const bee = SpriteCache.image('bee', { moving: true, load: 1 }, { px: 4, angle: 1, t: 0.2 });
+    const tile = Render3D.tile(64, 2, 8, (api) => { api.add(Render3D.M.part(Render3D.M.sphere(5), Render3D.M.chitin('#a04020')), 2, 32); });
+    const td = tile.getContext('2d').getImageData(0, 0, tile.width, tile.height).data;
+    let left = 0, right = 0;
+    for (let y = 0; y < tile.height; y++) { if (td[(y * tile.width) * 4 + 3] > 100) left++; if (td[(y * tile.width + tile.width - 1) * 4 + 3] > 100) right++; }
+    return { ant: a && count(a.c), threeD: !!(a && a.threeD), different: a && b2 && a.c.toDataURL() !== b2.c.toDataURL(), bee: bee && count(bee.c), left, right, stats: Render3D.stats };
+  });
+  check(r.threeD, 'ant was not rendered in 3D');
+  check(r.ant.body > r.ant.px * 0.03, 'ant body too small: ' + JSON.stringify(r.ant));
+  check(r.ant.soft > r.ant.body * 0.2, 'no soft shadow or edges: ' + JSON.stringify(r.ant));
+  check(r.different, 'the light did not turn with the heading');
+  check(r.bee.body > 50, 'bee did not render: ' + JSON.stringify(r.bee));
+  check(r.left > 0 && r.right > 0, 'tile does not wrap at its edges: ' + r.left + '/' + r.right);
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('3D sprites: the ant level plays with the models, and ?no3d=1 keeps the drawings', async (b) => {
+  const p = await openGame(b, null, FILE_URL + '?3d=force');
+  await p.waitForFunction(() => typeof Render3D !== 'undefined' && (Render3D.ok || Render3D.failed), null, { timeout: 60000 });
+  await p.addScriptTag({ content: BOT });
+  await startMission(p, 'ant', { noNet: true });
+  await p.evaluate(() => { Bot.install('perfect'); Game.timeScale = 3; });
+  await p.waitForFunction(() => Game.g.score >= 2 || Game.g.t > 40, null, { timeout: 120000 });
+  const st = await p.evaluate(() => ({ is3D: SpriteCache.is3D('ant'), renders: Render3D.stats.renders, broken: Object.keys(Models.defs).filter((k) => Models.defs[k].broken) }));
+  check(st.is3D && st.renders > 0, 'ant not drawn from its model: ' + JSON.stringify(st));
+  check(st.broken.length === 0, 'broken models: ' + st.broken.join(','));
+  check(p.errors.length === 0, p.errors.join('; '));
+  const q = await openGame(b, null, FILE_URL + '?no3d=1');
+  await startMission(q, 'ant', { noNet: true, noPred: true });
+  await q.waitForTimeout(300);
+  check(await q.evaluate(() => !Render3D.ok && !SpriteCache.is3D('ant') && Game.running), '2D fallback not in use');
+  check(q.errors.length === 0, q.errors.join('; '));
 });
 
 test('family tree: branches give facts, bugs open their page', async (b) => {

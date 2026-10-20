@@ -6,7 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { launch, openGame, startMission, MISSIONS } = require('./helpers');
+const { launch, openGame, startMission, MISSIONS, FILE_URL } = require('./helpers');
 const BOT = fs.readFileSync(path.join(__dirname, 'bot.js'), 'utf8');
 
 // Budgets for the throttled run: a frame has to leave room for update and compositing inside 16 ms, and a
@@ -47,11 +47,24 @@ async function measure(p, id, frames) {
   const b = await launch();
   const rows = [];
   let bad = false;
+  // Budgets are measured on the 2D path (?no3d=1): headless Chromium only has software WebGL, which says nothing
+  // about a phone's GPU. `--3d` adds a forced-3D pass per level and prints its render stats, with no budget.
+  const want3d = process.argv.includes('--3d');
   for (const id of ids) {
-    const p = await openGame(b);
+    if (want3d) {
+      const p3 = await openGame(b, null, FILE_URL + '?3d=force');
+      await p3.waitForFunction(() => typeof Render3D !== 'undefined' && (Render3D.ok || Render3D.failed), null, { timeout: 60000 });
+      const t3 = Date.now();
+      await startMission(p3, id, { noNet: true });
+      await p3.waitForFunction(() => SpriteCache.queue.length === 0, null, { timeout: 120000 }).catch(() => {});
+      const st = await p3.evaluate(() => ({ r: Render3D.stats, c: SpriteCache.stats() }));
+      console.log(id.padEnd(12), '3D: start+warm-up', Date.now() - t3, 'ms, renders', st.r.renders, 'avg', (st.r.ms / Math.max(1, st.r.renders)).toFixed(1), 'ms, max', st.r.max.toFixed(0), 'ms, tiles', st.r.tiles, 'in', st.r.tileMs.toFixed(0), 'ms, cache', st.c.mb, 'MB');
+      await p3.context().close();
+    }
+    const p = await openGame(b, null, FILE_URL + '?no3d=1');
     const normal = await measure(p, id, 240);
     await p.context().close();
-    const p2 = await openGame(b);
+    const p2 = await openGame(b, null, FILE_URL + '?no3d=1');
     const cdp = await p2.context().newCDPSession(p2);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     const slow = await measure(p2, id, 160);

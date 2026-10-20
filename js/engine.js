@@ -225,6 +225,8 @@ const Game = {
     this.bgMini = document.createElement('canvas');
     this.bgMini.width = mw; this.bgMini.height = mh;
     this.bgMini.getContext('2d').drawImage(this.bg, 0, 0, mw, mh);
+    // Pre-render the bug you play from every heading, a few milliseconds a frame, so turning never stalls
+    if (typeof Models !== 'undefined' && typeof Render3D !== 'undefined' && Render3D.ok) SpriteCache.warm(Models.warmList(g));
     Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false;
     const btn = document.getElementById('actionBtn');
     btn.textContent = mission.action;
@@ -538,7 +540,8 @@ const Game = {
 
   drawSprite(name, e, scale) {
     const ctx = this.ctx;
-    if (e.r && !e.flat && typeof softShadow === 'function') {
+    // 3D-rendered sprites carry their own real shadow; the 2D ones get a soft blob
+    if (e.r && !e.flat && typeof softShadow === 'function' && !(typeof SpriteCache !== 'undefined' && SpriteCache.is3D(name))) {
       const k = (scale || 1) / 1.7;
       softShadow(ctx, e.x + 3, e.y + 6, e.r * 1.5 * Math.max(1, k), e.r * 1.0 * Math.max(1, k), 0.26);
     }
@@ -568,6 +571,7 @@ const Game = {
   draw() {
     const ctx = this.ctx, g = this.g;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    if (typeof SpriteCache !== 'undefined' && SpriteCache.beginFrame) SpriteCache.beginFrame();
     if (g.event && g.event.phase === 'tank') { this.drawTank(ctx); return; }
     if (g.mission.render) {   // a mission with its own renderer (the 3D flight)
       g.mission.render(ctx, g);
@@ -644,8 +648,8 @@ const Game = {
     ctx.globalAlpha = 1;
 
     for (const pr of g.preds) {
-      // Shadow first so flyers look airborne.
-      if (!pr.ground) {
+      // Shadow first so flyers look airborne (3D models bring their own, thrown by their height).
+      if (!pr.ground && !(typeof SpriteCache !== 'undefined' && SpriteCache.is3D(pr.sprite))) {
         ctx.fillStyle = 'rgba(0,0,0,.15)';
         ctx.beginPath();
         ctx.ellipse(pr.x + 10, pr.y + 14, pr.r, pr.r * 0.6, 0, 0, TAU);

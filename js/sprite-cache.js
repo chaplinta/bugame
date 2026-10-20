@@ -1,9 +1,10 @@
 'use strict';
 // Pre-rendered sprites. Plants, scenery, items and visiting creatures are painted once, at high
 // resolution, into little bitmaps and then just blitted each frame. That keeps the detailed
-// shading cheap enough for phones. The bug you play, and anything with state the cache can't name,
-// is still drawn live. Lighting stays fixed to the screen: the bitmap is rendered with the light
-// turned to match the sprite's heading (in 8 steps), then drawn with the exact rotation.
+// shading cheap enough for phones. Anything with state the cache can't name is still drawn live.
+// Lighting stays fixed to the screen: the bitmap is rendered with the light turned to match the
+// sprite's heading (in 8 steps), then drawn with the exact rotation. Sprites with a 3D model
+// (js/render3d.js, js/models-*.js) are rendered by three.js instead of their 2D drawing.
 
 const SpriteCache = {
   enabled: !/[?&]nocache=1/.test(location.search),
@@ -48,39 +49,90 @@ const SpriteCache = {
     return k;
   },
 
+  // Is this sprite drawn from a 3D model right now?
+  is3D(name) { const r = this.regs[name]; return !!(r && r.model && !r.model.broken && typeof Render3D !== 'undefined' && Render3D.ok); },
+  P(px) { return px <= 2 ? 2 : px <= 3 ? 3 : px <= 4 ? 4 : px <= 6 ? 6 : 8; },
+  bucketOf(reg, a) { const nb = reg.buckets || 8; return nb === 1 ? 0 : ((Math.round((a || 0) / (TAU / nb)) % nb) + nb) % nb; },
+  // Get-or-make with the least recently used entries dropped past the byte limit.
+  entry(key, make) {
+    let ent = this.entries.get(key);
+    if (ent) { this.hits++; this.entries.delete(key); this.entries.set(key, ent); return ent; }
+    this.misses++;
+    ent = make();
+    if (!ent) return null;
+    this.entries.set(key, ent); this.bytes += ent.bytes;
+    while (this.bytes > this.LIMIT && this.entries.size > 1) {
+      const [k0, e0] = this.entries.entries().next().value;
+      this.entries.delete(k0); this.bytes -= e0.bytes;
+    }
+    return ent;
+  },
+
   // Draw name at the current transform (already translated and rotated, not scaled). Returns false if not cached.
   draw(ctx, name, e, t, scale, px) {
     const reg = this.regs[name];
     if (!reg) return false;
-    const Sp = Sprites[name];
-    if (!Sp) return false;
+    const threeD = this.is3D(name);
+    if (!threeD && (!Sprites[name] || reg.live2d)) return false;
     // Light turned into the sprite's frame, in 8 steps (fewer for things lying flat on the ground)
-    const nb = reg.buckets || 8, a = e.angle || 0, bucket = nb === 1 ? 0 : ((Math.round(a / (TAU / nb)) % nb) + nb) % nb;
-    const P = px <= 2 ? 2 : px <= 3 ? 3 : px <= 4 ? 4 : px <= 6 ? 6 : 8;
+    const nb = reg.buckets || 8, a = e.angle || 0, bucket = this.bucketOf(reg, a), P = this.P(px);
     const vk = reg.key ? reg.key(e, t) : this.defaultKey(e, t);
     if (vk === null) return false;   // this one wants to be drawn live right now
-    const key = name + '|' + vk + '|' + bucket + '|' + P;
+    const key = name + '|' + vk + '|' + bucket + '|' + P, near = name + '|' + bucket + '|' + P;
     let ent = this.entries.get(key);
-    if (!ent) {
-      this.misses++;
-      ent = this.render(name, reg, e, t, bucket * TAU / nb, P);
-      if (!ent) return false;
-      this.entries.set(key, ent);
-      this.bytes += ent.bytes;
-      while (this.bytes > this.LIMIT && this.entries.size > 1) {
-        const [k0, e0] = this.entries.entries().next().value;
-        this.entries.delete(k0); this.bytes -= e0.bytes;
-      }
-    } else {
-      this.hits++;
-      this.entries.delete(key); this.entries.set(key, ent);   // most recently used goes last
-    }
+    // 3D renders are rationed per frame: past the budget, reuse the last look of this heading for a frame
+    if (!ent && threeD && this.frameRenders >= this.FRAME_RENDERS && this.recent.get(near)) ent = this.recent.get(near);
+    else ent = this.entry(key, () => { if (threeD) this.frameRenders++; return this.render(name, reg, e, t, bucket * TAU / nb, P); });
+    if (!ent) return false;
+    if (threeD) this.recent.set(near, ent);
     const s = scale || 1, b = ent.box;
+    if (ent.threeD && reg.model.view === 'side') ctx.rotate(-a);   // side-on bitmaps stay upright; the engine turned by e.angle
     ctx.drawImage(ent.c, b[0] * s, b[1] * s, (b[2] - b[0]) * s, (b[3] - b[1]) * s);
     return true;
   },
 
+  // A bitmap for direct callers (portraits, icons, stamps). opts: { t, px, angle }. null when there is none.
+  image(name, o, opts) {
+    const reg = this.regs[name];
+    if (!reg || !this.enabled) return null;
+    opts = opts || {};
+    const threeD = this.is3D(name);
+    if (!threeD && (!Sprites[name] || (reg.live2d && !opts.any))) return null;
+    const nb = reg.buckets || 8, bucket = this.bucketOf(reg, opts.angle), P = this.P(opts.px || 2), t = opts.t || 0;
+    const vk = reg.key ? reg.key(o, t) : this.defaultKey(o, t);
+    if (vk === null) return null;
+    return this.entry(name + '|' + vk + '|' + bucket + '|' + P, () => this.render(name, reg, o, t, bucket * TAU / nb, P));
+  },
+  // Draw a sprite's bitmap at (x, y), turned by angle and scaled; false when there is none (draw it live).
+  // Only 3D models are blitted this way unless opts.any is set: the 2D drawings keep drawing live.
+  blit(ctx, name, o, t, opts) {
+    opts = opts || {};
+    if (!opts.any && !this.is3D(name)) return false;
+    const s = opts.scale || 1, m = ctx.getTransform(), px = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) * s;
+    const ent = this.image(name, o, { t, px, angle: opts.angle });
+    if (!ent) return false;
+    ctx.save(); ctx.translate(opts.x || 0, opts.y || 0);
+    if (!(ent.threeD && this.regs[name].model.view === 'side')) ctx.rotate(opts.angle || 0);
+    const b = ent.box; ctx.drawImage(ent.c, b[0] * s, b[1] * s, (b[2] - b[0]) * s, (b[3] - b[1]) * s);
+    ctx.restore();
+    return true;
+  },
+
+  // Per-frame budget for 3D renders, and the warm-up queue (filled by Game.start, drained a few ms at a time).
+  FRAME_RENDERS: 2, frameRenders: 0, recent: new Map(), queue: [],
+  beginFrame() { this.frameRenders = 0; if (this.queue.length) this.warmTick(4); },
+  warm(list) { this.queue = list || []; },
+  warmTick(ms) {
+    const t0 = performance.now();
+    while (this.queue.length && performance.now() - t0 < ms) { const j = this.queue.shift(); this.image(j.name, j.e, { t: j.t, px: j.px, angle: j.e.angle }); }
+  },
+
   render(name, reg, e, t, ang, P) {
+    if (reg.model && typeof Render3D !== 'undefined' && Render3D.ok && !reg.model.broken) {
+      const ent = Models.render(name, reg.model, e, t, ang, P);
+      if (ent) return ent;
+      if (!Sprites[name]) return null;
+    }
     let box = reg.box;
     const c = document.createElement('canvas');
     const paint = (bx) => {
@@ -112,8 +164,8 @@ const SpriteCache = {
     return { c, box, bytes: c.width * c.height * 4 };
   },
 
-  clear() { this.entries.clear(); this.bytes = 0; },
-  stats() { return { entries: this.entries.size, mb: +(this.bytes / 1048576).toFixed(1), hits: this.hits, misses: this.misses }; },
+  clear() { this.entries.clear(); this.recent.clear(); this.queue = []; this.bytes = 0; },
+  stats() { return { entries: this.entries.size, mb: +(this.bytes / 1048576).toFixed(1), hits: this.hits, misses: this.misses, queued: this.queue.length }; },
 };
 
 // What gets cached: everything that stands still or loops simply. The bugs you play stay live.

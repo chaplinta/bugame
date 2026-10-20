@@ -96,6 +96,28 @@ const Ground = {
     ctx.restore();
   },
 
+  // The same detail as a 3D tile (js/models-plants.js, rendered by js/render3d.js) when that is available:
+  // fn3d(api) places instanced blades, leaves or grains; otherwise fn2d draws the 2D tile as micro() does.
+  micro3d(ctx, W, H, seed, m, fn3d, fn2d, o) {
+    o = o || {};
+    if (fn3d && typeof Render3D !== 'undefined' && Render3D.ok) {
+      const tw = o.tw3d || 448, s = Math.min(2, Math.max(0.5, ctx.getTransform().a || 1));
+      let c = null;
+      try { c = Render3D.tile(tw, s, m, fn3d); } catch (e) { c = null; }
+      if (c) {
+        ctx.save();
+        ctx.globalAlpha *= o.alpha === undefined ? 1 : o.alpha;
+        ctx.scale(1 / s, 1 / s);
+        ctx.fillStyle = ctx.createPattern(c, 'repeat');
+        ctx.fillRect(0, 0, W * s, H * s);
+        ctx.restore();
+        return true;
+      }
+    }
+    this.micro(ctx, W, H, seed, m, fn2d, o);
+    return false;
+  },
+
   // Soft dark ring where something sits on the ground (ambient occlusion), slightly offset from the sun.
   contact(ctx, x, y, rx, ry, a) {
     // offset away from the light, whichever way the sprite is turned
@@ -221,8 +243,8 @@ const Ground = {
     Tex.fillRect(ctx, 'soil', 0, 0, W, H, 1, 0.25, 'multiply');
     const len = o.height || 7;
     const [sx, sy] = this.SUN;
-    // Shadows first, then blades, batched by colour; all drawn once into a repeating tile
-    this.micro(ctx, W, H, seed, len * 1.5 + 3, (x, tw, th, put) => {
+    // Shadows first, then blades, batched by colour; all drawn once into a repeating tile (in 3D when possible)
+    this.micro3d(ctx, W, H, seed, len * 1.5 + 3, typeof TileModels !== 'undefined' ? (api) => TileModels.grass(api, o, seed, cols) : null, (x, tw, th, put) => {
       const rr = rng(seed + 3), n = Math.round(tw * th / 28 * (o.density || 1));
       const buckets = cols.map(() => []);
       for (let i = 0; i < n; i++) {
