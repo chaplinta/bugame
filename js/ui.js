@@ -335,6 +335,10 @@ for (const b of document.querySelectorAll('.toggle')) {
     if (k === 'speech' && Settings.speech) Speech.say('I will read the bug facts to you.');
     if (k === 'speech' && !Settings.speech) Speech.stop();
     if (k === 'sound') Sound.play('tap');
+    if (k === 'threeD' && typeof Render3D !== 'undefined') {
+      Render3D.toggle(Settings.threeD);
+      for (const el of document.querySelectorAll('canvas[data-sprite]')) portrait(el, el.dataset.sprite, +el.dataset.size || 56);   // the pins follow the setting
+    }
   });
 }
 $('hudSound').addEventListener('click', () => { Settings.sound = !Settings.sound; Settings.save(); syncToggles(); });

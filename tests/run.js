@@ -22,6 +22,12 @@ test('map, pins, bug pages, Bug Book load without errors', async (b) => {
     await p.click('#bugBack');
   }
   check(/Version \d+\.\d+(\.\d+)? · released \d+ \w+ \d{4}/.test(await p.textContent('.version')), 'no version on map');
+  // the "3D pictures" toggle: off is remembered and stops the renderer; on brings it back
+  check(await p.locator('.toggle[data-setting="threeD"]').count() === 1, 'no 3D toggle');
+  await p.locator('.toggle[data-setting="threeD"]').click();
+  check(await p.evaluate(() => Settings.threeD === false && JSON.parse(localStorage.getItem('bugame.settings')).threeD === false && Render3D.disabled && !Render3D.ok), '3D toggle did not turn it off');
+  await p.locator('.toggle[data-setting="threeD"]').click();
+  check(await p.evaluate(() => Settings.threeD === true && !Render3D.disabled), '3D toggle did not turn it back on');
   await p.click('#bookBtn');
   check(await p.locator('.bookBug').count() === pins + 1, 'book sections (one per bug plus Secrets)');
   check(p.errors.length === 0, p.errors.join('; '));

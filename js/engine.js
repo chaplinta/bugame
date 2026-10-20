@@ -6,12 +6,12 @@ const World = { w: W, h: H };    // size of the current mission's world, set in 
 
 // Settings remembered between visits.
 const Settings = {
-  sound: true, speech: false,
+  sound: true, speech: false, threeD: true,   // threeD: the 3D pictures (js/render3d.js reads it before this file loads)
   load() {
     try { Object.assign(this, JSON.parse(localStorage.getItem('bugame.settings') || '{}')); } catch (e) { /* storage off */ }
   },
   save() {
-    try { localStorage.setItem('bugame.settings', JSON.stringify({ sound: this.sound, speech: this.speech })); } catch (e) { /* storage off */ }
+    try { localStorage.setItem('bugame.settings', JSON.stringify({ sound: this.sound, speech: this.speech, threeD: this.threeD })); } catch (e) { /* storage off */ }
   },
 };
 Settings.load();

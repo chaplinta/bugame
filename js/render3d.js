@@ -11,7 +11,8 @@
 
 const Render3D = {
   ok: false, software: false, lost: false, failed: false, loading: null, readyFns: [],
-  disabled: /[?&]no3d=1/.test(location.search) || (typeof localStorage !== 'undefined' && (() => { try { return localStorage.getItem('bugame.3d') === 'off'; } catch (e) { return false; } })()),
+  // Off with ?no3d=1, or when the "3D pictures" setting on the map was turned off (saved by Settings in engine.js).
+  disabled: /[?&]no3d=1/.test(location.search) || (() => { try { return JSON.parse(localStorage.getItem('bugame.settings') || '{}').threeD === false; } catch (e) { return false; } })(),
   forced: /[?&]3d=force/.test(location.search),
   MAX: 1024,                                             // GL canvas limit (phones); desktop 2048
   SUN: { az: [-0.55, -0.83], elev: 38 * Math.PI / 180 },   // screen azimuth (same as Shade / Ground.SUN) and elevation
@@ -31,6 +32,17 @@ const Render3D = {
     return this.loading;
   },
   whenReady(fn) { if (this.ok) fn(); else this.readyFns.push(fn); },
+  // The "3D pictures" setting flipped on the map: off stops the models (the drawings take over, from the
+  // next level start); on brings them back, loading three.js if it never was.
+  toggle(on) {
+    this.disabled = !on;
+    if (!on) this.ok = false;
+    else if (this.renderer) { if (!this.lost) this.ok = true; }
+    else if (window.THREE) { try { this.boot(); } catch (e) { this.failed = true; } }
+    else this.load();
+    if (window.SpriteCache) SpriteCache.clear();
+    if (this.ok) this.readyFns.splice(0).forEach((fn) => { try { fn(); } catch (e) { /* see boot */ } });
+  },
   mobile() { return navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 900; },
 
   boot() {
