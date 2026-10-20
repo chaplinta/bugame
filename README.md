@@ -67,6 +67,8 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - `js/ground.js`, `js/art-ground.js`: lit noise ground (sand, soil, grass, lawn, water, leaf litter, bark, rock, canopy shade) and the level backgrounds
 - `js/art-bugs.js`, `js/art-bugs2.js`: field-guide drawings of the bugs you play
 - `js/art-world.js`, `js/art-world2.js`: field-guide drawings of predators, birds, reptiles, plants, scenery and the garden visitors
+- `js/render3d.js`: the three.js renderer, lighting rig and model kit that turn models into cached sprites with real shadows (the drawings above are the fallback when WebGL is off)
+- `js/models-bugs.js`, `js/models-animals.js`, `js/models-plants.js`, `js/models-props.js`: the 3D models of the bugs you play, the other animals, plants and ground tiles, props and the isometric yard
 - `js/missions.js`: `Bugs` (map pins, stage order) and `Missions` (one per stage, with all its facts in `factText`)
 - `js/missions2.js`: sandhopper (side-on), mosquito (isometric), female skimmer and spider stages
 - `js/flight.js`: the 3D painted lady flight stage
