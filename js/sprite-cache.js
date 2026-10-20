@@ -68,6 +68,8 @@ const SpriteCache = {
     return ent;
   },
 
+  // The look key: a 3D model's own key (its poses) when it renders in 3D, else the drawing's key as before.
+  keyOf(reg, o, t, threeD) { const k = threeD && reg.model && reg.model.key ? reg.model.key : reg.key; return k ? k(o, t) : this.defaultKey(o, t); },
   // Draw name at the current transform (already translated and rotated, not scaled). Returns false if not cached.
   draw(ctx, name, e, t, scale, px) {
     const reg = this.regs[name];
@@ -76,7 +78,7 @@ const SpriteCache = {
     if (!threeD && (!Sprites[name] || reg.live2d)) return false;
     // Light turned into the sprite's frame, in 8 steps (fewer for things lying flat on the ground)
     const nb = reg.buckets || 8, a = e.angle || 0, bucket = this.bucketOf(reg, a), P = this.P(px);
-    const vk = reg.key ? reg.key(e, t) : this.defaultKey(e, t);
+    const vk = this.keyOf(reg, e, t, threeD);
     if (vk === null) return false;   // this one wants to be drawn live right now
     const key = name + '|' + vk + '|' + bucket + '|' + P, near = name + '|' + bucket + '|' + P;
     let ent = this.entries.get(key);
@@ -99,7 +101,7 @@ const SpriteCache = {
     const threeD = this.is3D(name);
     if (!threeD && (!Sprites[name] || (reg.live2d && !opts.any))) return null;
     const nb = reg.buckets || 8, bucket = this.bucketOf(reg, opts.angle), P = this.P(opts.px || 2), t = opts.t || 0;
-    const vk = reg.key ? reg.key(o, t) : this.defaultKey(o, t);
+    const vk = this.keyOf(reg, o, t, threeD);
     if (vk === null) return null;
     return this.entry(name + '|' + vk + '|' + bucket + '|' + P, () => this.render(name, reg, o, t, bucket * TAU / nb, P));
   },

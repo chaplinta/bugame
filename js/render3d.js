@@ -296,7 +296,8 @@ const Render3D = {
     },
     mat(key, make) { let m = this.mats.get(key); if (!m) { m = make(); this.mats.set(key, m); } return m; },
     phys(o) { return new THREE.MeshPhysicalMaterial(o); },
-    k(name, color, o) { return name + '|' + color + '|' + (o ? JSON.stringify(o) : ''); },
+    // Material cache key (textures by uuid: stringifying one would serialise its canvas).
+    k(name, color, o) { return name + '|' + color + '|' + (o ? JSON.stringify(o, (key, v) => (v && v.isTexture ? 'tex:' + v.uuid : v)) : ''); },
 
     // Insect cuticle: glossy, with fine pits. o.map for painted markings, o.rough / o.coat to tune.
     chitin(color, o) {
@@ -447,7 +448,7 @@ const Render3D = {
     pile(parent, at, rx, ry, rz, n, len, col, seed, o) {
       o = o || {};
       const r = rng(seed || 1), geo = this.cone(o.thick || 0.17, 0.02, len), T = THREE, nrm = new T.Vector3(), up = new T.Vector3(0, 1, 0);
-      return this.hairs(parent, n, geo, this.hair(col), (i, d) => {
+      const im = this.hairs(parent, n, geo, this.hair(col), (i, d) => {
         // a random point on the upper surface
         const th = r() * TAU, ph = Math.acos(1 - r() * (o.full ? 2 : 1.1));   // mostly the top
         const x = Math.sin(ph) * Math.cos(th), y = Math.sin(ph) * Math.sin(th), z = Math.cos(ph);
@@ -460,6 +461,8 @@ const Render3D = {
         d.scale.set(1, 0.7 + r() * 0.6, 1);
         return i % 3 ? null : tint(col, 0.3);
       });
+      im.receiveShadow = false;   // hairs this thin only pick up shadow acne
+      return im;
     },
     // A jointed leg: coxa at `at`, femur at yaw `a` rising by `pf`, tibia turning by `bend` and coming down
     // to the ground, tarsus flat along the ground, two claws. Returns an object with set(a, lift) to pose it.
@@ -551,7 +554,8 @@ const Models = {
     if (typeof SpriteCache === 'undefined') return;
     const old = SpriteCache.regs[name];
     // A sprite that was drawn live before (the bugs you play) stays live when the 3D path is off
-    SpriteCache.register(name, Object.assign({}, old || {}, { model: def, live2d: !old, buckets: def.view && def.view !== 'top' ? 1 : (def.buckets || (old && old.buckets) || 8), key: def.key || (old && old.key), box: (old && old.box) || [-60, -60, 60, 60] }));
+    // The drawing keeps its own cache key (reg.key) for the 2D path; the model's key is used when it renders in 3D.
+    SpriteCache.register(name, Object.assign({}, old || {}, { model: def, live2d: !old, buckets: def.view && def.view !== 'top' ? 1 : (def.buckets || (old && old.buckets) || 8), key: old && old.key, box: (old && old.box) || [-60, -60, 60, 60] }));
   },
   // The built group for a model's structural variant (what changes shape), kept in a small LRU.
   root(name, def, e) {
