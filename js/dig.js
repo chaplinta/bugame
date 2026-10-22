@@ -11,21 +11,7 @@ const ROOM_TYPES = [
 ];
 
 Object.assign(Sprites, {
-  // Banded sugar ant: black head, orange band on the body, long legs.
-  sugarAnt(ctx, o, t) {
-    legs6(ctx, 3, 15, '#2a1a10', 1.4, t, o.moving, 1);
-    const full = o.honey ? 1.35 : 1;
-    ell(ctx, -11, 0, 8 * full, 6 * full, '#1e1612');
-    ctx.save(); ctx.beginPath(); ctx.ellipse(-11, 0, 8 * full, 6 * full, 0, 0, TAU); ctx.clip();
-    ctx.fillStyle = o.honey ? 'rgba(240,190,60,.55)' : 'rgba(0,0,0,0)'; ctx.fillRect(-20, -8, 18, 16);
-    ctx.restore();
-    ell(ctx, -4.5, 0, 2.2, 2.2, '#c86a28');
-    ell(ctx, 2.5, 0, 6, 3.4, '#d07a30');
-    ell(ctx, 11, 0, 5.4, 5.2, '#221a14');
-    eye(ctx, 12, -3.8, 1.6, 1.3); eye(ctx, 12, 3.8, 1.6, 1.3);
-    for (const s of [-1, 1]) line(ctx, [14.5, s * 2.5, 18, s * 9, 25, s * 9], '#2a1a10', 1);
-    if (o.crumbs) for (let i = 0; i < o.crumbs; i++) ell(ctx, 18 + (i % 2) * 3, (i - 1.5) * 2.4, 2.4, 2.2, '#8a6a42');
-  },
+  // The worker is drawn in js/art-bugs2.js (sugarAnt); the queen is the same drawing, bigger and still.
   queenSugar(ctx, o, t) {
     ctx.save(); ctx.scale(1.4, 1.4); Sprites.sugarAnt(ctx, Object.assign({}, o, { moving: false }), t); ctx.restore();
   },

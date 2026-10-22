@@ -103,17 +103,7 @@ Object.assign(Sprites, {
     ell(ctx, 0, 0, 9, 3.4, '#8a7a5a'); plainLine(ctx, [-8, -1.6, 8, -1.6], 'rgba(40,30,20,.5)', 0.8); plainLine(ctx, [-8, 1.6, 8, 1.6], 'rgba(40,30,20,.5)', 0.8);
     ell(ctx, 10, 0, 3.6, 2.8, '#8a7a5a'); plainEll(ctx, 11, -1.6, 0.7, 0.7, '#111'); plainEll(ctx, 11, 1.6, 0.7, 0.7, '#111');
   },
-  orbSpider(ctx, o, t) {   // Australian golden orb-weaver, female: long banded legs, silvery body
-    for (let i = 0; i < 4; i++) for (const s of [-1, 1]) {
-      const a = s * [0.45, 0.9, 1.9, 2.5][i], l = [16, 14, 9, 13][i];
-      tleg(ctx, 2, s, a, l, l, s * (i < 2 ? -0.3 : 0.3), '#2a2018', 1.4);
-      const kx = 2 + Math.cos(a) * l, ky = s + Math.sin(a) * l;
-      plainEll(ctx, kx, ky, 1.4, 1.4, '#e8c040');
-    }
-    ell(ctx, -8, 0, 9, 4.6, '#c8c8b8'); bands(ctx, -8, 0, 9, 4.6, 3, 'rgba(200,160,40,.6)', 1);
-    plainEll(ctx, -10, 0, 3, 1.2, 'rgba(255,255,255,.5)');
-    ell(ctx, 4, 0, 4.6, 4, '#3a3028'); plainEll(ctx, 4, 0, 3, 2.4, 'rgba(230,230,220,.6)');
-  },
+  // (the golden orb-weaver is drawn in js/art-bugs2.js)
   honeyeater(ctx, o, t) {   // New Holland honeyeater: black and white streaks, yellow wing panel
     const flap = o.flying ? Math.sin(t * 22) * 6 : 0;
     line(ctx, [-8, 0, -18, 0], '#1a1a1a', 4.5); plainLine(ctx, [-12, -1.5, -17, -1.5], '#f2c832', 1.2); plainLine(ctx, [-12, 1.5, -17, 1.5], '#f2c832', 1.2);
