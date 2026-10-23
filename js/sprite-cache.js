@@ -181,6 +181,8 @@ SpriteCache.registerAll([
   'springtail', 'caterpillar', 'fly', 'dungBeetle', 'termite', 'gull', 'plover', 'moth', 'beetle', 'resinBee', 'ladybird', 'skink',
   'orbSpider', 'honeyeater', 'wattlebird', 'fairyWren', 'cockatoo', 'quenda', 'banjoFrog', 'worm', 'skimmerF', 'queenSugar',
 ]);
+// The kangaroo hops (the drawing animates on o.moving, like the model)
+SpriteCache.register('kangaroo', { key(o, t) { return o.moving ? 'm' + SpriteCache.phase(t, 8, 4) : 'x'; } });
 // Mosquitoes the dragonfly hunts: the player's own mosquito level draws it live (o.blood changes)
 SpriteCache.register('mosquito', { key(o, t) { return o.blood ? null : 'w' + SpriteCache.phase(t, 90, 3); } });
 SpriteCache.registerAll(['nativeGrass', 'rush'], { key(o, t) { return 'd' + (o.seed || 0) + 'y' + SpriteCache.phase(t, 1.5, 6); } });

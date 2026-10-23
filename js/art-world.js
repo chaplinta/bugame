@@ -232,12 +232,16 @@ Object.assign(Sprites, {
   // Western grey kangaroo grazing, from above: long thick tail behind, big haunches, a narrow
   // shoulder, small forearms, a long face with big ears.
   kangaroo(ctx, o, t) {
-    Ground.contact(ctx, 0, 6, 34, 16, 0.4);
+    // Hopping (o.moving): the whole animal lifts, the hind legs trail back and the shadow shrinks under it
+    const hop = o.moving ? Math.abs(Math.sin((Math.floor(((t * 8 / TAU) % 1 + 1) % 1 * 4) + 0.5) / 4 * Math.PI)) : 0;
+    Ground.contact(ctx, 0, 6, 34 - hop * 10, 16 - hop * 5, 0.4 - hop * 0.2);
+    ctx.save(); ctx.scale(1 + hop * 0.08, 1 + hop * 0.08);
+    const hx = -8 - hop * 6, fx = hop * 9;   // the haunches slide back, the feet trail behind
     ctx.beginPath(); ctx.moveTo(-18, -3); ctx.quadraticCurveTo(-40, -2, -52, 4); ctx.quadraticCurveTo(-40, 5, -18, 3); ctx.closePath();
     const tg = ctx.createLinearGradient(0, -4, 0, 5); tg.addColorStop(0, '#9a7a56'); tg.addColorStop(1, '#5a4030'); ctx.fillStyle = tg; ctx.fill();
     ell(ctx, -6, 0, 18, 12, '#8a6a48', 0, 'hair');
     fur(ctx, -6, 0, 17, 11, '#a08860', 110, 2.2, 27);
-    for (const s of [-1, 1]) { ell(ctx, -8, s * 11, 9, 5, '#7a5a3a', s * 0.15, 'hair'); fur(ctx, -8, s * 11, 8, 4, '#9a7a56', 24, 1.6, 28); for (let k = -1; k <= 1; k++) plainLine(ctx, [-2 + k * 1.5, s * 14.5, 1 + k * 1.5, s * 17], '#2a1a10', 1.3); }
+    for (const s of [-1, 1]) { ell(ctx, hx, s * 11, 9, 5, '#7a5a3a', s * 0.15, 'hair'); fur(ctx, hx, s * 11, 8, 4, '#9a7a56', 24, 1.6, 28); for (let k = -1; k <= 1; k++) plainLine(ctx, [-2 + k * 1.5 - fx, s * 14.5, 1 + k * 1.5 - fx, s * 17], '#2a1a10', 1.3); }
     ell(ctx, 8, 0, 8, 7, '#8a6a48', 0, 'hair');
     for (const s of [-1, 1]) { line(ctx, [10, s * 5, 15, s * 9], '#7a5a3a', 2.4); plainEll(ctx, 15.5, s * 9.5, 1.6, 1.2, '#3a2a1a'); }
     ell(ctx, 18, 0, 6.5, 5, '#9a7a56', 0, 'hair');
@@ -245,6 +249,7 @@ Object.assign(Sprites, {
     plainEll(ctx, 31.5, 0, 1.6, 1.4, '#1a1008');
     for (const s of [-1, 1]) { ell(ctx, 17, s * 6.5, 5, 2.4, '#7a5a3a', s * 0.7, 'hair'); plainEll(ctx, 17.5, s * 6.5, 3, 1.1, '#c8a080', s * 0.7); }
     eye(ctx, 22, -2.6, 1, 0.9, '#2a1a0a'); eye(ctx, 22, 2.6, 1, 0.9, '#2a1a0a');
+    ctx.restore();
   },
   // Motorbike frog: olive-green with a pale stripe, golden eyes, long legs folded at the sides.
   frog(ctx) {

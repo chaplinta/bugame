@@ -306,10 +306,13 @@ Models.define('kangaroo', {
   key(o, t) { return (o.moving ? 'm' + SpriteCache.phase(t, 8, 4) : 'x'); },
   build(M) {
     const g = new THREE.Group();
-    M.seg(g, [-18, 0, 5], [-52, 4, 2.5], 4.5, M.fur('#8a6a48'), { cone: 1.8 });
+    const tail = new THREE.Group(); tail.position.set(-18, 0, 5); g.add(tail); g.userData.tail = tail;
+    M.seg(tail, [0, 0, 0], [-34, 4, -2.5], 4.5, M.fur('#8a6a48'), { cone: 1.8 });
     M.ellipsoid(g, 18, 12, 9, M.fur('#8a6a48'), [-6, 0, 9]);
     M.pile(g, [-6, 0, 9], 17.5, 11.5, 8.8, 260, 2.4, '#c0a070', 27, { lean: 0.6, thick: 0.22 });
-    for (const s of [-1, 1]) { M.ellipsoid(g, 9, 5, 4.5, M.fur('#7a5a3a'), [-8, s * 11, 5], s * 0.15); M.pile(g, [-8, s * 11, 5], 8.8, 4.8, 4.3, 40, 1.8, '#9a7a56', 28, { lean: 0.5, thick: 0.18 }); for (let k = -1; k <= 1; k++) M.seg(g, [-2 + k * 1.5, s * 14.5, 1.2], [1 + k * 1.5, s * 17, 0.3], 0.7, M.gloss('#2a1a10'), { cone: 0.1 }); }
+    const hind = new THREE.Group(); hind.position.set(-8, 0, 5); g.add(hind);
+    const feet = new THREE.Group(); hind.add(feet); g.userData.feet = feet;
+    for (const s of [-1, 1]) { M.ellipsoid(hind, 9, 5, 4.5, M.fur('#7a5a3a'), [0, s * 11, 0], s * 0.15); M.pile(hind, [0, s * 11, 0], 8.8, 4.8, 4.3, 40, 1.8, '#9a7a56', 28, { lean: 0.5, thick: 0.18 }); for (let k = -1; k <= 1; k++) M.seg(feet, [6 + k * 1.5, s * 14.5, -3.8], [9 + k * 1.5, s * 17, -4.7], 0.7, M.gloss('#2a1a10'), { cone: 0.1 }); }
     M.ellipsoid(g, 8, 7, 6.5, M.fur('#8a6a48'), [8, 0, 8]);
     for (const s of [-1, 1]) { M.seg(g, [10, s * 5, 6], [15, s * 9, 1.5], 1.3, M.fur('#7a5a3a'), { cone: 0.9 }); M.ellipsoid(g, 1.6, 1.2, 0.8, M.fur('#3a2a1a'), [15.5, s * 9.5, 1]); }
     M.ellipsoid(g, 6.5, 5, 4.5, M.fur('#9a7a56'), [18, 0, 7]);
@@ -317,6 +320,13 @@ Models.define('kangaroo', {
     M.ellipsoid(g, 1.6, 1.4, 1.2, M.gloss('#1a1008'), [31.5, 0, 5]);
     for (const s of [-1, 1]) { M.ellipsoid(g, 5, 2.4, 1.2, M.fur('#7a5a3a'), [17, s * 6.5, 10.5], s * 0.7); M.ellipsoid(g, 3, 1.1, 0.6, M.skin('#c8a080'), [17.5, s * 6.5, 11.2], s * 0.7); M.ellipsoid(g, 1, 0.9, 0.9, M.eye({ color: '#2a1a0a' }), [22, s * 2.6, 9]); }
     return g;
+  },
+  // Hopping: the whole animal lifts (the shadow shows it), the feet trail back, the tail comes up to balance
+  pose(root, o, t) {
+    const k = o.moving ? Math.abs(Math.sin((SpriteCache.phase(t, 8, 4) + 0.5) / 4 * Math.PI)) : 0;
+    root.position.z = k * 8;
+    root.userData.feet.position.set(-k * 12, 0, k * 2);
+    root.userData.tail.rotation.y = -k * 0.3;
   },
 });
 

@@ -130,9 +130,10 @@ test('peacock spider courtship: ten beats with moves, seven in time win her', as
   await p.waitForFunction(() => !!Game.g.female);
   await p.evaluate(() => { const g = Game.g; g.player.x = g.female.x - 50; g.player.y = g.female.y; });
   await p.waitForFunction(() => !!Game.g.court);
-  // A press off the beat scores nothing, and she looks away
-  await p.waitForFunction(() => Game.g.court.i >= 0 && !Game.g.court.green, null, { timeout: 5000 });
+  // A press off the beat (at the very start of one, well before its window) scores nothing, and she looks away
+  await p.waitForFunction(() => { const c = Game.g.court; if (!c || c.i < 0) return false; const tb = c.t - COURTSHIP.lead; return (tb - c.i * COURTSHIP.BEAT) / COURTSHIP.BEAT < 0.2; }, null, { timeout: 5000 });
   await p.click('#actionBtn');
+  await p.waitForTimeout(80);
   check(await p.evaluate(() => Game.g.court.good === 0 && Game.g.court.miss === 1 && Game.g.female.turn > 0 && !Game.g.done), 'off-beat press counted');
   let moves = 0;
   for (let i = 0; i < 14; i++) {
@@ -164,6 +165,43 @@ test('tapping Sip and Lay works for the bush fly', async (b) => {
   await p.evaluate(() => { const g = Game.g, pt = g.pats.find(q => q.fresh > 0.5); g.player.x = pt.x; g.player.y = pt.y; });
   await p.waitForTimeout(100);
   check(await tapUntil(p, () => Game.g.score >= 1, 16), 'no eggs from taps');
+});
+
+test('bush fly: hitch a ride on the kangaroo, and a wagtail perched there catches you', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'fly', { noNet: true, noPred: true });
+  // on the kangaroo's back the button offers Sit; pressed, you go where it goes with no input at all
+  await p.evaluate(() => { const g = Game.g, b = g.mission.back(g.roo); g.player.x = b.x; g.player.y = b.y; g.roo.state = 'graze'; g.roo.timer = 99; });
+  await p.waitForTimeout(100);
+  check(await p.evaluate(() => document.getElementById('actionBtn').textContent === 'Sit'), 'no Sit offered on the kangaroo');
+  await p.click('#actionBtn');
+  await p.waitForTimeout(100);
+  const before = await p.evaluate(() => { const g = Game.g; g.roo.timer = 0; g.roo.angle = 0; return [g.player.x, g.player.y, !!g.player.ride, g.mission.locked(g)]; });
+  check(before[2] && before[3], 'Sit did not mount: ' + JSON.stringify(before));
+  await p.waitForTimeout(900);
+  const after = await p.evaluate(() => [Game.g.player.x, Game.g.player.y, Game.g.roo.state, Game.g.seen.has('hop')]);
+  check(Math.hypot(after[0] - before[0], after[1] - before[1]) > 60, 'the ride did not carry the fly: ' + JSON.stringify([before, after]));
+  check(after[3], 'the hop fact did not show');
+  check(await p.evaluate(() => document.getElementById('actionBtn').textContent === 'Hop off'), 'no Hop off offered');
+  await p.click('#actionBtn');
+  await p.waitForTimeout(100);
+  check(await p.evaluate(() => !Game.g.player.ride && !Game.g.mission.locked(Game.g)), 'Hop off did not dismount');
+  // a wagtail perched on the cow you ride snaps you up (a first stage: a heart, never a game over)
+  await p.evaluate(() => { const g = Game.g, c = g.items.find(i => i.kind === 'cow'), b = g.mission.back(c); g.player.x = b.x; g.player.y = b.y; });
+  await p.waitForTimeout(100);
+  check(await p.evaluate(() => document.getElementById('actionBtn').textContent === 'Sit'), 'no Sit offered on the cow');
+  await p.click('#actionBtn');
+  await p.waitForTimeout(100);
+  check(await p.evaluate(() => !!Game.g.player.ride), 'Sit did not mount the cow');
+  await p.evaluate(() => {
+    const g = Game.g, c = g.player.ride; g.player.invuln = 0;
+    g.preds.push({ sprite: 'wagtail', name: 'willie wagtail', r: 20, x: c.x + 50, y: c.y, angle: 0, state: 'wander', timer: 0, stay: 22, moving: true, wanderSpeed: 70, chaseSpeed: 150, sight: 170, chaseTime: 2.5, restTime: 3.5 });
+    g.mission.perchOn(g, g.preds[0], c);
+  });
+  await p.waitForTimeout(200);
+  const r = await p.evaluate(() => ({ lives: Game.g.lives, ride: !!Game.g.player.ride, fact: Game.g.seen.has('wagtailRide'), state: Game.g.preds[0].state }));
+  check(r.lives === 2 && !r.ride && r.fact && r.state === 'leave', 'the perched wagtail did not catch the rider: ' + JSON.stringify(r));
+  check(p.errors.length === 0, p.errors.join('; '));
 });
 
 test('the progress ring shows while munching', async (b) => {

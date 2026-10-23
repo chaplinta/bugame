@@ -121,7 +121,7 @@ L('wasp', 'spider-wasp'); L('paperWasp', 'paper-wasp');
 L('bobtail', 'bobtail-lizard'); L('bobtail', 'bobtail-lizard-tongue-out', {}, { t: 0.5, state: 'blue tongue out' });
 L('gull', 'silver-gull', { face: 1, angle: 0 }); L('gull', 'silver-gull-diving', { face: 1, angle: 0, dive: true }, { state: 'diving' });
 L('plover', 'red-capped-plover', { face: 1, angle: 0 });
-L('frog', 'motorbike-frog'); L('damselfly', 'damselfly'); L('gilgie', 'gilgie'); L('divingBeetle', 'diving-beetle'); L('kangaroo', 'western-grey-kangaroo'); L('rooPoo', 'kangaroo-droppings');
+L('frog', 'motorbike-frog'); L('damselfly', 'damselfly'); L('gilgie', 'gilgie'); L('divingBeetle', 'diving-beetle'); L('kangaroo', 'western-grey-kangaroo'); L('kangaroo', 'western-grey-kangaroo-hopping', { moving: true }, { t: 0.2, state: 'mid-hop' }); L('rooPoo', 'kangaroo-droppings');
 L('gecko', 'marbled-gecko', { angle: 0 });
 L('worm', 'earthworm'); L('resinBee', 'resin-bee'); L('ladybird', 'transverse-ladybird'); L('skink', 'dwarf-skink');
 L('honeyeater', 'new-holland-honeyeater', { flying: false }); L('honeyeater', 'new-holland-honeyeater-flying', { flying: true }, { state: 'flying' });

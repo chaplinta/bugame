@@ -36,6 +36,14 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Native Australian dung beetles are mostly adapted to dry marsupial pellets, not large wet cattle pats. CSIRO.
 - Western grey kangaroos graze paddocks at dawn and dusk. DBCA.
 - Willie wagtails catch flies in flight and on the ground. BirdLife Australia.
+- Bush flies land on cattle, sheep, kangaroos and people for the moisture and protein of skin and secretions (the "sit" of the ride). CSIRO.
+- Willie wagtails follow cattle and sheep and sit on their backs, sallying after the insects the animals disturb. BirdLife Australia (Willie Wagtail profile); Museums Victoria.
+- Each spring bush flies reinvade southern Australia from their inland and northern overwintering areas, displaced hundreds of kilometres on warm northerly winds. Hughes & Nicholas 1974 (J Anim Ecol 43: 411–428); CSIRO bush fly biology.
+
+## Western grey kangaroo (*Macropus fuliginosus*)
+- Kangaroos cannot move their hind legs independently on land (they can when swimming); on land they hop with both together. Australian Museum.
+- Slow grazing movement is pentapedal: the tail is planted and pushes, doing as much propulsive work as the fore and hind legs together (measured in red kangaroos; the gait is shared by the large kangaroos). O'Connor, Dawson, Kram & Donelan 2014 (Biology Letters 10: 20140381).
+- Western grey kangaroos graze paddocks on the fringes of Perth at dawn and dusk. DBCA.
 
 ## Australian painted lady (*Vanessa kershawi*)
 - Found throughout Australia including Perth. AM; Braby, *Butterflies of Australia*.
@@ -279,6 +287,7 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Every bug can escape the tank the same way (through a gap in the lid) at a similar speed, so slow bugs like nymphs aren't stuck.
 - Predators only visit now and then (about once a minute) and leave after about 20 seconds.
 - Bush fly eggs hatch in seconds in the game; really it takes hours.
+- The bush fly can sit on a cow or the kangaroo and be carried across the paddock. Real bush flies land on animals for moisture and protein, not for transport, and take off when the animal moves; the only real "ride" is on the spring winds.
 - Predators give up a chase in the safe home area, and pause before chasing so young players can react.
 - The nymph stage is a few minutes; real nymphs take months.
 - Spider jumps follow a target that hops mid-air; real jumps are ballistic.

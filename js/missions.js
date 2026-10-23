@@ -494,13 +494,12 @@ const Missions = {
       'Bush flies breed in dung. Lots of cows means lots of bush flies.',
     ],
     how: [
-      'Fly with the arrow keys, or touch and drag.',
+      'Fly with the arrow keys, or touch and drag. Press Sit on a cow or the kangaroo to hitch a ride.',
       'Land near a cow’s face and hold or tap Sip to fill up on protein.',
       'Then find a fresh cow pat and hold or tap Lay to lay your eggs.',
       'Old pats dry out, and dung beetles bury them. Be quick!',
     ],
     discoveries: [
-      { key: 'd_roo', sprite: 'kangaroo', fx: 0.85, fy: 0.75 },
       { key: 'd_rooPoo', sprite: 'rooPoo', fx: 0.7, fy: 0.88 },
       { key: 'd_magpie', sprite: 'magpie', fx: 0.4, fy: 0.15 },
     ],
@@ -516,6 +515,11 @@ const Missions = {
       dry: 'Dried-out dung is no good for maggots. Bush flies need fresh, moist dung.',
       dungBeetle: 'Dung beetles bury cow pats to feed their young. CSIRO brought dung beetles to Australia from overseas so fewer bush flies would breed.',
       wagtail: 'Willie wagtails snap up flies and other insects, in the air and on the ground.',
+      sit: 'Bush flies sit on cows, kangaroos and people. They want the moisture on skin, eyes and noses.',
+      hop: 'Kangaroos can’t move their back legs one at a time on land. They hop with both together.',
+      tail: 'When a kangaroo grazes slowly, its tail works like a fifth leg.',
+      wagtailRide: 'Willie wagtails ride on cows and sheep, snapping up the flies they stir up.',
+      wind: 'Every spring, bush flies ride warm north winds hundreds of kilometres south across Australia.',
       d_roo: 'A western grey kangaroo. Kangaroos often come into paddocks to graze at dawn and dusk.',
       d_rooPoo: 'Kangaroo poo: small, dry pellets. Australia’s native dung beetles mostly suit this kind of dung, not big cow pats.',
       d_magpie: 'An Australian magpie. Magpies walk through paddocks hunting for grubs and beetles.',
@@ -535,8 +539,12 @@ const Missions = {
         this.addPat(q.x, q.y, i === 0 ? 1 : 0.4 + Math.random() * 0.6);
       }
       g.beetleT = 18;
+      // A western grey kangaroo grazes the far corner and bounds off now and then: a ride, if you sit tight.
+      g.roo = { sprite: 'kangaroo', kind: 'roo', x: World.w * 0.85, y: World.h * 0.75, r: 36, scale: 1.3, angle: Math.PI, dir: Math.PI,
+        state: 'graze', timer: 6 + Math.random() * 6, hops: 0, hopT: 0, step: 0, hopK: 0, moving: false };
+      g.items.push(g.roo);
       const p = g.player;
-      p.protein = 0; p.layT = 0;
+      p.protein = 0; p.layT = 0; p.ride = null;
       Game.addPred({ sprite: 'wagtail', name: 'willie wagtail', r: 20, scale: 1.1, wanderSpeed: 70, chaseSpeed: 150, sight: 170,
         chaseTime: 2.5, restTime: 3.5 });
     },
@@ -544,9 +552,56 @@ const Missions = {
       Game.g.pats.push({ sprite: 'pat', x, y, r: 22, fresh, size: 1, eggs: 0, maggots: 0, angle: Math.random() * TAU });
     },
     head(cow) { return { x: cow.x + Math.cos(cow.angle) * 64, y: cow.y + Math.sin(cow.angle) * 64 }; },
+    // Where a fly (or a wagtail) sits on an animal's back.
+    back(a) { const d = a.kind === 'roo' ? 8 : 10; return { x: a.x - Math.cos(a.angle) * d, y: a.y - Math.sin(a.angle) * d }; },
+    locked(g) { return !!g.player.ride; },   // steering is the animal's while you ride
+    onCaught(g) { g.player.ride = null; },
+    // The kangaroo grazes (a slow shuffle on its tail and forearms), bounds off a few hops, then grazes again.
+    moveRoo(g, dt) {
+      const roo = g.roo;
+      roo.timer -= dt;
+      if (roo.state === 'graze') {
+        roo.moving = false; roo.hopK = 0;
+        if (Math.random() < dt * 0.4) roo.angle += (Math.random() - 0.5) * 0.5;
+        if (roo.timer <= 0) {
+          roo.state = 'hop'; roo.hops = 3 + Math.floor(Math.random() * 3); roo.hopT = 0; roo.step = 0;
+          roo.dir = roo.angle + (Math.random() - 0.5) * 1.2;
+          if (roo.x < 250) roo.dir = Math.random() - 0.5; else if (roo.x > World.w - 250) roo.dir = Math.PI + Math.random() - 0.5;
+          if (roo.y < 250) roo.dir = Math.PI / 2 + Math.random() - 0.5; else if (roo.y > World.h - 250) roo.dir = -Math.PI / 2 + Math.random() - 0.5;
+        }
+        return;
+      }
+      roo.moving = true;
+      roo.hopT += dt;
+      const k = Math.min(1, roo.hopT / 0.55), step = (1 - Math.cos(k * Math.PI)) / 2;   // most of the ground is covered mid-hop
+      roo.hopK = Math.sin(k * Math.PI);
+      roo.x = clamp(roo.x + Math.cos(roo.dir) * (step - roo.step) * 140, 80, World.w - 80);
+      roo.y = clamp(roo.y + Math.sin(roo.dir) * (step - roo.step) * 140, 80, World.h - 80);
+      roo.step = step;
+      roo.angle += Math.atan2(Math.sin(roo.dir - roo.angle), Math.cos(roo.dir - roo.angle)) * Math.min(1, dt * 6);
+      if (k >= 1) {
+        roo.hopT = 0; roo.step = 0; roo.hops--;
+        if (roo.hops <= 0) { roo.state = 'graze'; roo.timer = 6 + Math.random() * 8; roo.moving = false; roo.hopK = 0; }
+      }
+    },
+    // A wagtail settles on an animal's back for a while; a fly riding there is snapped up.
+    perchOn(g, pr, a) { pr.perch = { a, t: 4 }; pr.update = (q, d) => this.perched(g, q, d); Game.fact('wagtailRide'); },
+    perched(g, pr, dt) {
+      const a = pr.perch.a, b = this.back(a), p = g.player;
+      pr.x = b.x + 8; pr.y = b.y; pr.angle = a.angle; pr.moving = false;
+      pr.perch.t -= dt;
+      if (p.ride === a && p.invuln <= 0) { pr.perch = null; delete pr.update; Game.caught(pr); return; }
+      if (pr.perch.t <= 0) { pr.perch = null; delete pr.update; pr.state = 'wander'; }
+    },
     update(g, dt, input) {
       const p = g.player;
       p.sip = false; p.landed = false;
+      this.moveRoo(g, dt);
+      for (const pr of g.preds) {   // wagtails perch on cattle (BirdLife Australia), so a fly riding a cow is fair game
+        if (pr.sprite !== 'wagtail' || pr.perch || pr.state !== 'wander') continue;
+        const a = g.items.find(i => i.kind === 'cow' && dist(this.back(i), pr) < 60);
+        if (a && Math.random() < dt * 0.5) this.perchOn(g, pr, a);
+      }
 
       // Cows graze slowly and drop pats now and then.
       for (const c of g.items) {
@@ -604,17 +659,28 @@ const Missions = {
       g.pats = g.pats.filter(pt => !pt.gone);
       if (g.pats.length < 3) { const q = Game.spawnPoint(200); this.addPat(q.x, q.y, 1); }
 
-      // Sip at a cow's face, lay on a fresh pat.
+      // Sit on an animal's back and go where it goes; sip at a cow's face; lay on a fresh pat.
       if (p.waitRelease && !input.held) p.waitRelease = false;
       const quiet = p.waitRelease;   // no nagging while still holding from the last sip or lay
       const cow = g.items.find(c => c.kind === 'cow' && dist(this.head(c), p) < 45);
       const pat = g.pats.find(pt => dist(pt, p) < 30 * pt.size + 6);
+      const mount = !cow && !pat ? g.items.find(a => (a.kind === 'cow' || a.kind === 'roo') && dist(this.back(a), p) < 40) : null;
+      if (dist(p, g.home) > 300) Game.fact('wind');
       // Once full of protein, make sure there's a fresh pat not too far away.
       if (p.protein >= 1 && !g.pats.some(pt => pt.fresh > 0.5 && dist(pt, p) < 700)) {
         const c = nearest(g.items.filter(i => i.kind === 'cow'), p, 99999);
         if (c && c.pooT > 1) c.pooT = 1;
       }
-      if (pat && !(cow && p.protein < 1)) {
+      if (p.ride) {
+        // Riding: pinned to the animal's back, facing its way, until you press Hop off
+        const a = p.ride, b = this.back(a);
+        p.x = b.x; p.y = b.y; p.angle = a.angle; p.landed = true;
+        a.rideT = (a.rideT || 0) + dt;
+        if (a.kind === 'roo' && a.state === 'hop') Game.fact('hop');
+        if (a.kind === 'roo' && a.state === 'graze' && a.rideT > 4) Game.fact('tail');
+        setAction('Hop off', true);
+        if (input.pressed) { p.ride = null; p.invuln = Math.max(p.invuln, 0.3); Game.pop(p.x, p.y - 24, 'Bzzz!', '#fff'); }
+      } else if (pat && !(cow && p.protein < 1)) {
         const ok = pat.fresh > 0.35 && p.protein >= 1;
         setAction('Lay', ok);
         if (pat !== p.layOn) { p.layOn = pat; p.layT = 0; }
@@ -655,6 +721,14 @@ const Missions = {
             g.toasts.unshift({ text: 'Full of protein! Now follow the arrow to a fresh, shiny cow pat and hold Lay.', kind: 'hint' });
             g.toastT = 0;
           }
+        }
+      } else if (mount) {
+        setAction('Sit', true);
+        if (input.pressed) {
+          p.ride = mount; p.landed = true; mount.rideT = 0;
+          Sound.play('pick');
+          Game.fact('sit');
+          if (mount.kind === 'roo') { Game.fact('d_roo'); Game.hint('Hold on! Where the kangaroo goes, you go.'); }
         }
       } else setAction(p.protein >= 1 ? 'Lay' : 'Sip', false);
       if (g.score === 2) Game.fact('feet');
