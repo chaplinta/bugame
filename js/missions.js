@@ -74,6 +74,30 @@ function drawSilk(ctx, p) {
   ctx.stroke();
 }
 
+// The peacock spider's courtship: ten beats, each a move the real male makes (fan raised and tipped, third legs
+// waving, drumming with the abdomen). Tap Dance as the move reaches the ring. She warms to beats in time and
+// cools to misses; `win` good beats keep her, and each try after the first needs one fewer (down to 4).
+const COURTSHIP = { BEAT: 1.2, lead: 1.5, steps: ['fan', 'legs', 'fan', 'bob', 'legs', 'fan', 'bob', 'legs', 'fan', 'bob'], win: 7, window: [0.5, 0.98] };
+
+// The three moves as little icons on the dance lane.
+function drawDanceMove(ctx, move, x, y, alpha) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y);
+  if (move === 'fan') {
+    ctx.beginPath(); ctx.ellipse(0, 1, 9, 6, 0, Math.PI, TAU); ctx.fillStyle = '#2a8aa8'; ctx.fill();
+    ctx.strokeStyle = '#ff9a2a'; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let k = 0; k < 7; k++) { const a = Math.PI + (k / 6) * Math.PI; ctx.moveTo(Math.cos(a) * 9, 1 + Math.sin(a) * 6); ctx.lineTo(Math.cos(a) * 12, 1 + Math.sin(a) * 9); }
+    ctx.stroke();
+    ctx.fillStyle = '#ff5a1a'; ctx.fillRect(-7, -2.5, 14, 1.8);
+  } else if (move === 'legs') {
+    ctx.strokeStyle = '#1a1410'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(s * 2, 6); ctx.lineTo(s * 7, -2); ctx.lineTo(s * 10, -9); ctx.stroke(); ctx.fillStyle = '#f4f4f0'; ctx.beginPath(); ctx.arc(s * 10, -9, 2.4, 0, TAU); ctx.fill(); }
+  } else {
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6;
+    for (const r of [3, 7, 11]) { ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke(); }
+  }
+  ctx.restore();
+}
+
 // Map pins are in the 960x600 map box (see drawPerthMap).
 const Bugs = [
   { id: 'ant', name: 'Bull Ant', sci: 'Myrmecia', place: 'Kings Park', sprite: 'ant', pin: { x: 455, y: 330 }, stages: ['ant', 'queen'] },
@@ -1224,7 +1248,7 @@ const Missions = {
     how: [
       'Move with the arrow keys, or touch and drag.',
       'Flies spot you if you walk too close. Stop a little way off, then press Jump.',
-      'Catch 7 flies. Then walk up to the female and tap Dance each time the ring turns green.',
+      'Catch 7 flies. Then walk up to the female and tap Dance each time a move reaches the ring: fan up, wave, drum!',
       'Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
@@ -1237,6 +1261,10 @@ const Missions = {
       silk: 'Before it jumps, a jumping spider sticks down a silk safety line, like a climber’s rope.',
       jump: 'Jumping spiders leap partly by pumping fluid into their legs, which snaps them straight.',
       dance: 'To win a female, the male raises a bright flap with orange fringes and waves his legs in a dance.',
+      fan: 'He lifts his fan and tips it up at her. Then he waves his third legs.',
+      drum: 'He also drums and shakes his body. She feels the beat through the sand.',
+      watch: 'She watches with her big front eyes. If he’s boring, she walks away.',
+      stay: 'She stayed! Females choose the males with the best dance and brightest fan.',
       wasp: 'Spider wasps hunt spiders. They sting them so they can’t move, then lay an egg on them.',
       d_gull: 'A silver gull feather. Gulls eat almost anything they find along the beach.',
       d_snail: 'A white snail shell. These snails come from Europe. In summer they climb up plants to keep off the hot sand.',
@@ -1286,8 +1314,7 @@ const Missions = {
         g.toastT = 0;
       }
 
-      // Courtship: a dance in time with a beat. The ring shrinks; tap Dance when it turns green.
-      // Three good beats wins her over. Misses just wait for the next beat.
+      // Courtship: the ten-beat dance (COURTSHIP above). Each beat is a move; tap Dance as it reaches the ring.
       if (p.dance > 0) {
         p.dance -= dt;
         if (p.dance <= 0) { g.danced = true; g.frozen = false; }
@@ -1295,39 +1322,29 @@ const Missions = {
       }
       const c = g.court;
       if (g.female && !g.danced && !c && dist(p, g.female) < 80) {
-        g.court = { t: 0, good: 0, hit: false, fan: 0 };
+        g.court = this.newCourt(0, 0);
         Game.fact('dance');
-        g.toasts.unshift({ text: 'Dance for her! Tap Dance when the ring turns green.', kind: 'hint' });
+        g.toasts.unshift({ text: 'Dance for her! Tap Dance as each move reaches the ring.', kind: 'hint' });
         g.toastT = 0;
       }
       if (c) {
-        if (dist(p, g.female) > 160) { g.court = null; p.fan = 0; return; }
+        if (dist(p, g.female) > 160) { g.court = null; p.fan = p.wave = p.bob = 0; return; }   // walking off ends it
         c.t += dt;
-        c.fan = Math.max(0, c.fan - dt);
-        p.fan = c.fan;
-        const BEAT = 1.4, ph = (c.t % BEAT) / BEAT;
-        if (ph < (c.lastPh || 0)) c.hit = false;   // new beat
-        c.lastPh = ph;
-        c.green = ph > 0.62 && ph < 0.95;
+        for (const k of ['fan', 'wave', 'bob']) p[k] = Math.max(0, (p[k] || 0) - dt);
+        const D = COURTSHIP, tb = c.t - D.lead, i = tb < 0 ? -1 : Math.floor(tb / D.BEAT), ph = tb < 0 ? 0 : (tb - i * D.BEAT) / D.BEAT;
+        if (i !== c.i) {   // a new beat
+          if (c.i >= 0 && !c.hit) this.missBeat(g, c);   // the last one went by unanswered
+          c.i = i; c.hit = false;
+          if (i >= D.steps.length) { this.endDance(g, c); return; }
+        }
+        c.move = i >= 0 ? D.steps[i] : null;
+        c.green = i >= 0 && !c.hit && ph > D.window[0] && ph < D.window[1];
         p.angle = Math.atan2(g.female.y - p.y, g.female.x - p.x);
-        g.female.angle = p.angle + Math.PI;
-        setAction('Dance', c.green && !c.hit);
-        if (input.pressed && !c.hit) {
-          if (c.green) {
-            c.hit = true; c.good++; c.fan = 0.7;
-            Sound.play('score');
-            Game.pop(p.x, p.y - 34, ['Nice!', 'Wiggle!', 'Wow!'][c.good - 1] || 'Wow!', '#ffd23f');
-            Game.burst(p.x, p.y, '#5aa0e0', 10);
-            if (c.good >= 3) {
-              g.female.heart = true; p.dance = 2.5; p.fan = 0; g.frozen = true; g.court = null;
-              Sound.play('win');
-              Game.pop(g.female.x, g.female.y - 40, '♥', '#e8506a');
-              Game.burst(g.female.x, g.female.y, '#e8506a', 24);
-            }
-          } else {
-            c.hit = true;
-            Game.pop(p.x, p.y - 34, 'Wait for green', '#fff');
-          }
+        this.femaleWatches(g, dt);
+        setAction('Dance', c.green);
+        if (input.pressed && i >= 0 && !c.hit) {
+          if (c.green) this.hitBeat(g, c);
+          else { this.missBeat(g, c); c.hit = true; Game.pop(p.x, p.y - 34, 'Wait for green', '#fff'); }
         }
         return;
       }
@@ -1338,6 +1355,50 @@ const Missions = {
         Game.pop(caught.x, caught.y - 14, 'Got it!', '#ffd23f');
         Game.fact('jump');
         Game.later(2, () => this.addFly());
+      }
+    },
+    newCourt(t, round) { return { t, round, i: -1, good: 0, miss: 0, mood: 0.5, hit: false, green: false, move: null, result: [] }; },
+    hitBeat(g, c) {
+      const p = g.player, move = c.move;
+      c.hit = true; c.good++; c.result[c.i] = 'hit'; c.mood = Math.min(1, c.mood + 0.1);
+      if (move === 'fan') { p.fan = 0.9; Game.fact('fan'); }
+      else if (move === 'legs') p.wave = 0.9;
+      else { p.bob = 0.6; Game.fact('drum'); }
+      Sound.play('score');
+      Game.pop(p.x, p.y - 34, { fan: 'Fan up!', legs: 'Wave!', bob: 'Drum!' }[move], '#ffd23f');
+      Game.burst(p.x, p.y - 70, '#5aa0e0', 8);
+      if (c.mood >= 0.8 && !c.stepped) { c.stepped = true; this.femaleStep(g, 12); }   // she comes a little closer
+    },
+    missBeat(g, c) {
+      c.miss++; c.result[c.i] = 'miss'; c.mood = Math.max(0, c.mood - 0.12);
+      g.female.turn = 0.6;   // she looks away for a moment
+      if (c.mood <= 0.25 && !c.walked) { c.walked = true; this.femaleStep(g, -60); Game.hint('She’s not sure! Keep the beat.'); Game.fact('watch'); }
+    },
+    endDance(g, c) {
+      const p = g.player, need = Math.max(4, COURTSHIP.win - c.round);
+      if (c.good >= need) {
+        g.female.heart = true; p.dance = 2.5; p.fan = p.wave = p.bob = 0; g.frozen = true; g.court = null;
+        Sound.play('win'); Game.fact('stay');
+        Game.pop(g.female.x, g.female.y - 40, '♥', '#e8506a');
+        Game.burst(g.female.x, g.female.y, '#e8506a', 24);
+      } else {
+        g.court = this.newCourt(-1.5, c.round + 1);   // once more, a little easier
+        g.toasts.unshift({ text: 'Nearly! Here it comes again. Tap as each move reaches the ring.', kind: 'hint' }); g.toastT = 0;
+      }
+    },
+    femaleStep(g, d) {   // d > 0 toward him, d < 0 away
+      const f = g.female, p = g.player, a = Math.atan2(p.y - f.y, p.x - f.x);
+      f.tx = clamp(f.x + Math.cos(a) * d, 30, World.w - 30); f.ty = clamp(f.y + Math.sin(a) * d, 30, World.h - 30);
+    },
+    femaleWatches(g, dt) {
+      const f = g.female, p = g.player, face = Math.atan2(p.y - f.y, p.x - f.x);
+      f.turn = Math.max(0, (f.turn || 0) - dt);
+      f.angle = face + (f.turn > 0 ? 0.6 : 0);
+      f.moving = false;
+      if (f.tx !== undefined) {
+        const d = Math.hypot(f.tx - f.x, f.ty - f.y);
+        if (d < 2) f.tx = undefined;
+        else { const k = Math.min(1, 60 * dt / d); f.x += (f.tx - f.x) * k; f.y += (f.ty - f.y) * k; f.moving = true; }
       }
     },
     drawExtra(ctx, g) {
@@ -1353,22 +1414,28 @@ const Missions = {
         ctx.fillText('♥', f.x, f.y - 40 - pulse * 6);
         return;
       }
-      // Beat ring around the male: shrinks to the target circle, green when it's time.
-      const p = g.player, ph = (c.t % 1.4) / 1.4;
-      const rr = 30 + (1 - ph) * 50;
-      ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 34, 0, TAU); ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.stroke();
-      ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, TAU);
-      ctx.strokeStyle = c.green && !c.hit ? '#3fd06a' : 'rgba(255,255,255,.85)'; ctx.stroke();
-      for (let i = 0; i < 3; i++) {
-        ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillStyle = i < c.good ? '#e8506a' : 'rgba(255,255,255,.6)';
-        ctx.fillText('♥', p.x - 24 + i * 24, p.y + 62);
+      // The dance lane: the next moves slide in along a line above him and must be tapped as they reach the ring
+      const p = g.player, D = COURTSHIP, x0 = p.x, y0 = p.y - 70, tb = c.t - D.lead;
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.35)';
+      ctx.beginPath(); ctx.moveTo(x0 - 22, y0); ctx.lineTo(x0 + 215, y0); ctx.stroke();
+      ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x0, y0, 16, 0, TAU); ctx.strokeStyle = c.green ? '#3fd06a' : 'rgba(255,255,255,.85)'; ctx.stroke();
+      for (let k = Math.max(0, c.i); k < D.steps.length; k++) {
+        const until = k * D.BEAT + D.BEAT * (D.window[0] + D.window[1]) / 2 - tb;   // seconds until the move is due
+        const x = x0 + until / D.BEAT * 60;
+        if (x > x0 + 215) break;
+        if (k === c.i && c.hit) continue;
+        drawDanceMove(ctx, D.steps[k], x, y0, until < -0.25 ? 0.3 : 1);
+      }
+      // ten pips under him: green for a beat in time, grey for a miss
+      for (let k = 0; k < D.steps.length; k++) {
+        ctx.beginPath(); ctx.arc(p.x - 45 + k * 10, p.y + 60, 3.5, 0, TAU);
+        const r = c.result[k];
+        ctx.fillStyle = r === 'hit' ? '#3fd06a' : r === 'miss' ? 'rgba(80,80,80,.6)' : 'rgba(255,255,255,.35)'; ctx.fill();
       }
     },
     goalPoint(g) { return g.female && !g.danced && !g.court && !(g.player.dance > 0) ? g.female : null; },
     hud(g) {
-      if (g.court) setHud('Dance! ' + g.court.good + ' / 3', 'Tap on green');
+      if (g.court) setHud('Dance! ' + g.court.good + ' / 10', (g.court.i < 0 ? 'Get ready…' : 'Beat ' + Math.min(10, g.court.i + 1) + ' of 10') + (g.court.mood > 0.7 ? ' · She likes it!' : ''));
       else if (g.female && !g.danced) setHud('Walk up to the female', '');
       else setHud('Flies: ' + g.score + (g.danced ? '' : ' / ' + this.goal), '');
     },

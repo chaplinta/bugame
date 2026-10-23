@@ -4,6 +4,14 @@
 
 // A jointed insect leg from (x, y): coxa, femur, tibia, tarsus (in little segments) and two claws.
 // a: direction of the femur; bend: how far the tibia turns (positive = toward the body's rear).
+// Fan colourings for the peacock spider (o.col): the real coastal peacock spider first, then two suitors a little
+// bluer and greener, all within the species' blue-green fan with red-orange bands (Otto & Hill). g: gradient stops.
+const SPIDER_COLS = [
+  { g: ['#48e0d0', '#2a78d8', '#3ac8a0', '#2a60c0'], band: '#ff5a1a', fringe: '#ff9a2a' },
+  { g: ['#58d0f0', '#2a58d0', '#48b0e0', '#2050c8'], band: '#ff6a2a', fringe: '#ffa83a' },
+  { g: ['#48e0a8', '#2a9880', '#60d890', '#208870'], band: '#f04820', fringe: '#ff8a2a' },
+];
+
 function ileg(ctx, x, y, a, L, col, w, bend, t2) {
   const fem = L * 0.42, tib = L * 0.38, tar = L * 0.3;
   const kx = x + Math.cos(a) * fem, ky = y + Math.sin(a) * fem;
@@ -200,13 +208,19 @@ Object.assign(Sprites, {
 
   // Coastal peacock spider, Maratus speciosus, male. Dark hairy cephalothorax with white bands, two
   // huge front eyes, iridescent fan with red bands and orange side fringes, third legs black with white tips.
+  // Display parts are separate (o.fan: fan raised and tipped up; o.wave: third legs raised and waving;
+  // o.bob: the abdomen shaking, drumming on the sand; o.dance: all at once). o.col picks a fan colouring.
   spider(ctx, o, t) {
-    const dance = o.dance > 0 || o.fan > 0;
+    const fanUp = o.dance > 0 || o.fan > 0, legsUp = o.dance > 0 || o.wave > 0, bob = o.bob > 0 ? Math.sin(t * 60) * 1.2 : 0;
+    const C = SPIDER_COLS[o.col || 0];
     const w = o.moving ? Math.sin(t * 16) * 0.2 : 0;
     const angles = [0.55, 1.15, 1.9, 2.5];
+    if (o.bob > 0) {   // the drumming, felt through the sand: rings spreading from under him
+      for (const k of [0, 0.5]) { const q = ((t * 2 + k) % 1); ctx.beginPath(); ctx.ellipse(-4, 0, 12 + q * 16, 9 + q * 12, 0, 0, TAU); ctx.strokeStyle = 'rgba(255,255,255,' + (0.5 * (1 - q)) + ')'; ctx.lineWidth = 1; ctx.stroke(); }
+    }
     for (let i = 3; i >= 0; i--) for (const s of [-1, 1]) {
       let a = s * angles[i] + (i % 2 ? w : -w) * s, l = i === 2 ? 20 : i === 3 ? 17 : 15;
-      if (dance && i === 2) { a = s * (1.55 + Math.sin(t * 12) * 0.45); l = 24; }
+      if (legsUp && i === 2) { a = s * (1.55 + Math.sin(t * 12) * 0.45); l = 24; }
       ileg(ctx, 3, s * 1.2, a, l, i === 2 ? '#1a1410' : '#2a2018', 1.7, s * 0.5, s * 0.4);
       if (i === 2) {   // white brush on the third legs
         const fem = l * 0.42, tib = l * 0.38;
@@ -215,20 +229,22 @@ Object.assign(Sprites, {
         fur(ctx, ex + Math.cos(b + s * 0.4) * l * 0.12, ey + Math.sin(b + s * 0.4) * l * 0.12, 2.4, 1.4, '#f4f4f0', 16, 1.2, 4);
       }
     }
-    // Fan: iridescent abdomen with transverse red bands; raised and fringed when dancing
-    const ax = dance ? 8.5 : 7.2, ay = dance ? 13 : 6.4;
-    if (dance) { ctx.beginPath(); for (let k = 0; k < 44; k++) { const a = Math.PI / 2 + (k / 43 - 0.5) * 3.6; ctx.moveTo(-8 + Math.cos(a) * 8, Math.sin(a) * 13); ctx.lineTo(-8 + Math.cos(a) * 12, Math.sin(a) * 17.5); } ctx.strokeStyle = '#ff9a2a'; ctx.lineWidth = 1.1; ctx.stroke(); }
-    else for (const s of [-1, 1]) { ctx.beginPath(); for (let k = 0; k < 9; k++) { ctx.moveTo(-13.5 + k * 1.4, s * 5.6); ctx.lineTo(-14 + k * 1.4, s * 8.4); } ctx.strokeStyle = '#ff8c1a'; ctx.lineWidth = 0.7; ctx.stroke(); }
-    ell(ctx, -8, 0, ax, ay, '#2a8aa8', 0, 'none');
+    // Fan: iridescent abdomen with transverse red bands; raised and fringed when displayed, shaking when drumming
+    const ax = fanUp ? 8.5 : 7.2, ay = fanUp ? 13 : 6.4;
+    ctx.save(); ctx.translate(bob, 0);
+    if (fanUp) { ctx.beginPath(); for (let k = 0; k < 44; k++) { const a = Math.PI / 2 + (k / 43 - 0.5) * 3.6; ctx.moveTo(-8 + Math.cos(a) * 8, Math.sin(a) * 13); ctx.lineTo(-8 + Math.cos(a) * 12, Math.sin(a) * 17.5); } ctx.strokeStyle = C.fringe; ctx.lineWidth = 1.1; ctx.stroke(); }
+    else for (const s of [-1, 1]) { ctx.beginPath(); for (let k = 0; k < 9; k++) { ctx.moveTo(-13.5 + k * 1.4, s * 5.6); ctx.lineTo(-14 + k * 1.4, s * 8.4); } ctx.strokeStyle = C.fringe; ctx.lineWidth = 0.7; ctx.stroke(); }
+    ell(ctx, -8, 0, ax, ay, C.g[1], 0, 'none');
     ctx.save(); ctx.beginPath(); ctx.ellipse(-8, 0, ax, ay, 0, 0, TAU); ctx.clip();
     const gr = ctx.createLinearGradient(-16, -ay, 0, ay);
-    gr.addColorStop(0, '#48e0d0'); gr.addColorStop(0.35, '#2a78d8'); gr.addColorStop(0.7, '#3ac8a0'); gr.addColorStop(1, '#2a60c0');
+    gr.addColorStop(0, C.g[0]); gr.addColorStop(0.35, C.g[1]); gr.addColorStop(0.7, C.g[2]); gr.addColorStop(1, C.g[3]);
     ctx.fillStyle = gr; ctx.fillRect(-17, -ay, 18, ay * 2);
-    for (let k = -2; k <= 2; k++) { ctx.fillStyle = '#ff5a1a'; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36, ax, 0.9 + (dance ? 0.7 : 0), 0, 0, TAU); ctx.fill(); ctx.fillStyle = 'rgba(255,230,120,.6)'; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36 - 0.7, ax * 0.9, 0.3, 0, 0, TAU); ctx.fill(); }
+    for (let k = -2; k <= 2; k++) { ctx.fillStyle = C.band; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36, ax, 0.9 + (fanUp ? 0.7 : 0), 0, 0, TAU); ctx.fill(); ctx.fillStyle = 'rgba(255,230,120,.6)'; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36 - 0.7, ax * 0.9, 0.3, 0, 0, TAU); ctx.fill(); }
     if (Shade.rich) Tex.fillPath(ctx, 'chitinHi', 1.5, 0.35, 'screen');
     ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.ellipse(-10, -ay * 0.45, ax * 0.5, ay * 0.16, -0.3, 0, TAU); ctx.fill();
     ctx.restore();
     ctx.beginPath(); ctx.ellipse(-8, 0, ax, ay, 0, 0, TAU); ctx.strokeStyle = 'rgba(10,30,40,.6)'; ctx.lineWidth = 0.6; ctx.stroke();
+    ctx.restore();
     // Cephalothorax: dark, hairy, white side stripes; eight eyes
     ell(ctx, 4, 0, 6.8, 5.8, '#2a2018', 0, 'hair');
     fur(ctx, 4, 0, 6.5, 5.5, '#3a2a20', 50, 1, 7);

@@ -919,7 +919,7 @@ Object.assign(Missions, {
       'A mother peacock spider guards her egg sac until the babies hatch.',
     ],
     how: [
-      'Males will come and dance for you. Watch them!',
+      'Males will come and dance for you. Watch them: the best dancer keeps the beat and shows his fan!',
       'Walk up to the one you like best and press Choose.',
       'Go back to your silk retreat and hold Spin to make an egg sac.',
       'Then guard it! When an ant comes near, press Jump to chase it away. Chase off 3 ants.',
@@ -932,6 +932,8 @@ Object.assign(Missions, {
       start: 'Female peacock spiders can see colour well, so they can judge the males’ bright fans.',
       dance: 'Each male raises his colourful fan and waves his legs. He also drums on the ground with his body.',
       choose: 'Scientists think females pick males with the brightest colours and best dances.',
+      judge: 'Good eye! Scientists found that females prefer the males that dance best and show their colours.',
+      scales: 'The fan’s colours come from tiny scales that bend light, like a soap bubble.',
       sac: 'She wraps her eggs in a soft silk sac inside her retreat.',
       ant: 'Ants will steal spider eggs if they get the chance.',
       guard: 'Jumping spiders are brave mothers. She’ll chase off insects much bigger than she is.',
@@ -942,25 +944,28 @@ Object.assign(Missions, {
     setup(g) {
       const p = g.player;
       p.jcd = 0; g.phase = 'watch'; g.males = []; g.spinT = 0; g.chased = 0; g.antT = 3;
-      const cols = [['#2a8aa8', '#ff6a1a'], ['#3a6ad0', '#f2d040'], ['#40a070', '#e8402a']];
+      // Three suitors: each with his own fan colouring (col) and dancing skill, in a random order
+      const skills = [0.45, 0.75, 1].sort(() => Math.random() - 0.5);
       for (let i = 0; i < 3; i++) {
         Game.later(2 + i * 3, () => {
           if (g.phase !== 'watch') return;
           const s = Game.spawnPoint(60, p, 220);
-          const m = { sprite: 'spider', kind: 'male', x: s.x, y: s.y, r: 14, scale: 1.6, angle: 0, dance: 0, n: i, flat: false };
+          const m = { sprite: 'spider', kind: 'male', x: s.x, y: s.y, r: 14, scale: 1.6, angle: 0, n: i, col: i, skill: skills[i], beatT: Math.random(), step: i, fan: 0, wave: 0, bob: 0, flat: false };
           g.males.push(m); g.items.push(m);
           Sound.play('pick');
           Game.fact('dance');
-          if (i === 0) { g.toasts.unshift({ text: 'A male is dancing for you! Walk up to the one you like and press Choose.', kind: 'hint' }); g.toastT = 0; }
+          if (i === 0) { g.toasts.unshift({ text: 'A male is dancing for you! Walk up to the one you like and press Choose.', kind: 'hint' }); g.toastT = 0; Game.fact('scales'); }
         });
       }
     },
     update(g, dt, input) {
       const p = g.player;
-      // Males face you and keep dancing
+      // Males face you and dance, each to his own beat: fan up, legs waving, drumming. The better dancer hits more beats.
       for (const m of g.males) {
         m.angle = Math.atan2(p.y - m.y, p.x - m.x);
-        m.dance = 1; m.fan = 1;
+        for (const k of ['fan', 'wave', 'bob']) m[k] = Math.max(0, m[k] - dt);
+        m.beatT += dt;
+        if (m.beatT >= 1.2) { m.beatT -= 1.2; m.step = (m.step + 1) % 3; if (Math.random() < m.skill) m[['fan', 'wave', 'bob'][m.step]] = 0.95; }
         if (dist(m, p) > 90) { m.x += Math.cos(m.angle) * 40 * dt; m.y += Math.sin(m.angle) * 40 * dt; }
         if (m.leave) { m.x -= Math.cos(m.angle) * 160 * dt; m.y -= Math.sin(m.angle) * 160 * dt; }
       }
@@ -971,6 +976,7 @@ Object.assign(Missions, {
         if (m && input.pressed) {
           g.phase = 'sac'; g.chosen = m;
           Sound.play('win'); Game.pop(m.x, m.y - 30, '♥', '#e8506a'); Game.fact('choose');
+          if (m.skill === 1) { Game.pop(m.x, m.y - 54, 'Good eye!', '#ffd23f'); Game.fact('judge'); }   // the best dancer
           for (const o of g.males) if (o !== m) o.leave = true;
           Game.later(2.5, () => { m.leave = true; });
           g.toasts.unshift({ text: 'Good choice! Now go back to your silk retreat and hold Spin.', kind: 'hint' }); g.toastT = 0;

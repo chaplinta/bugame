@@ -123,24 +123,28 @@ test('Pupate button works anywhere once the caterpillar is grown', async (b) => 
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
-test('peacock spider courtship: tap on the green beat three times', async (b) => {
+test('peacock spider courtship: ten beats with moves, seven in time win her', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'spider', { noNet: true, noPred: true });
   await p.evaluate(() => { Game.g.score = 7; });
   await p.waitForFunction(() => !!Game.g.female);
   await p.evaluate(() => { const g = Game.g; g.player.x = g.female.x - 50; g.player.y = g.female.y; });
   await p.waitForFunction(() => !!Game.g.court);
-  // A press off the beat does nothing bad.
-  await p.waitForFunction(() => !Game.g.court.green);
+  // A press off the beat scores nothing, and she looks away
+  await p.waitForFunction(() => Game.g.court.i >= 0 && !Game.g.court.green, null, { timeout: 5000 });
   await p.click('#actionBtn');
-  check(await p.evaluate(() => Game.g.court.good === 0 && !Game.g.done), 'off-beat press counted');
-  for (let i = 0; i < 8; i++) {
-    await p.waitForFunction(() => !Game.g.court || (Game.g.court.green && !Game.g.court.hit), null, { timeout: 5000 });
+  check(await p.evaluate(() => Game.g.court.good === 0 && Game.g.court.miss === 1 && Game.g.female.turn > 0 && !Game.g.done), 'off-beat press counted');
+  let moves = 0;
+  for (let i = 0; i < 14; i++) {
+    await p.waitForFunction(() => !Game.g.court || Game.g.court.green, null, { timeout: 5000 });
     if (await p.evaluate(() => !Game.g.court)) break;
     await p.click('#actionBtn');
+    await p.waitForTimeout(60);
+    if (await p.evaluate(() => Game.g.player.fan > 0 || Game.g.player.wave > 0 || Game.g.player.bob > 0)) moves++;
     await p.waitForTimeout(100);
   }
-  check(await p.evaluate(() => Game.g.player.dance > 0 || Game.g.danced), 'three good beats did not win her');
+  check(moves >= 7, 'beats in time did not show a move: ' + moves);
+  check(await p.evaluate(() => Game.g.player.dance > 0 || Game.g.danced), 'seven good beats did not win her');
   await p.waitForSelector('#end.active', { timeout: 8000 });
   check(p.errors.length === 0, p.errors.join('; '));
 });

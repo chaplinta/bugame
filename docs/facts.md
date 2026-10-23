@@ -124,6 +124,9 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Attaches a silk dragline before jumping. AM.
 - Jumps partly by hydraulic (blood pressure) leg extension. Published research on salticid jumping.
 - Male raises a flap with orange side fringes and waves legs in courtship. WAM; Otto & Hill.
+- The courtship display combines a raised, tipped opisthosomal fan, waving of the ornamented third legs and substrate-borne vibrations (drumming), in a structured multi-modal sequence. Girard, Kasumovic & Elias 2011 (PLOS ONE, described for *M. volans*); the leg-III stance for *M. speciosus*: Otto & Hill 2011 (Peckhamia).
+- Whether a female stays depends on display quality; unreceptive females walk away. Girard, Elias & Kasumovic 2015 (Proc R Soc B).
+- The fan's blue-green colours come from structurally coloured scales (multilayer and grating reflectors), the red-orange from pigment. Stavenga, Otto & Wilts 2016 (J R Soc Interface); Hsiung et al. 2017 (Nature Communications).
 - Spider wasps (Pompilidae) paralyse spiders and lay an egg on them. AM.
 - Almost all *Maratus* species are Australian; new species still being described. Otto & Hill.
 
@@ -193,6 +196,8 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Female *Maratus* are drab brown and cryptic. Otto & Hill (Peckhamia).
 - Males court with a raised, coloured fan, leg waving and substrate-borne vibrations (drumming). Girard, Kasumovic & Elias (2011).
 - Females choose among courting males; female choice drives the evolution of male colour and dance. Girard et al.
+- Females prefer males whose display is complete and vigorous (visual and vibratory components together). Girard, Elias & Kasumovic 2015 (Proc R Soc B).
+- Fan colours arise from structurally coloured scales. Stavenga, Otto & Wilts 2016; Hsiung et al. 2017.
 - Female jumping spiders lay eggs in a silk sac inside a retreat and guard them. AM; Jackson (salticid biology).
 - Ants are predators of spider eggs and spiderlings. General.
 
@@ -283,6 +288,8 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Mosquito bite spots are marked; people swat only when looking around, so there is a fair chance to fly away.
 - The 3D butterfly flies at a steady speed and lands automatically on a flower's ring.
 - The female peacock spider sees three males in quick succession; any choice is fine in the game.
+- The male's courtship is ten beats in twelve seconds with the moves in a fixed order; real displays go on for minutes and vary. The drumming is drawn as rings on the sand. She steps closer or away to show how it is going; really she simply stays, walks off or attacks.
+- The three suitors differ in fan hue (bluer, greener) and in how well they keep the beat; all are *M. speciosus*.
 - The garden: animals arrive within seconds of the right plants going in; really it takes seasons. Visitors' needs are simplified rules.
 - The orb web: threads must attach to branches or threads, but there is no tension physics; the spiral is laid automatically.
 - The ant nest: one ant digs the whole nest; really thousands of workers share the work. Floods wash you out rather than drowning you.

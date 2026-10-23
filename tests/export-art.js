@@ -75,6 +75,10 @@ L('spiderling', 'peacock-spider-spiderling');
 L('spiderling', 'peacock-spider-spiderling-moulting', { moult: 1 }, { state: 'moulting' });
 L('spider', 'peacock-spider-male');
 L('spider', 'peacock-spider-male-displaying', { dance: 1 }, { state: 'displaying, fan raised' });
+L('spider', 'peacock-spider-male-legs-waving', { wave: 1 }, { state: 'third legs raised and waving' });
+L('spider', 'peacock-spider-male-drumming', { bob: 1 }, { state: 'abdomen shaking, drumming' });
+L('spider', 'peacock-spider-male-fan-bluer', { dance: 1, col: 1 }, { state: 'a suitor with a bluer fan' });
+L('spider', 'peacock-spider-male-fan-greener', { dance: 1, col: 2 }, { state: 'a suitor with a greener fan' });
 L('femaleSpider', 'peacock-spider-female');
 L('nymph', 'blue-skimmer-nymph');
 L('emerge', 'blue-skimmer-emerging', { k: 0.5 }, { state: 'halfway out of the nymph skin' });
@@ -200,7 +204,7 @@ const BIRD = { beeEater: 'rainbow-bee-eater', hobby: 'australian-hobby', magpie:
 const SHELL_COL = { '#f2efe4': 'white-italian-snail', '#5a5040': 'freshwater-snail', '#8a6a44': 'garden-snail' };
 const FEATHER_COL = { '#1c1c1c|#f2f2f2': 'black-cockatoo', '#1c1c1c|#c8303a': 'red-tailed-black-cockatoo', '#d8d8d8|#7a7a7a': 'silver-gull', '#1a1a1a|': 'black-swan' };
 const PAINTED = {
-  beeBands: 'blue-banded-bee-abdomen-bands', ladybirdDome: 'transverse-ladybird-wing-cases', snailShell: 'native-land-snail-shell', maratusFan: 'peacock-spider-fan', maratusFanD: 'peacock-spider-fan-raised',
+  beeBands: 'blue-banded-bee-abdomen-bands', ladybirdDome: 'transverse-ladybird-wing-cases', snailShell: 'native-land-snail-shell', maratusFan0: 'peacock-spider-fan', maratusFan0D: 'peacock-spider-fan-raised', maratusFan1: 'peacock-spider-fan-bluer', maratusFan1D: 'peacock-spider-fan-bluer-raised', maratusFan2: 'peacock-spider-fan-greener', maratusFan2D: 'peacock-spider-fan-greener-raised',
   femaleSpiderMottle: 'peacock-spider-female-mottle', nymphMottle: 'blue-skimmer-nymph-mottle', chrysalisBands: 'painted-lady-chrysalis-bands', bushFlyThorax: 'bush-fly-thorax-stripes', bushFlyAbd: 'bush-fly-abdomen',
   sugarGaster: 'banded-sugar-ant-gaster', sugarGasterH: 'banded-sugar-ant-gaster-full-of-honeydew', orbAbd: 'golden-orb-weaver-abdomen', geckoSkin: 'marbled-gecko-skin', dungElytra: 'dung-beetle-wing-cases',
   divingBeetleBack: 'diving-beetle-wing-cases', lilyPad: 'lily-pad-veins', cowHide: 'friesian-cow-hide', endGrain: 'log-end-grain', heart: 'heart', zLabel: 'stunned-z', isoQ: 'question-mark', isoTalk: 'speech-bubble',

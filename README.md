@@ -46,11 +46,11 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 | Native snail (*Bothriembryon*) | Bibra Lake bushland | graze fungi, lichen and dead leaves, keep out of the sun or seal your shell, avoid the bobtail |
 | Blue-banded bee (*Amegilla*) | Backyard | buzz-pollinate Dianella and Hibbertia; avoid the rainbow bee-eater |
 | Peacock spider: spiderling | Cottesloe dunes | jump on springtails, avoid ants, go home to moult |
-| Peacock spider: adult male (*Maratus speciosus*) | Cottesloe dunes | stalk and jump on flies, then dance for a female in time to the beat; avoid the spider wasp |
+| Peacock spider: adult male (*Maratus speciosus*) | Cottesloe dunes | stalk and jump on flies, then dance for a female: ten beats of fan up, leg waves and drumming tapped in time, and she stays if you keep the beat; avoid the spider wasp |
 | Blue skimmer: nymph | Underwater, Herdsman Lake | grab wrigglers and tadpoles with your shooting jaw, jet away from the oblong turtle, then climb a reed and emerge |
 | Blue skimmer: adult (*Orthetrum caledonicum*) | Herdsman Lake | catch mosquitoes in the air; dart from the Australian hobby |
 | Blue skimmer: adult female | Herdsman Lake | catch mosquitoes for energy, then dip eggs into open water while a blue male guards you |
-| Peacock spider: adult female | Cottesloe dunes | watch males dance and choose one, spin an egg sac, chase ants away from it |
+| Peacock spider: adult female | Cottesloe dunes | watch three males dance (one keeps the beat best) and choose one, spin an egg sac, chase ants away from it |
 | Painted lady: flying high (3D) | Above Bold Park | take off, fly to glowing flowers, land and sip; dodge a willie wagtail |
 | Sandhopper, female (Talitridae) | Port Beach, North Fremantle (side-on) | hop along the beach eating seaweed wrack, then get back to your burrow; dodge a silver gull and a red-capped plover |
 | Native garden (build your own) | Your backyard | paint soils and ponds, plant natives, add rocks, logs and nest boxes; 23 kinds of wildlife move in when the garden suits them; saved between visits |

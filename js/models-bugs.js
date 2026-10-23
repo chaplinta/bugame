@@ -228,14 +228,17 @@ const PL = {
   },
 };
 
-// Peacock spider, Maratus speciosus: shared by the player and the female's suitor.
+// Peacock spider, Maratus speciosus: shared by the player and the female's suitors. The display parts are separate:
+// o.fan raises and tips the fan, o.wave raises the third legs, o.bob shakes the abdomen (o.dance: all at once);
+// o.col picks a fan colouring from SPIDER_COLS (js/art-bugs2.js).
+function spiderVariant(o) { return (o.dance > 0 || o.fan > 0 ? 'F' : '') + (o.dance > 0 || o.wave > 0 ? 'L' : '') + 'c' + (o.col || 0); }
 function peacockSpider(M, o) {
-  const g = new THREE.Group(), dance = o.dance > 0 || o.fan > 0, angles = [0.55, 1.15, 1.9, 2.5];
+  const g = new THREE.Group(), fanUp = o.dance > 0 || o.fan > 0, legsUp = o.dance > 0 || o.wave > 0, col = o.col || 0, C = SPIDER_COLS[col], angles = [0.55, 1.15, 1.9, 2.5];
   g.userData.legs = [];
   for (let i = 0; i < 4; i++) for (const s of [-1, 1]) {
     let a = s * angles[i], l = i === 2 ? 20 : i === 3 ? 17 : 15;
-    if (dance && i === 2) { a = s * 1.55; l = 24; }
-    const leg = spiderLeg(M, g, [3, s * 1.2, 4.2], a, l, M.chitin(i === 2 ? '#1a1410' : '#2a2018', { coat: 0.3 }), 1.5, s * 0.5, { pitch: dance && i === 2 ? 0.95 : 0.7 });
+    if (legsUp && i === 2) { a = s * 1.55; l = 24; }
+    const leg = spiderLeg(M, g, [3, s * 1.2, 4.2], a, l, M.chitin(i === 2 ? '#1a1410' : '#2a2018', { coat: 0.3 }), 1.5, s * 0.5, { pitch: legsUp && i === 2 ? 0.95 : 0.7 });
     leg.base = a; leg.i = i; leg.s = s; g.userData.legs.push(leg);
     if (i === 2) {   // white brushes on the third legs: a tuft near the foot
       const fem = l * 0.44, tb = l * 0.36, kx = 3 + Math.cos(a) * fem * Math.cos(0.7), ky = s * 1.2 + Math.sin(a) * fem * Math.cos(0.7), b = a + s * 0.5;
@@ -243,25 +246,26 @@ function peacockSpider(M, o) {
     }
   }
   // the fan: iridescent, banded red, fringed when raised
-  const ax = dance ? 8.5 : 7.2, ay = dance ? 13 : 6.4, az = dance ? 1.6 : 3.4;
-  const fanMap = M.paint('maratusFan' + (dance ? 'D' : ''), 128, 256, (ctx, w, h) => {
-    const gr = ctx.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#48e0d0'); gr.addColorStop(0.35, '#2a78d8'); gr.addColorStop(0.7, '#3ac8a0'); gr.addColorStop(1, '#2a60c0');
+  const ax = fanUp ? 8.5 : 7.2, ay = fanUp ? 13 : 6.4, az = fanUp ? 1.6 : 3.4;
+  const fanMap = M.paint('maratusFan' + col + (fanUp ? 'D' : ''), 128, 256, (ctx, w, h) => {
+    const gr = ctx.createLinearGradient(0, 0, w, h); gr.addColorStop(0, C.g[0]); gr.addColorStop(0.35, C.g[1]); gr.addColorStop(0.7, C.g[2]); gr.addColorStop(1, C.g[3]);
     ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
-    for (let k = -1; k <= 1; k++) { const y = h / 2 + k * h * 0.2, bw = h * (dance ? 0.04 : 0.03); const gb = ctx.createLinearGradient(0, y - bw * 1.4, 0, y + bw * 1.4); gb.addColorStop(0, 'rgba(255,90,26,0)'); gb.addColorStop(0.3, '#ff5a1a'); gb.addColorStop(0.7, '#ff7a2a'); gb.addColorStop(1, 'rgba(255,90,26,0)'); ctx.fillStyle = gb; ctx.fillRect(0, y - bw * 1.4, w, bw * 2.8); ctx.fillStyle = 'rgba(255,230,120,.5)'; ctx.fillRect(0, y - bw * 1.2, w, bw * 0.4); }
+    for (let k = -1; k <= 1; k++) { const y = h / 2 + k * h * 0.2, bw = h * (fanUp ? 0.04 : 0.03); const gb = ctx.createLinearGradient(0, y - bw * 1.4, 0, y + bw * 1.4); gb.addColorStop(0, 'rgba(255,90,26,0)'); gb.addColorStop(0.3, C.band); gb.addColorStop(0.7, C.band); gb.addColorStop(1, 'rgba(255,90,26,0)'); ctx.fillStyle = gb; ctx.fillRect(0, y - bw * 1.4, w, bw * 2.8); ctx.fillStyle = 'rgba(255,230,120,.5)'; ctx.fillRect(0, y - bw * 1.2, w, bw * 0.4); }
     const rim = ctx.createLinearGradient(0, 0, 0, h); rim.addColorStop(0, 'rgba(10,30,40,.7)'); rim.addColorStop(0.1, 'rgba(10,30,40,0)'); rim.addColorStop(0.9, 'rgba(10,30,40,0)'); rim.addColorStop(1, 'rgba(10,30,40,.7)'); ctx.fillStyle = rim; ctx.fillRect(0, 0, w, h);
   });
-  const fan = M.ellipsoid(g, ax, ay, az, M.chitin('#ffffff', { map: fanMap, coat: 1, rough: 0.2, env: 1.2 }), [-8, 0, dance ? 6 : 4.2]);
-  if (dance) {
+  const fan = M.ellipsoid(g, ax, ay, az, M.chitin('#ffffff', { map: fanMap, coat: 1, rough: 0.2, env: 1.2 }), [-8, 0, fanUp ? 6 : 4.2]);
+  g.userData.fan = fan;
+  if (fanUp) {
     fan.rotation.y = -0.5;   // tipped up at the viewer
     fan.position.z = 8;
     const r = rng(21);
-    M.hairs(g, 90, M.cone(0.14, 0.02, 4.5), M.hair('#ff9a2a'), (i, d) => {
+    M.hairs(g, 90, M.cone(0.14, 0.02, 4.5), M.hair(C.fringe), (i, d) => {
       const a = (i / 90 - 0.5) * 3.6 + Math.PI / 2 + (r() - 0.5) * 0.1, px = -8 + Math.cos(a) * ax * 0.95, py = Math.sin(a) * ay * 0.95;
       d.position.set(px, py, 8 + (px + 8) * 0.55); d.rotation.z = a - Math.PI / 2; d.rotation.x = 0;
       d.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(Math.cos(a), Math.sin(a), 0.15).normalize());
       d.position.addScaledVector(new THREE.Vector3(Math.cos(a), Math.sin(a), 0), 2.2);
     });
-  } else for (const s of [-1, 1]) M.hairs(g, 9, M.cone(0.12, 0.02, 2.8), M.hair('#ff8c1a'), (i, d) => { d.position.set(-13.5 + i * 1.4, s * 6.6, 3.6); d.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, s, 0.1).normalize()); });
+  } else for (const s of [-1, 1]) M.hairs(g, 9, M.cone(0.12, 0.02, 2.8), M.hair(C.fringe), (i, d) => { d.position.set(-13.5 + i * 1.4, s * 6.6, 3.6); d.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, s, 0.1).normalize()); });
   // cephalothorax: dark, hairy, white side stripes; eight eyes, the front pair huge
   M.ellipsoid(g, 6.8, 5.8, 4.6, M.fur('#2a2018'), [4, 0, 4.4]);
   M.pile(g, [4, 0, 4.4], 6.9, 5.9, 4.7, 160, 1.0, '#3a2a20', 7, { lean: 0.3, thick: 0.12 });
@@ -279,16 +283,23 @@ function peacockSpider(M, o) {
 
 Models.define('spider', {
   buckets: 16,
-  variant(o) { return (o.dance > 0 || o.fan > 0) ? 'D' : ''; },
-  key(o, t) { const d = o.dance > 0 || o.fan > 0; return (d ? 'D' + SpriteCache.phase(t, 12, 6) : '') + (o.moving ? 'm' + SpriteCache.phase(t, 16, 8) : 'x'); },
+  variant: spiderVariant,
+  key(o, t) {
+    const legsUp = o.dance > 0 || o.wave > 0;
+    return spiderVariant(o) + (legsUp ? 'w' + SpriteCache.phase(t, 12, 6) : '') + (o.bob > 0 ? 'B' + SpriteCache.phase(t, 60, 4) : '') + (o.moving ? 'm' + SpriteCache.phase(t, 16, 8) : 'x');
+  },
   build(M, o) { return peacockSpider(M, o); },
   pose(root, o, t) {
-    const dance = o.dance > 0 || o.fan > 0, w = o.moving ? Math.sin((SpriteCache.phase(t, 16, 8) + 0.5) / 8 * TAU) * 0.2 : 0;
-    const wave = dance ? Math.sin((SpriteCache.phase(t, 12, 6) + 0.5) / 6 * TAU) * 0.45 : 0;
+    const legsUp = o.dance > 0 || o.wave > 0, w = o.moving ? Math.sin((SpriteCache.phase(t, 16, 8) + 0.5) / 8 * TAU) * 0.2 : 0;
+    const wave = legsUp ? Math.sin((SpriteCache.phase(t, 12, 6) + 0.5) / 6 * TAU) * 0.45 : 0;
     for (const l of root.userData.legs) {
-      if (dance && l.i === 2) l.set(l.s * (1.55 + wave), 1.5 + wave * 2);
+      if (legsUp && l.i === 2) l.set(l.s * (1.55 + wave), 1.5 + wave * 2);
       else l.set(l.base + (l.i % 2 ? w : -w) * l.s, 0);
     }
+    // drumming: the abdomen shakes and the whole spider lifts a touch, which the shadow shows
+    const shake = o.bob > 0 ? Math.sin((SpriteCache.phase(t, 60, 4) + 0.5) / 4 * TAU) : 0;
+    root.userData.fan.position.x = -8 + shake * 1.2;
+    root.position.z = Math.abs(shake) * 0.8;
   },
 });
 
