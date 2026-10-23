@@ -94,6 +94,15 @@ const Night = {
     }
   },
 
+  // Twinkling stars over the screen (also used by the night levels).
+  stars(ctx, n, alpha) {
+    const r = rng(42), t = Game.g ? Game.g.t : 0;
+    for (let i = 0; i < n; i++) {
+      const tw = 0.5 + 0.5 * Math.sin(t * 3 + i);
+      ctx.fillStyle = 'rgba(255,255,230,' + alpha * (0.4 + tw * 0.6) + ')';
+      ctx.beginPath(); ctx.arc(r() * W, r() * H * 0.9, 0.8 + r() * 1.6, 0, TAU); ctx.fill();
+    }
+  },
   // Warm then dark-blue sky over the game world, with stars and sleeping bugs at night.
   drawSky(ctx) {
     const g = Game.g, d = this.dusk();
@@ -105,12 +114,7 @@ const Night = {
     g.night = Math.min(1, g.night + 1 / 60 / 1.6);
     const n = g.night;
     ctx.fillStyle = 'rgba(12,16,50,' + (0.35 + n * 0.4) + ')'; ctx.fillRect(0, 0, W, H);
-    const r = rng(42);
-    for (let i = 0; i < 70; i++) {
-      const tw = 0.5 + 0.5 * Math.sin(g.t * 3 + i);
-      ctx.fillStyle = 'rgba(255,255,230,' + n * (0.4 + tw * 0.6) + ')';
-      ctx.beginPath(); ctx.arc(r() * W, r() * H * 0.9, 0.8 + r() * 1.6, 0, TAU); ctx.fill();
-    }
+    this.stars(ctx, 70, n);
     ctx.save(); ctx.globalAlpha = n; ctx.translate(W / 2 + 250, 130); drawMoonShape(ctx, 34); ctx.restore();
     // Zzz over every creature
     const z = Game.zoom || 1;

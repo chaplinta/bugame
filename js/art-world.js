@@ -252,14 +252,24 @@ Object.assign(Sprites, {
     ctx.restore();
   },
   // Motorbike frog: olive-green with a pale stripe, golden eyes, long legs folded at the sides.
-  frog(ctx) {
-    for (const s of [-1, 1]) { ell(ctx, -6, s * 7, 7, 3, '#4f8f3a', s * 0.5, 'wet'); ell(ctx, -11, s * 9, 3, 1.4, '#4a8a36', s * 0.9, 'wet'); ell(ctx, 6, s * 6, 4, 2, '#4f8f3a', -s * 0.5, 'wet'); }
+  // o.call: the throat sac puffed out (0 to 1); o.moving: mid-hop, legs stretched back; o.female: a little bigger.
+  frog(ctx, o) {
+    o = o || {};
+    const k = o.call || 0;
+    ctx.save(); if (o.female) ctx.scale(1.15, 1.15);
+    for (const s of [-1, 1]) {
+      if (o.moving) { ell(ctx, -9, s * 6, 8, 2.6, '#4f8f3a', s * 0.25, 'wet'); ell(ctx, -17, s * 8, 5, 1.6, '#4a8a36', s * 0.2, 'wet'); }
+      else { ell(ctx, -6, s * 7, 7, 3, '#4f8f3a', s * 0.5, 'wet'); ell(ctx, -11, s * 9, 3, 1.4, '#4a8a36', s * 0.9, 'wet'); }
+      ell(ctx, 6, s * 6, 4, 2, '#4f8f3a', -s * 0.5, 'wet');
+    }
     ell(ctx, 0, 0, 9, 7, '#5fa046', 0, 'wet');
     plainLine(ctx, [-8, 0, 7, 0], 'rgba(220,230,160,.5)', 1.5);
-    const r = rng(9); for (let k = 0; k < 12; k++) plainEll(ctx, (r() - 0.5) * 15, (r() - 0.5) * 11, 1.2, 1, 'rgba(110,80,40,.4)');
+    const r = rng(9); for (let q = 0; q < 12; q++) plainEll(ctx, (r() - 0.5) * 15, (r() - 0.5) * 11, 1.2, 1, 'rgba(110,80,40,.4)');
+    if (k > 0) ell(ctx, 10 + k * 2, 0, 2.5 + k * 4.5, 3 + k * 4.5, '#e8e0b0', 0, 'wet');   // the sac, puffed out under the chin
     ell(ctx, 7, 0, 4.5, 4.4, '#5fa046', 0, 'wet');
     eye(ctx, 7.5, -3.3, 2.1, 2.1, '#d8a840'); eye(ctx, 7.5, 3.3, 2.1, 2.1, '#d8a840');
     plainEll(ctx, 7.5, -3.3, 1.2, 0.5, '#1a1008'); plainEll(ctx, 7.5, 3.3, 1.2, 0.5, '#1a1008');
+    ctx.restore();
   },
   smallAnt(ctx, o, t) {
     legs6r(ctx, 1, 12, '#1b1b1b', 1.1, t, true, { wide: 1.8 });

@@ -204,6 +204,41 @@ test('bush fly: hitch a ride on the kangaroo, and a wagtail perched there catche
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+test('frog chorus: calls in the gap count, the heron hears you, the others call in stereo', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'frog', { noNet: true, noPred: true });
+  await p.waitForFunction(() => Missions.frog.gap(Game.g), null, { timeout: 8000 });
+  await p.keyboard.down('Space'); await p.waitForTimeout(800); await p.keyboard.up('Space');
+  const r1 = await p.evaluate(() => ({ score: Game.g.score, sac: Game.g.seen.has('sac'), call: Game.g.seen.has('call'), rings: Game.g.rings.length }));
+  check(r1.score === 1 && r1.call && r1.sac, 'a call in the gap was not heard: ' + JSON.stringify(r1));
+  // a call over the rivals is not heard, and gets the hint
+  await p.waitForFunction(() => !Missions.frog.gap(Game.g), null, { timeout: 8000 });
+  await p.evaluate(() => { Game.g.hintT = 0; });
+  await p.keyboard.down('Space'); await p.waitForTimeout(600); await p.keyboard.up('Space');
+  const r2 = await p.evaluate(() => ({ score: Game.g.score, hint: Game.g.toasts.some(t => /Too noisy/.test(t.text)) || /Too noisy/.test(document.getElementById('toast').textContent) }));
+  check(r2.score === 1 && r2.hint, 'a call over the chorus counted: ' + JSON.stringify(r2));
+  // the others call around the lake, in stereo, and the first one near gives its fact
+  await p.evaluate(() => { Game.timeScale = 4; });
+  await p.waitForFunction(() => FrogCalls.played.banjo > 0 && FrogCalls.played.froglet > 0, null, { timeout: 20000 });
+  await p.evaluate(() => { Game.timeScale = 1; });
+  const r3 = await p.evaluate(() => ({ banjo: Game.g.seen.has('banjo') || Game.g.seen.has('froglet') || Game.g.seen.has('rivals'), stereo: !!(Sound.ac && Sound.ac.createStereoPanner) }));
+  check(r3.banjo, 'no fact for a frog heard nearby');
+  // calling draws the heron: its sight grows while the sac is puffed
+  await p.evaluate(() => { const g = Game.g; g.predCfg = { sprite: 'nightHeron', name: 'night heron', r: 28, wanderSpeed: 25, chaseSpeed: 95, sight: 90, chaseTime: 3, restTime: 4 }; g.predT = 0.01; });
+  await p.waitForFunction(() => Game.g.preds.length > 0, null, { timeout: 5000 });
+  await p.evaluate(() => { const g = Game.g, h = g.preds[0]; g.player.x = g.home.x + 300; g.player.invuln = 0; h.x = g.player.x + 200; h.y = g.player.y; h.state = 'wander'; });   // out of the safe reeds
+  await p.keyboard.down('Space'); await p.waitForTimeout(400);
+  const r4 = await p.evaluate(() => ({ sight: Game.g.preds[0].sight, state: Game.g.preds[0].state }));
+  await p.keyboard.up('Space');
+  check(r4.sight === 260 && r4.state !== 'wander', 'the heron did not hear the call: ' + JSON.stringify(r4));
+  // the female comes once you have been heard enough, and the level ends when she arrives
+  await p.evaluate(() => { const g = Game.g; g.preds = []; g.predCfg = null; g.score = 8; });
+  await p.waitForFunction(() => !!Game.g.female, null, { timeout: 5000 });
+  await p.evaluate(() => { const g = Game.g; g.female.x = g.player.x + 60; g.female.y = g.player.y; });
+  await p.waitForSelector('#end.active', { timeout: 10000 });
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('the progress ring shows while munching', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'snail', { noNet: true, noPred: true });

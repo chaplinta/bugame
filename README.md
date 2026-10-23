@@ -31,7 +31,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - **Gentle first stages**: on a bug's first stage you can't run out of hearts. Later stages end when all 3 hearts are gone.
 - **Bug Book**: every fact you've found, plus "???" for the ones still to find. Progress is saved in the browser.
 - **Sound**, **Read to me** (reads facts aloud) and **3D pictures** can be turned on or off on the map. The 3D pictures are small three.js models of every bug, bird, plant and prop, rendered with real shadows; on a device without WebGL (or with it turned off, or with `?no3d=1` in the address) the same things are drawn flat.
-- **Shout to buzz**: off until you turn it on. Then the microphone is a second action button in the levels that allow it: land on a flower as the blue-banded bee and shout BUZZ. It listens only while the game is running, on your device; nothing is recorded or sent anywhere. The button still works too.
+- **Shout to buzz**: off until you turn it on. Then the microphone is a second action button in the levels that allow it: land on a flower as the blue-banded bee and shout BUZZ, or call like a motorbike frog at the night lake. It listens only while the game is running, on your device; nothing is recorded or sent anywhere. The button still works too.
 
 ## Missions
 
@@ -57,6 +57,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 | Golden orb-weaver, female (*Trichonephila edulis*) | Wireless Hill | spin dry and sticky silk between branches, lay a spiral, cut and repair, wrap stuck insects then eat them, or set them free (bees sting, so cut them loose); beetles smash through |
 | Sugar ant worker (*Camponotus*) | Under a Bull Creek backyard (side-on) | dig tunnels, carry soil up to build the mound, make a nursery and food store, fetch honeydew, plug the entrance before rain |
 | Mosquito, female (*Culex quinquefasciatus*) | Backyard barbecue, Bassendean (isometric) | bite people while they chat, fly off before they swat, lay egg rafts on still water |
+| Motorbike frog, male (*Litoria moorei*) | Lake Joondalup, at night | call in the gaps of the chorus (hold Call, or shout) to be heard and bring a female; banjo frogs, moaning frogs and squelching froglets call round you in stereo; keep still and quiet when the night heron wades past |
 
 ## Code
 
@@ -76,6 +77,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - `js/tank.js`: the girl-with-a-net event, the catch animation and the bug tank
 - `js/night.js`: the ten-minute day and the night screen
 - `js/tools.js`: tool palette for building levels; `js/garden.js`, `js/web.js`, `js/dig.js`: the garden, orb web and ant nest
+- `js/frogs.js`: the frog chorus night level, with the four frog calls built from oscillators and panned to where they come from
 - `js/tree.js`: the bug family tree
 - `js/secrets.js`: Easter eggs
 - `js/ui.js`: map, bug page, end screen, Bug Book, saved progress

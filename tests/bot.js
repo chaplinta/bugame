@@ -154,6 +154,12 @@
       }
     } else if (id === 'dragonfly') {
       goal = near(g.items);
+    } else if (id === 'frog') {
+      // Call in the gap of the chorus; keep quiet and head home when the heron is near; meet the female when she comes
+      const heron = pr && pr.state !== 'wander' && dist(pr, p) < 320;
+      if (g.female) goal = g.female;
+      else if (heron) goal = g.home;
+      else hold = m.gap(g);
     }
     return { goal, act, hold };
   }

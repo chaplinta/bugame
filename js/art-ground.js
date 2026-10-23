@@ -104,6 +104,20 @@ function drawGumCrown(ctx, x, y, rad, seed) {
   ell(ctx, x, y, 7, 7, '#9a8a70', 0, 'bark');
 }
 
+// Lily pads scattered over open water (the 3D stamp when there is one), kept clear of home.
+function drawLilies(ctx, r, W, H, home, n) {
+  scatter(r, W, H, n, home, 90, (x, y) => {
+    const s = 14 + r() * 12;
+    if (stamp3d(ctx, 'bgLily', { seed: Math.round(r() * 6) }, x, y, s / 20, r() * TAU)) return;
+    ctx.fillStyle = 'rgba(0,20,30,.25)'; ctx.beginPath(); ctx.ellipse(x + 2, y + 3, s, s * 0.95, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, s, 0.12, TAU - 0.12); ctx.closePath();
+    const g = ctx.createRadialGradient(x - s * 0.3, y - s * 0.3, 2, x, y, s);
+    g.addColorStop(0, '#6aa848'); g.addColorStop(1, '#3a7a2c'); ctx.fillStyle = g; ctx.fill();
+    if (Shade.rich) Tex.fillPath(ctx, 'leaf', 1.2, 0.3, 'multiply');
+    ctx.strokeStyle = 'rgba(20,50,20,.5)'; ctx.lineWidth = 0.8; ctx.stroke();
+    for (let k = 0; k < 7; k++) plainLine(ctx, [x, y, x + Math.cos(k * 0.86 + 0.2) * s * 0.9, y + Math.sin(k * 0.86 + 0.2) * s * 0.9], 'rgba(30,70,30,.35)', 0.7);
+  });
+}
 // Reeds and sedges from above: a clump of flat blades with a dark heart.
 function drawReeds(ctx, x, y, n, spread, seed) {
   const r = rng(seed || Math.round(x * 3 + y));
@@ -192,17 +206,7 @@ Object.assign(Backgrounds, {
   dragonfly(ctx, W, H, home) {
     const r = rng(51), A = W * H / (960 * 600);
     Ground.water(ctx, W, H, 51, { shallow: '#62a8c8', deep: '#1f4f72', depth: 'radial', caustics: 0.18, weed: 1.2 });
-    scatter(r, W, H, 14 * A, home, 90, (x, y) => {
-      const s = 14 + r() * 12;
-      if (stamp3d(ctx, 'bgLily', { seed: Math.round(r() * 6) }, x, y, s / 20, r() * TAU)) return;
-      ctx.fillStyle = 'rgba(0,20,30,.25)'; ctx.beginPath(); ctx.ellipse(x + 2, y + 3, s, s * 0.95, 0, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, s, 0.12, TAU - 0.12); ctx.closePath();
-      const g = ctx.createRadialGradient(x - s * 0.3, y - s * 0.3, 2, x, y, s);
-      g.addColorStop(0, '#6aa848'); g.addColorStop(1, '#3a7a2c'); ctx.fillStyle = g; ctx.fill();
-      if (Shade.rich) Tex.fillPath(ctx, 'leaf', 1.2, 0.3, 'multiply');
-      ctx.strokeStyle = 'rgba(20,50,20,.5)'; ctx.lineWidth = 0.8; ctx.stroke();
-      for (let k = 0; k < 7; k++) plainLine(ctx, [x, y, x + Math.cos(k * 0.86 + 0.2) * s * 0.9, y + Math.sin(k * 0.86 + 0.2) * s * 0.9], 'rgba(30,70,30,.35)', 0.7);
-    });
+    drawLilies(ctx, r, W, H, home, 14 * A);
     drawReeds(ctx, home.x, home.y, 14, home.r * 2.2, 52);
     for (let x = 0; x < W; x += 140) { drawReeds(ctx, x, 20, 3, 60, x); drawReeds(ctx, x, H - 20, 3, 60, x + 1); }
     for (let y = 0; y < H; y += 140) { drawReeds(ctx, 20, y, 3, 60, y + 2); drawReeds(ctx, W - 20, y, 3, 60, y + 3); }

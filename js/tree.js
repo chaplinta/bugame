@@ -5,6 +5,7 @@
 const FAMILY = {
   name: 'Animals', fact: 'All these bugs are animals. They all come from one ancestor that lived more than 500 million years ago.',
   kids: [
+    { name: 'Animals with backbones', fact: 'Frogs are not bugs at all. They have a backbone inside, like fish, birds and you.', kids: [{ bug: 'frog' }] },
     { name: 'Molluscs', fact: 'Snails are molluscs, like slugs, octopuses and mussels. They are only distant cousins of insects.', kids: [{ bug: 'snail' }] },
     { name: 'Arthropods', fact: 'Arthropods have a hard skeleton on the outside and legs with joints. They moult to grow.', kids: [
       { name: 'Spiders & scorpions', fact: 'Spiders, scorpions and mites have 8 legs and fangs called chelicerae.', kids: [{ bug: 'spider' }, { bug: 'orbweaver' }] },

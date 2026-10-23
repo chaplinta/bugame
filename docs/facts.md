@@ -225,6 +225,20 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - *Bothriembryon* and other land snails are hermaphrodites. AM; WAM.
 - Juvenile spiderlings and odonate nymphs can't be sexed by eye. General.
 
+## Motorbike frog (*Litoria moorei*), the frog chorus level
+- The motorbike frog (western bell frog) lives in wetlands and lakes around Perth; the male's call is a series of rising notes like a motorbike changing gears, followed by warbling growls; calls spring to summer. WAM Frog Watch; Frogwatch WA.
+- Western banjo frog (*Limnodynastes dorsalis*): a single "bonk" like a plucked banjo string; a chorus sounds like a band of bad banjo players; calls mostly winter and spring. WAM Frog Watch; Frogwatch WA.
+- Moaning frog (*Heleioporus eyrei*): a long, low, rising moan, called from a burrow in sandy soil; mainly late autumn and early winter. WAM Frog Watch; Frogwatch WA.
+- Squelching froglet (*Crinia insignifera*): a short rubbery squelch; a small frog under 3 cm; calls through winter and spring. WAM Frog Watch; Frogwatch WA.
+- All four species are recorded around Lake Joondalup (Yellagonga Regional Park) and other Perth wetlands. ALA; DBCA (Yellagonga).
+- Male frogs call to attract females, who choose a mate by his call; a calling male inflates the vocal sac, which makes the call louder. Gerhardt & Huber 2002, *Acoustic Communication in Insects and Anurans*; Wells 2007, *The Ecology and Behavior of Amphibians*.
+- Frogs in a chorus avoid overlapping their calls, alternating with their neighbours so each can be heard. Wells 1977 (Animal Behaviour); Gerhardt & Huber 2002.
+- Frogs are amphibians, vertebrates with a backbone, and start life as tadpoles that breathe with gills; adults eat insects and other invertebrates. AM; WAM.
+- The nankeen night heron hunts at night and dusk along the water's edge for fish, frogs, crustaceans and insects, and is common at Perth lakes. BirdLife Australia; ALA.
+- Oblong turtles eat tadpoles among other prey (see the dragonfly nymph section). WAM.
+- Frogs are indicators of wetland health. Frogwatch WA; WAM.
+- Lake Joondalup, in Yellagonga Regional Park, is one of Perth's largest freshwater wetlands. DBCA.
+
 ## Native garden (build your own)
 - Native plants support native wildlife (nectar, seed, shelter); Perth councils and the Water Corporation promote waterwise native gardens. Water Corporation; City of Melville/Bayswater wildlife-garden guides.
 - Earthworms break down organic matter and improve soil. CSIRO.
@@ -269,6 +283,7 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Colonies can reach thousands of workers. AM.
 
 ## Landmarks in backgrounds
+- Lake Joondalup is drawn on the map north of Herdsman Lake, where it really is (Yellagonga Regional Park). Scenery only.
 - Dingo Flour mill (North Fremantle) with its painted dingo; Fremantle Harbour cranes; Wadjemup (Rottnest) lighthouse; Perth CBD seen from Wireless Hill; Adventure World water park at Bibra Lake; election corflutes in Cottesloe. Scenery only.
 
 ## Secrets
@@ -288,6 +303,7 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Predators only visit now and then (about once a minute) and leave after about 20 seconds.
 - Bush fly eggs hatch in seconds in the game; really it takes hours.
 - The bush fly can sit on a cow or the kangaroo and be carried across the paddock. Real bush flies land on animals for moisture and protein, not for transport, and take off when the animal moves; the only real "ride" is on the spring winds.
+- The frog chorus: all four frogs call on one spring night in the game; the moaning frog really calls in autumn and early winter. The calls are synthesised from oscillators, not recordings. The chorus takes turns in a neat round of four with one gap; real choruses are messier. The female hops straight to you within a minute.
 - Predators give up a chase in the safe home area, and pause before chasing so young players can react.
 - The nymph stage is a few minutes; real nymphs take months.
 - Spider jumps follow a target that hops mid-air; real jumps are ballistic.

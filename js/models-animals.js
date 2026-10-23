@@ -462,14 +462,23 @@ Models.define('turtle', {
 
 Models.define('frog', {
   // Motorbike frog: olive-green with a pale stripe, golden eyes, long legs folded at the sides.
-  build(M) {
-    const g = new THREE.Group(), wet = M.skin('#5fa046', { rough: 0.3 });
-    for (const s of [-1, 1]) { M.ellipsoid(g, 7, 3, 2.4, M.skin('#4f8f3a', { rough: 0.3 }), [-6, s * 7, 2.2], s * 0.5); M.ellipsoid(g, 3, 1.4, 1.2, M.skin('#4a8a36', { rough: 0.3 }), [-11, s * 9, 1.2], s * 0.9); M.ellipsoid(g, 4, 2, 1.6, M.skin('#4f8f3a', { rough: 0.3 }), [6, s * 6, 1.6], -s * 0.5); for (let f = -1; f <= 1; f++) M.seg(g, [-12, s * 10, 0.8], [-13 + f * 1.5, s * 13, 0.3], 0.5, M.skin('#4a8a36'), { cone: 0.1 }); }
+  // o.call: the throat sac puffed out (0 to 1); o.moving: mid-hop, legs stretched back; o.female: a little bigger.
+  variant(o) { return 'c' + Math.round((o.call || 0) * 4) + (o.female ? 'F' : '') + (o.moving ? 'M' : ''); },
+  key(o, t) { return 'c' + Math.round((o.call || 0) * 4) + (o.female ? 'F' : '') + (o.moving ? 'M' : ''); },
+  build(M, o) {
+    const g = new THREE.Group(), wet = M.skin('#5fa046', { rough: 0.3 }), k = Math.round((o.call || 0) * 4) / 4;
+    for (const s of [-1, 1]) {
+      if (o.moving) { M.ellipsoid(g, 8, 2.6, 2, M.skin('#4f8f3a', { rough: 0.3 }), [-9, s * 6, 2], s * 0.25); M.ellipsoid(g, 5, 1.6, 1.2, M.skin('#4a8a36', { rough: 0.3 }), [-17, s * 8, 1.2], s * 0.2); for (let f = -1; f <= 1; f++) M.seg(g, [-21, s * 8.5, 0.8], [-24 + f * 0.5, s * 9.5 + f * 1.5, 0.3], 0.5, M.skin('#4a8a36'), { cone: 0.1 }); }
+      else { M.ellipsoid(g, 7, 3, 2.4, M.skin('#4f8f3a', { rough: 0.3 }), [-6, s * 7, 2.2], s * 0.5); M.ellipsoid(g, 3, 1.4, 1.2, M.skin('#4a8a36', { rough: 0.3 }), [-11, s * 9, 1.2], s * 0.9); for (let f = -1; f <= 1; f++) M.seg(g, [-12, s * 10, 0.8], [-13 + f * 1.5, s * 13, 0.3], 0.5, M.skin('#4a8a36'), { cone: 0.1 }); }
+      M.ellipsoid(g, 4, 2, 1.6, M.skin('#4f8f3a', { rough: 0.3 }), [6, s * 6, 1.6], -s * 0.5);
+    }
     M.ellipsoid(g, 9, 7, 5, wet, [0, 0, 4.6]);
     M.ellipsoid(g, 8, 0.55, 0.3, M.skin('#c8d890'), [-1, 0, 9.5]);
-    const r = rng(9); for (let k = 0; k < 12; k++) M.ellipsoid(g, 1.2, 1, 0.6, M.skin('#6e5028'), [(r() - 0.5) * 15, (r() - 0.5) * 11, 4.6 + 4.9 * Math.sqrt(Math.max(0, 1 - 0.5))]);
+    const r = rng(9); for (let q = 0; q < 12; q++) M.ellipsoid(g, 1.2, 1, 0.6, M.skin('#6e5028'), [(r() - 0.5) * 15, (r() - 0.5) * 11, 4.6 + 4.9 * Math.sqrt(Math.max(0, 1 - 0.5))]);
+    if (k > 0) M.ellipsoid(g, 2.5 + k * 4.5, 3 + k * 4.5, 2 + k * 3, M.skin('#e8e0b0', { rough: 0.35 }), [10 + k * 2, 0, 2 + k * 1.5]);   // the sac, puffed out under the chin
     M.ellipsoid(g, 4.5, 4.4, 3.6, wet, [7, 0, 4.4]);
     for (const s of [-1, 1]) { M.ellipsoid(g, 2.1, 2.1, 2.1, M.eye({ color: '#d8a840' }), [7.5, s * 3.3, 7.6]); M.ellipsoid(g, 1.2, 0.5, 0.5, M.gloss('#1a1008'), [8.2, s * 3.3, 8.6]); }
+    if (o.female) g.scale.setScalar(1.15);
     return g;
   },
 });

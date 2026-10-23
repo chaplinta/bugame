@@ -33,7 +33,7 @@ const WHAT = {
   echidna: 'Short-beaked echidna', beeEater: 'Rainbow bee-eater', hobby: 'Australian hobby', wagtail: 'Willie wagtail', magpie: 'Western magpie', turtle: 'Oblong turtle',
   wasp: 'Spider wasp (Pompilidae)', paperWasp: 'Paper wasp (Polistes)', bobtail: 'Bobtail lizard (Tiliqua rugosa)', gull: 'Silver gull', plover: 'Red-capped plover',
   cone: 'Banksia cone', feather: 'Feather', dig: 'Dug hole', shell: 'Snail shell', seashell: 'Cockle shell', beeHotel: 'Bee hotel', birdbath: 'Bird bath (from above)',
-  frog: 'Motorbike frog (Litoria moorei)', damselfly: 'Damselfly', gilgie: 'Gilgie (Cherax quinquecarinatus)', divingBeetle: 'Diving beetle', kangaroo: 'Western grey kangaroo',
+  frog: 'Motorbike frog (Litoria moorei)', moaningFrog: 'Moaning frog (Heleioporus eyrei)', froglet: 'Squelching froglet (Crinia insignifera)', nightHeron: 'Nankeen night heron', damselfly: 'Damselfly', gilgie: 'Gilgie (Cherax quinquecarinatus)', divingBeetle: 'Diving beetle', kangaroo: 'Western grey kangaroo',
   rooPoo: 'Kangaroo droppings', gecko: 'Marbled gecko', sausage: 'Snag', dianella: 'Dianella (flax lily)', hibbertia: 'Hibbertia (guinea flower)', paw: 'Kangaroo paw (Anigozanthos manglesii)',
   everlasting: 'Pink everlasting', capeweed: 'Capeweed', grevillea: 'Grevillea', gum: 'Gum tree crown', banksiaTree: 'Banksia', grassTree: 'Grass tree (Xanthorrhoea)',
   saltbush: 'Saltbush', nativeGrass: 'Native grass', bottlebrush: 'Bottlebrush', rush: 'Rushes', rock: 'Garden rock', litter: 'Leaf litter', nestBox: 'Nest box', pondPlant: 'Pond plant',
@@ -121,7 +121,8 @@ L('wasp', 'spider-wasp'); L('paperWasp', 'paper-wasp');
 L('bobtail', 'bobtail-lizard'); L('bobtail', 'bobtail-lizard-tongue-out', {}, { t: 0.5, state: 'blue tongue out' });
 L('gull', 'silver-gull', { face: 1, angle: 0 }); L('gull', 'silver-gull-diving', { face: 1, angle: 0, dive: true }, { state: 'diving' });
 L('plover', 'red-capped-plover', { face: 1, angle: 0 });
-L('frog', 'motorbike-frog'); L('damselfly', 'damselfly'); L('gilgie', 'gilgie'); L('divingBeetle', 'diving-beetle'); L('kangaroo', 'western-grey-kangaroo'); L('kangaroo', 'western-grey-kangaroo-hopping', { moving: true }, { t: 0.2, state: 'mid-hop' }); L('rooPoo', 'kangaroo-droppings');
+L('frog', 'motorbike-frog'); L('frog', 'motorbike-frog-calling', { call: 1 }, { state: 'throat sac puffed out' }); L('frog', 'motorbike-frog-hopping', { moving: true }, { state: 'mid-hop' }); L('frog', 'motorbike-frog-female', { female: true });
+L('moaningFrog', 'moaning-frog'); L('froglet', 'squelching-froglet'); L('nightHeron', 'nankeen-night-heron'); L('damselfly', 'damselfly'); L('gilgie', 'gilgie'); L('divingBeetle', 'diving-beetle'); L('kangaroo', 'western-grey-kangaroo'); L('kangaroo', 'western-grey-kangaroo-hopping', { moving: true }, { t: 0.2, state: 'mid-hop' }); L('rooPoo', 'kangaroo-droppings');
 L('gecko', 'marbled-gecko', { angle: 0 });
 L('worm', 'earthworm'); L('resinBee', 'resin-bee'); L('ladybird', 'transverse-ladybird'); L('skink', 'dwarf-skink');
 L('honeyeater', 'new-holland-honeyeater', { flying: false }); L('honeyeater', 'new-holland-honeyeater-flying', { flying: true }, { state: 'flying' });

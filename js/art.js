@@ -217,8 +217,8 @@ drawPerthMap = function (ctx, W, H) {
     plainEll(ctx, x, y, rx + 6, ry + 6, 'rgba(120,150,80,.45)', a);
     ell(ctx, x, y, rx, ry, '#5aaed8', a);
   }
-  // Lakes: Herdsman and Bibra
-  for (const [x, y, rx, ry] of [[430, 185, 40, 28], [455, 545, 22, 14]]) {
+  // Lakes: Joondalup, Herdsman and Bibra
+  for (const [x, y, rx, ry] of [[445, 75, 30, 17], [430, 185, 40, 28], [455, 545, 22, 14]]) {
     plainEll(ctx, x, y, rx + 9, ry + 8, 'rgba(110,150,80,.5)');
     ell(ctx, x, y, rx, ry, '#6ab8dc');
     for (let i = 0; i < 14; i++) { const a = i / 14 * TAU; plainLine(ctx, [x + Math.cos(a) * rx, y + Math.sin(a) * ry, x + Math.cos(a) * (rx + 6), y + Math.sin(a) * (ry + 6) - 3], '#5a8a40', 1.2); }
