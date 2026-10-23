@@ -23,6 +23,7 @@
         <button class="toggle" data-setting="sound" aria-pressed="true">Sound</button>
         <button class="toggle" data-setting="speech" aria-pressed="false">Read to me</button>
         <button class="toggle" data-setting="threeD" aria-pressed="true">3D pictures</button>
+        <button class="toggle" data-setting="mic" aria-pressed="false">Shout to buzz</button>
       </div>
     </header>
     <p class="sub">Be a real bug in Perth, WA. Tap a place on the map.</p>
@@ -45,7 +46,7 @@
       <button id="treeBtn">Family tree</button>
       <button id="installBtn" class="secondary" hidden>Install app</button>
     </div>
-    <p class="version">Version 3.1 · released 23 October 2026</p>
+    <p class="version">Version 3.2 · released 23 October 2026</p>
   </section>
 
   <section id="bug" class="screen">
@@ -76,6 +77,7 @@
         <span id="hudGoal"></span>
         <span id="hudExtra"></span>
         <span id="hudFind"></span>
+        <canvas id="hudMic" title="How loud you are" hidden></canvas>
         <canvas class="sunClock" title="Time left today"></canvas>
         <button id="hudSound" class="hudToggle" aria-label="Sound on or off"></button>
         <span id="hudLives"></span>
@@ -148,6 +150,7 @@
 <script src="js/engine.js"></script>
 <script src="js/sprite-cache.js"></script>
 <script src="js/media.js"></script>
+<script src="js/mic.js"></script>
 <script src="js/tank.js"></script>
 <script src="js/tools.js"></script>
 <script src="js/secrets.js"></script>

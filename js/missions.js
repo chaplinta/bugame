@@ -345,7 +345,7 @@ const Missions = {
   // -------------------------------------------------------- Blue-banded bee
   bee: {
     id: 'bee', bug: 'bee', stage: 'Adult female', place: 'A backyard with native plants', world: BIG,
-    action: 'Buzz', radius: 16, speed: 175, scale: 1.5, goal: 12,
+    action: 'Buzz', radius: 16, speed: 175, scale: 1.5, goal: 12, voice: true,   // voice: shouting works the button (js/mic.js)
     home: { x: 200, y: 220, r: 46, label: 'Burrow' },
     facts: [
       'Blue-banded bees live alone, not in a hive. Each female digs her own burrow in soil or a clay bank.',
@@ -355,6 +355,7 @@ const Missions = {
     how: [
       'Fly with the arrow keys, or touch and drag. Explore the whole yard!',
       'Land on a blue Dianella or yellow Hibbertia flower and hold or tap Buzz.',
+      'Or turn on Shout to buzz on the map, and shout BUZZ at the flower!',
       'You can carry 3 loads. Every 3 loads fills a new cell in your burrow.',
       'Look for sparkles: they’re discoveries.',
     ],
@@ -369,6 +370,7 @@ const Missions = {
       dianella: 'Dianella (flax lily) keeps its pollen locked inside tubes. Only a buzz shakes it out.',
       hibbertia: 'Hibbertia (guinea flower) is another buzz-pollinated flower. Bees spread its pollen from flower to flower.',
       paw: 'Kangaroo paws are pollinated mainly by birds like honeyeaters. Pollen rubs onto the bird’s head as it drinks nectar.',
+      buzz: 'A bee’s buzz comes from its flight muscles shaking very fast. Yours comes from your voice box!',
       nest: 'She mixes pollen with nectar into a food ball, lays an egg on it, and seals the cell.',
       cell: 'A full cell! The egg in it will hatch into a larva that eats the food ball, then turns into a new bee.',
       beeEater: 'Rainbow bee-eaters fly to Perth in spring. They catch bees in the air, then rub them on a branch to get rid of the sting.',
@@ -416,12 +418,13 @@ const Missions = {
             if (Math.floor((p.buzzT + w) * 8) !== Math.floor(p.buzzT * 8)) Sound.play('buzz');
             p.buzzT += w;
             Game.fact(f.kind);
+            if (input.loud) Game.fact('buzz');
             if (p.buzzT >= 0.8) {
               p.load++; f.pollen = false; f.regrow = 12; p.buzzT = 0;
               Sound.play('pick');
               Game.pop(f.x, f.y - 20, 'Pollen!', '#f39c12');
             }
-          } else if (p.stillT > 1.5) Game.hint('Hold or tap Buzz to shake the pollen out!');
+          } else if (p.stillT > 1.5) Game.hint(typeof Mic !== 'undefined' && Mic.active ? 'Shout BUZZ to shake the pollen out!' : 'Hold or tap Buzz to shake the pollen out!');
         }
       }
       if (f && f.pollen) p.progress = Math.min(1, p.buzzT / 0.8);

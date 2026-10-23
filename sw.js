@@ -3,7 +3,7 @@
 // Bump VERSION whenever any file below changes, so players get the update.
 // For a release, also update the version and date shown on the map screen (index.html, .version).
 
-const VERSION = 'bugame-v36';
+const VERSION = 'bugame-v37';
 const FILES = [
   './',
   'index.html',
@@ -13,7 +13,7 @@ const FILES = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'js/sprites.js', 'js/textures.js', 'js/render3d.js', 'js/art.js', 'js/art-bugs.js', 'js/art-bugs2.js', 'js/ground.js', 'js/art-ground.js', 'js/art-world.js',
-  'js/engine.js', 'js/sprite-cache.js', 'js/media.js',
+  'js/engine.js', 'js/sprite-cache.js', 'js/media.js', 'js/mic.js',
   'js/tank.js', 'js/tools.js',
   'js/secrets.js',
   'js/missions.js', 'js/missions2.js', 'js/flight.js', 'js/garden.js', 'js/web.js', 'js/dig.js', 'js/art-world2.js', 'js/models-bugs.js', 'js/models-plants.js', 'js/models-animals.js', 'js/models-props.js', 'vendor/three.min.js',

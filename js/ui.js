@@ -182,6 +182,8 @@ function startGame() {
   Speech.stop();
   show('play');
   syncToggles();
+  // Shout to buzz was left on last visit: the Start tap is the gesture that lets the page ask for the microphone again
+  if (Settings.mic && typeof Mic !== 'undefined' && !Mic.active) Mic.start().then((ok) => { if (!ok) { Settings.mic = false; Settings.save(); syncToggles(); } });
   try { Game.start(currentMission); } catch (e) { console.error(e); Game.onCrash(e); }
 }
 
@@ -362,6 +364,11 @@ for (const b of document.querySelectorAll('.toggle')) {
     if (k === 'threeD' && typeof Render3D !== 'undefined') {
       Render3D.toggle(Settings.threeD);
       redrawPortraits();   // the pins follow the setting
+    }
+    if (k === 'mic' && typeof Mic !== 'undefined') {
+      // The click is the gesture that lets the page ask for the microphone. If it can't be had, the toggle goes back off.
+      if (Settings.mic) Mic.start().then((ok) => { if (!ok) { Settings.mic = false; Settings.save(); syncToggles(); } else Speech.say('Shout BUZZ to buzz!', true); });
+      else Mic.stop();
     }
   });
 }

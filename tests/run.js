@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { launch, openGame, startMission, forceWin, serve, ROOT, MISSIONS, FILE_URL } = require('./helpers');
+const { launch, launchMedia, openGame, startMission, forceWin, serve, ROOT, MISSIONS, FILE_URL } = require('./helpers');
 
 const quick = process.argv.includes('--quick');
 const BOT = fs.readFileSync(path.join(__dirname, 'bot.js'), 'utf8');
@@ -661,6 +661,58 @@ test('phone layouts: messages clear the tools, the HUD stays one line, pins stay
   check(h.hudH <= 40, 'the HUD wraps to ' + h.hudH + ' px');
   check(!h.toastHud, 'the message runs into the HUD');
   check(!h.toastBtn, 'the message covers the action button');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+// ------------------------------------------------------------------ microphone
+test('shout to buzz: the toggle asks for the mic, a loud room buzzes the bee, quiet does not', async () => {
+  const srv = await serve(ROOT);
+  const b2 = await launchMedia();
+  try {
+    const ctx = await b2.newContext({ permissions: ['microphone'] });
+    const p = await ctx.newPage();
+    p.errors = [];
+    p.on('pageerror', (e) => p.errors.push(e.message));
+    p.on('console', (m) => { if (m.type() === 'error') p.errors.push(m.text()); });
+    await p.goto(srv.url);
+    await p.locator('.toggle[data-setting="mic"]').click();
+    await p.waitForFunction(() => Mic.active, null, { timeout: 10000 });
+    check(await p.evaluate(() => Settings.mic && !document.getElementById('hudMic').hidden), 'the mic toggle did not switch on');
+    await startMission(p, 'bee', { noNet: true, noPred: true });
+    await p.waitForFunction(() => Mic.level > 0, null, { timeout: 5000 }).catch(() => {});   // Chromium's fake microphone hums
+    const heard = await p.evaluate(() => Mic.level > 0);
+    // on a flower with pollen, a shout buzzes with no button pressed
+    await p.evaluate(() => { const f = Game.g.items.find(i => i.pollen); Game.g.player.x = f.x; Game.g.player.y = f.y; Mic.levelFn = () => 0.5; });
+    await p.waitForTimeout(700);
+    const r1 = await p.evaluate(() => ({ loud: Input.loud, buzzT: Game.g.player.buzzT, load: Game.g.player.load, fact: Game.g.seen.has('buzz') }));
+    check(r1.loud && (r1.buzzT > 0.2 || r1.load >= 1) && r1.fact, 'shouting did not buzz: ' + JSON.stringify(r1));
+    // quiet stops it
+    await p.evaluate(() => { Mic.levelFn = () => 0; });
+    await p.waitForTimeout(300);
+    const r2 = await p.evaluate(() => ({ loud: Input.loud, buzzT: Game.g.player.buzzT }));
+    await p.waitForTimeout(300);
+    const r3 = await p.evaluate(() => Game.g.player.buzzT);
+    check(!r2.loud && r3 <= r2.buzzT, 'quiet kept buzzing: ' + JSON.stringify([r2, r3]));
+    // a level without voice ignores the mic
+    await p.click('#menuBtn');
+    await startMission(p, 'ant', { noNet: true, noPred: true });
+    await p.evaluate(() => { Mic.levelFn = () => 0.5; });
+    await p.waitForTimeout(300);
+    check(await p.evaluate(() => Input.loud === false && Mic.loud), 'the ant level listened to the mic');
+    check(heard, 'the fake microphone was silent');
+    check(p.errors.length === 0, p.errors.join('; '));
+  } finally { await b2.close(); srv.close(); }
+});
+
+test('mic refused: the toggle switches itself back off and play goes on', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(() => { Media.get = async () => ({ error: 'denied' }); });
+  await p.locator('.toggle[data-setting="mic"]').click();
+  await p.waitForTimeout(300);
+  check(await p.evaluate(() => Settings.mic === false && !Mic.active && !document.getElementById('mediaNote').hidden && document.querySelector('.toggle[data-setting="mic"]').getAttribute('aria-pressed') === 'false'), 'a refused mic was not handled');
+  await startMission(p, 'bee', { noNet: true, noPred: true });
+  await p.waitForTimeout(300);
+  check(await p.evaluate(() => Game.running && Input.loud === false), 'play did not go on');
   check(p.errors.length === 0, p.errors.join('; '));
 });
 

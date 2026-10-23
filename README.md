@@ -31,6 +31,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - **Gentle first stages**: on a bug's first stage you can't run out of hearts. Later stages end when all 3 hearts are gone.
 - **Bug Book**: every fact you've found, plus "???" for the ones still to find. Progress is saved in the browser.
 - **Sound**, **Read to me** (reads facts aloud) and **3D pictures** can be turned on or off on the map. The 3D pictures are small three.js models of every bug, bird, plant and prop, rendered with real shadows; on a device without WebGL (or with it turned off, or with `?no3d=1` in the address) the same things are drawn flat.
+- **Shout to buzz**: off until you turn it on. Then the microphone is a second action button in the levels that allow it: land on a flower as the blue-banded bee and shout BUZZ. It listens only while the game is running, on your device; nothing is recorded or sent anywhere. The button still works too.
 
 ## Missions
 

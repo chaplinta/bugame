@@ -99,6 +99,7 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 ## Blue-banded bee (*Amegilla*, e.g. *A. chlorocyanea* in SW WA)
 - Solitary; female digs a nest burrow in soil or clay banks. AM, Aussie Bee.
 - Buzz pollination via flight-muscle vibration; honey bees can't. AM.
+- A bee's buzz (in flight and in buzz pollination) is made by rapid contraction of the thoracic flight muscles; a child's voice comes from the vocal folds in the larynx. AM; general physiology.
 - *Dianella* has poricidal anthers and is buzz-pollinated; *Hibbertia* is buzz-pollinated. Literature on Australian buzz pollination.
 - Cell stocked with pollen and nectar, egg laid, cell sealed. AM.
 - Males sleep clamped to stems by their mandibles. AM.

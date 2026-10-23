@@ -16,6 +16,8 @@ const ROOT = path.resolve(__dirname, '..');
 const FILE_URL = 'file://' + path.join(ROOT, 'index.html');
 
 function launch() { return chromium.launch(); }
+// A browser with Chromium's fake microphone and camera, for the features that ask for them.
+function launchMedia() { return chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'] }); }
 
 // Open the game and record page errors.
 async function openGame(browser, viewport, url) {
@@ -67,4 +69,4 @@ function serve(dir) {
 
 const MISSIONS = ['ant', 'queen', 'bee', 'fly', 'caterpillar', 'butterfly', 'termite', 'snail', 'spiderling', 'spider', 'nymph', 'dragonfly', 'sandhopper', 'mosquito', 'flight', 'skimmerF', 'spiderF', 'nest'];
 
-module.exports = { launch, openGame, startMission, forceWin, serve, ROOT, FILE_URL, MISSIONS };
+module.exports = { launch, launchMedia, openGame, startMission, forceWin, serve, ROOT, FILE_URL, MISSIONS };

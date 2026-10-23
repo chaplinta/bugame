@@ -87,7 +87,7 @@ Each bug gets 2–3 short stages (2–4 min each). Verbs stay to two at most: **
   - Budgets are checked by `tests/perf.js`: with the CPU throttled four times, a frame's draw must stay under 9 ms at the 95th percentile and a level must be up in 1.6 s including rasterisation.
 - Data-driven: bugs, stages, facts and places in `js/data/*.js`; shared engine (movement, predator AI, collisions, toasts, timers) in `js/engine.js`; per-mission logic in small modules.
 - Progress saved in `localStorage` (wrapped in try/catch, game works without it).
-- Audio optional: on by default, with a sound toggle on the map and in the game; read-aloud toggle, off by default.
+- Audio optional: on by default, with a sound toggle on the map and in the game; read-aloud toggle, off by default. Microphone optional ("Shout to buzz"), off by default, asked for only when switched on, listened to live and never recorded.
 - Accessibility: colour-blind-safe goal markers, no flashing, pause button.
 
 ## Proposed file layout
