@@ -288,8 +288,16 @@ test('3D sprites: a model renders with a shadow, light turns with the heading, t
     const td = tile.getContext('2d').getImageData(0, 0, tile.width, tile.height).data;
     let left = 0, right = 0;
     for (let y = 0; y < tile.height; y++) { if (td[(y * tile.width) * 4 + 3] > 100) left++; if (td[(y * tile.width + tile.width - 1) * 4 + 3] > 100) right++; }
-    return { ant: a && count(a.c), threeD: !!(a && a.threeD), different: a && b2 && a.c.toDataURL() !== b2.c.toDataURL(), bee: bee && count(bee.c), left, right, stats: Render3D.stats };
+    // The ladybird's painted seam must run along its back (the long axis), not across it
+    const lb = SpriteCache.image('ladybird', { moving: false }, { px: 8, angle: 0 });
+    const ld = lb.c.getContext('2d').getImageData(0, 0, lb.c.width, lb.c.height).data, ox = -lb.box[0] * 8, oy = -lb.box[1] * 8;
+    const dark = (x, y) => { const i = (Math.round(y) * lb.c.width + Math.round(x)) * 4; return ld[i + 3] > 200 && ld[i] < 70 && ld[i + 1] < 70 && ld[i + 2] < 70; };
+    let along = 0, across = 0;
+    for (let d = -5.5 * 8; d <= 4.5 * 8; d++) if (dark(ox - 8 + d, oy)) along++;      // the row through the dome's centre line
+    for (let d = -4.5 * 8; d <= 4.5 * 8; d++) if (dark(ox - 8, oy + d)) across++;     // the column across it
+    return { ant: a && count(a.c), threeD: !!(a && a.threeD), different: a && b2 && a.c.toDataURL() !== b2.c.toDataURL(), bee: bee && count(bee.c), left, right, seam: { along, across }, stats: Render3D.stats };
   });
+  check(r.seam.along > 40 && r.seam.along > r.seam.across * 1.5, 'ladybird seam does not run along the back: ' + JSON.stringify(r.seam));
   check(r.threeD, 'ant was not rendered in 3D');
   check(r.ant.body > r.ant.px * 0.03, 'ant body too small: ' + JSON.stringify(r.ant));
   check(r.ant.soft > r.ant.body * 0.2, 'no soft shadow or edges: ' + JSON.stringify(r.ant));
@@ -495,9 +503,14 @@ test('progress is saved and survives a reload', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'spiderling', { noNet: true, noPred: true });
   await forceWin(p);
+  // best results (the Olympics) and the mic setting ride along with the stars
+  await p.evaluate(() => { Progress.setBest('jump', 31, true); Progress.setBest('jump', 20, true); Progress.setBest('sprint', 40, false); Progress.setBest('sprint', 35, false); Settings.mic = true; Settings.save(); });
   await p.reload();
   const stars = await p.locator('.pin', { hasText: 'Peacock Spider' }).locator('.pinStars').textContent();
   check(/★/.test(stars), 'no stars after reload: ' + stars);
+  const kept = await p.evaluate(() => [Progress.best('jump'), Progress.best('sprint'), Settings.mic]);
+  check(kept[0] === 31 && kept[1] === 35 && kept[2] === true, 'best results or settings lost: ' + JSON.stringify(kept));
+  await p.evaluate(() => { Settings.mic = false; Settings.save(); });
 });
 
 test('secrets: hidden thing in a world, quokka on the map, Bug Book count', async (b) => {

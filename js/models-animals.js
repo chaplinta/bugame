@@ -566,13 +566,21 @@ Models.define('ladybird', {
   build(M) {
     const g = new THREE.Group();
     g.userData.legs = M.legs6(g, { cx: 0, wide: 1.3, len: 0.55, z: 2.4, mat: M.chitin('#111111'), w: 0.7, L: 6, pitch: 0.5, lift: 1 });
+    // The dome is a banded ellipsoid, so (as for the birds' bodies) x runs round the body with the top of the back
+    // a quarter of the way across, and y runs along it from the tail (top row) to the head. The markings are laid
+    // out in the top-view coordinates of the 2D drawing (art-world2.js) and mapped: U for a point's y across the
+    // body, V for its x along it.
     const dome = M.paint('ladybirdDome', 256, 128, (ctx, w, h) => {
+      const U = (y) => w * (0.25 + Math.asin(Math.max(-1, Math.min(1, y / 5.4))) / TAU), V = (x) => h * (x + 7.2) / 12.4;
       ctx.fillStyle = '#e03a1a'; ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = '#111';
-      ctx.fillRect(0, h * 0.48, w, h * 0.04);   // the seam between the wing cases
-      // the transverse bands: a bar across the shoulders, two curved bands behind it, a spot each side at the back
-      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(w * 0.6, h * (0.5 + s * 0.05)); ctx.quadraticCurveTo(w * 0.52, h * (0.5 + s * 0.3), w * 0.4, h * (0.5 + s * 0.38)); ctx.quadraticCurveTo(w * 0.36, h * (0.5 + s * 0.28), w * 0.42, h * (0.5 + s * 0.15)); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.ellipse(w * 0.22, h * (0.5 + s * 0.26), w * 0.05, h * 0.1, 0, 0, TAU); ctx.fill(); }
-      ctx.fillRect(w * 0.7, h * 0.12, w * 0.06, h * 0.76);
+      ctx.fillRect(w * 0.5, 0, w * 0.5, h);                            // the underside
+      ctx.fillRect(w * 0.24, 0, w * 0.02, h);                          // the seam between the wing cases, along the back
+      ctx.fillRect(U(-4.2), V(2.0), U(4.2) - U(-4.2), V(2.9) - V(2.0));  // the bar across the shoulders
+      for (const s of [-1, 1]) {                                       // a curved band and a spot on each wing case
+        ctx.beginPath(); ctx.moveTo(U(s * 0.6), V(2.5)); ctx.quadraticCurveTo(U(s * 3.2), V(0), U(s * 3.6), V(-1.5)); ctx.quadraticCurveTo(U(s * 2.6), V(-2.5), U(s * 1.4), V(-1.2)); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(U(s * 2.6), V(-4.2), Math.abs(U(s * 3.9) - U(s * 2.6)) * 0.5 + w * 0.02, h * 0.1, 0, 0, TAU); ctx.fill();
+      }
     }, { clamp: true });
     M.banded(g, 6.2, 5.4, 3.6, M.chitin('#ffffff', { map: dome, coat: 1, rough: 0.2, bump: 0.1 }), [-1, 0, 2.6]);
     M.ellipsoid(g, 2, 3.8, 2, M.chitin('#111111', { coat: 1, rough: 0.2 }), [4.2, 0, 2.4]);

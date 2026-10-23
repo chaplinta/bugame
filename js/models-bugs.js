@@ -294,6 +294,7 @@ Models.define('spider', {
 
 Models.define('femaleSpider', {
   buckets: 16,
+  variant(o) { return o.heart ? 'h' : ''; },   // the heart is part of the build, so it needs its own root
   key(o, t) { return (o.heart ? 'h' : '') + (o.moving ? 'm' + SpriteCache.phase(t, 16, 8) : 'x'); },
   build(M, o) {
     const g = new THREE.Group(), angles = [0.55, 1.15, 1.9, 2.5];

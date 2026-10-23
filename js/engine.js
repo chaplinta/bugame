@@ -5,13 +5,15 @@ const W = 960, H = 600;          // screen (view) size
 const World = { w: W, h: H };    // size of the current mission's world, set in Game.start
 
 // Settings remembered between visits.
+const SETTING_KEYS = ['sound', 'speech', 'threeD', 'mic'];   // what is saved; a new setting goes here too
 const Settings = {
   sound: true, speech: false, threeD: true,   // threeD: the 3D pictures (js/render3d.js reads it before this file loads)
+  mic: false,                                 // shout to buzz: the microphone as a second action button (js/mic.js)
   load() {
-    try { Object.assign(this, JSON.parse(localStorage.getItem('bugame.settings') || '{}')); } catch (e) { /* storage off */ }
+    try { const d = JSON.parse(localStorage.getItem('bugame.settings') || '{}'); for (const k of SETTING_KEYS) if (k in d) this[k] = d[k]; } catch (e) { /* storage off */ }
   },
   save() {
-    try { localStorage.setItem('bugame.settings', JSON.stringify({ sound: this.sound, speech: this.speech, threeD: this.threeD })); } catch (e) { /* storage off */ }
+    try { const d = {}; for (const k of SETTING_KEYS) d[k] = this[k]; localStorage.setItem('bugame.settings', JSON.stringify(d)); } catch (e) { /* storage off */ }
   },
 };
 Settings.load();
@@ -26,6 +28,8 @@ const Sound = {
     if (this.ac.state !== 'running' && this.ac.resume) this.ac.resume().catch(() => { /* needs a tap first */ });
     return this.ac;
   },
+  // Called from taps on the stage: a context started inside a gesture is allowed to play.
+  wake() { if (Settings.sound || Settings.mic) try { this.ensure(); } catch (e) { /* audio unavailable */ } },
   tone(freq, dur, type, vol, slideTo, delay) {
     if (!Settings.sound) return;
     try {
@@ -80,6 +84,7 @@ const Input = {
   pointer: null,     // id of the finger (or mouse button) that is steering; other touches are ignored
   pressed: false,    // action pressed this frame
   held: false,       // action held
+  loud: false,       // the kid is shouting (js/mic.js), which counts as holding in levels that allow it
 };
 
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -184,6 +189,7 @@ const Game = {
     // the first lets go, so a stray touch never stops the bug or cuts a drag short.
     const mine = (e) => Input.pointer !== null && e.pointerId === Input.pointer;
     this.canvas.addEventListener('pointerdown', (e) => {
+      Sound.wake();
       if (Input.pointer !== null && !mine(e)) return;
       Input.pointer = e.pointerId;
       try { this.canvas.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
@@ -200,7 +206,7 @@ const Game = {
     document.getElementById('stage').addEventListener('contextmenu', (e) => e.preventDefault());
 
     const btn = document.getElementById('actionBtn');
-    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); Input.pressed = true; Input.held = true; });
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); Sound.wake(); Input.pressed = true; Input.held = true; });
     for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(ev, () => { Input.held = false; });
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
   },
@@ -392,6 +398,7 @@ const Game = {
     p.stillT = p.moving || Input.pressed || Input.held ? 0 : (p.stillT || 0) + dt;
 
     p.progress = 0;   // missions set this while an action is under way (drawn as a ring)
+    if (typeof Mic !== 'undefined') Mic.tick(dt);   // shouting counts as holding the button in levels that allow it
     m.update(g, dt, Input);
     this.updateCamera();
     this.updateFinds();
@@ -593,14 +600,15 @@ const Game = {
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (typeof SpriteCache !== 'undefined' && SpriteCache.beginFrame) SpriteCache.beginFrame();
     if (g.event && g.event.phase === 'tank') { this.drawTank(ctx); return; }
+    const sky = typeof Night !== 'undefined' && !g.mission.noSky;   // noSky: a level that shows a live camera frame
     if (g.mission.render) {   // a mission with its own renderer (the 3D flight)
       g.mission.render(ctx, g);
-      if (typeof Night !== 'undefined') Night.drawSky(ctx);
+      if (sky) Night.drawSky(ctx);
       return;
     }
     this.drawWorld(ctx);
     if (g.event) this.drawSwoop(ctx);
-    if (typeof Night !== 'undefined') Night.drawSky(ctx);
+    if (sky) Night.drawSky(ctx);
   },
 
   drawWorld(ctx) {

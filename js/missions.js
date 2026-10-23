@@ -8,9 +8,10 @@ function setHud(goal, extra) {
 }
 
 // Action buttons work by holding OR tapping: holding counts time, each new press adds a little extra.
-// Progress is never lost by letting go, so tapping kids get there too.
-function working(input) { return input.held || input.pressed; }
-function work(input, dt) { return (input.held ? dt : 0) + (input.pressed ? 0.3 : 0); }
+// Progress is never lost by letting go, so tapping kids get there too. Shouting (input.loud, js/mic.js)
+// counts as holding in the levels that allow it.
+function working(input) { return input.held || input.pressed || input.loud; }
+function work(input, dt) { return (input.held || input.loud ? dt : 0) + (input.pressed ? 0.3 : 0); }
 
 function setAction(label, ready) {
   const btn = document.getElementById('actionBtn');

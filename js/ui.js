@@ -1,14 +1,21 @@
 'use strict';
 // Map, bug page, end screen and Bug Book.
 
-// Saved progress: stars per mission and fact keys found per mission.
+// Saved progress: stars per mission, fact keys found per mission, secrets, and best results (the Olympics).
 const Progress = {
-  data: { stars: {}, facts: {}, secrets: [] },
+  data: { stars: {}, facts: {}, secrets: [], best: {} },
   load() {
     try {
       const d = JSON.parse(localStorage.getItem('bugame.progress') || '{}');
-      this.data = { stars: d.stars || {}, facts: d.facts || {}, secrets: d.secrets || [] };
+      this.data = { stars: d.stars || {}, facts: d.facts || {}, secrets: d.secrets || [], best: d.best || {} };
     } catch (e) { /* storage off */ }
+  },
+  best(id) { return this.data.best[id]; },
+  // Keep a result when it beats the saved one (or there is none); true when it did.
+  setBest(id, v, higherIsBetter) {
+    const old = this.data.best[id];
+    if (old !== undefined && (higherIsBetter ? v <= old : v >= old)) return false;
+    this.data.best[id] = v; this.save(); return true;
   },
   save() { try { localStorage.setItem('bugame.progress', JSON.stringify(this.data)); } catch (e) { /* storage off */ } },
   stars(id) { return this.data.stars[id] || 0; },
@@ -20,8 +27,8 @@ const Progress = {
   },
   addSecret(key) { if (!this.data.secrets.includes(key)) { this.data.secrets.push(key); this.save(); } },
   hasSecret(key) { return this.data.secrets.includes(key); },
-  // A stage is open when it is the first one or the one before it is done.
-  unlocked(bug, i) { return i === 0 || this.stars(bug.stages[i - 1]) > 0; },
+  // A stage is open when it is the first one or the one before it is done (bug.free: every stage is open).
+  unlocked(bug, i) { return i === 0 || !!bug.free || this.stars(bug.stages[i - 1]) > 0; },
 };
 Progress.load();
 
@@ -37,22 +44,28 @@ function show(id) {
 const ICON_SCALE = { bushFly: 2.2, termiteWorker: 1.6, butterfly: 1.3, mosquito: 2.4, sandhopper: 1.5 };
 const SIDE_VIEW = { sandhopper: true };   // drawn from the side, so not turned to face up
 
-function portrait(canvas, sprite, size) {
-  canvas.dataset.sprite = sprite; canvas.dataset.size = size;
+// A bug's picture on a canvas. o: extra sprite state (a painted design, a pose); remembered on the canvas for redraws.
+function portrait(canvas, sprite, size, o) {
+  canvas.dataset.sprite = sprite; canvas.dataset.size = size; canvas.dataset.o = o ? JSON.stringify(o) : '';
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   canvas.width = size * dpr; canvas.height = size * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const k = size / 55 * (ICON_SCALE[sprite] || 1), angle = SIDE_VIEW[sprite] ? 0 : -Math.PI / 2;
+  const st = Object.assign({ moving: false, load: 0 }, o || {});
   // 3D models come as bitmaps; the 2D drawings draw live. The bug faces up the page either way.
-  if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, sprite, { moving: false, load: 0 }, 0.4, { x: size / 2, y: size / 2, scale: k, angle })) return;
+  if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, sprite, st, 0.4, { x: size / 2, y: size / 2, scale: k, angle })) return;
   ctx.translate(size / 2, size / 2);
   ctx.rotate(angle);
   ctx.scale(k, k);
-  Sprites[sprite](ctx, { moving: false, load: 0 }, 0.4);
+  Sprites[sprite](ctx, st, 0.4);
+}
+// Every portrait on the page again (the 3D renderer came up, the 3D setting changed, a design was painted).
+function redrawPortraits() {
+  for (const el of document.querySelectorAll('canvas[data-sprite]')) portrait(el, el.dataset.sprite, +el.dataset.size || 56, el.dataset.o ? JSON.parse(el.dataset.o) : undefined);
 }
 // Redraw the map pins once the 3D renderer is up (the map is built before three.js has loaded).
-if (typeof Render3D !== 'undefined') Render3D.whenReady(() => { for (const el of document.querySelectorAll('canvas[data-sprite]')) portrait(el, el.dataset.sprite, +el.dataset.size || 56); });
+if (typeof Render3D !== 'undefined') Render3D.whenReady(redrawPortraits);
 
 function bugSprite(bug) { return bug.sprite; }
 // How a level is seen, when it isn't the usual top-down view.
@@ -176,22 +189,25 @@ function startGame() {
 
 Game.onFact = (missionId, key) => Progress.addFact(missionId, key);
 // Stars are saved the moment a level is won, so leaving during the confetti keeps them.
+// Stars for a win: the hearts left, or the mission's own rule (medals in the Olympics).
+function starsFor(m, g) { return m.stars ? m.stars(g) : g.lives; }
+
 Game.onWin = (g) => {
   if (!currentMission) return;
   g.firstWin = !Progress.stars(currentMission.id);   // the end screen says what this win unlocked
-  Progress.setStars(currentMission.id, g.lives);
+  Progress.setStars(currentMission.id, starsFor(currentMission, g));
 };
 
 Game.onEnd = (won, g) => {
   const m = currentMission, bug = currentBug;
-  const stars = won ? g.lives : 0;
+  const stars = won ? starsFor(m, g) : 0;
   const idx = bug.stages.indexOf(m.id);
   const next = bug.stages[idx + 1];
-  const wasLocked = next && (g.firstWin || !Progress.stars(m.id));
+  const wasLocked = next && !bug.free && (g.firstWin || !Progress.stars(m.id));
   if (won) Progress.setStars(m.id, stars);
   $('endTitle').textContent = won ? 'Well done, ' + bug.name + '!' : 'Caught! Try again?';
   $('endStars').textContent = won ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '';
-  $('endUnlock').textContent = won && wasLocked ? 'New stage unlocked: ' + Missions[next].stage + '!' : '';
+  $('endUnlock').textContent = won && m.endLine ? m.endLine(g) : won && wasLocked ? 'New stage unlocked: ' + Missions[next].stage + '!' : '';
   fillList($('endFacts'), g.learned);
   $('endNext').style.display = won && next ? '' : 'none';
   $('endExplore').style.display = won ? '' : 'none';
@@ -345,7 +361,7 @@ for (const b of document.querySelectorAll('.toggle')) {
     if (k === 'sound') Sound.play('tap');
     if (k === 'threeD' && typeof Render3D !== 'undefined') {
       Render3D.toggle(Settings.threeD);
-      for (const el of document.querySelectorAll('canvas[data-sprite]')) portrait(el, el.dataset.sprite, +el.dataset.size || 56);   // the pins follow the setting
+      redrawPortraits();   // the pins follow the setting
     }
   });
 }
