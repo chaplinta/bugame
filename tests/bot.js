@@ -6,6 +6,7 @@
 
 (function () {
   // What to do right now, for each mission: { goal: point to head for, act: tap the button, hold: keep it held }.
+  let kidLike = false;   // set by install(): the kid and tapper bots time things worse
   function decide(g) {
     const p = g.player, m = g.mission, id = m.id;
     const near = (list) => nearest(list, p, 99999);
@@ -160,6 +161,24 @@
       if (g.female) goal = g.female;
       else if (heron) goal = g.home;
       else hold = m.gap(g);
+    } else if (id === 'oly_jump') {
+      // Walk to the board, then press when the power bar is high (a kid presses at about half)
+      if (p.onGround && g.restT <= 0 && !g.oly.finished) {
+        if (p.x < JUMP.board - 30) goal = { x: JUMP.board - 10, y: p.y };
+        else act = g.meter > (kidLike ? 0.55 : 0.93);
+      }
+    } else if (id === 'oly_sprint') {
+      const gt = SPRINT.gates[g.gate];
+      if (gt) { goal = { x: gt[0], y: gt[1] }; act = p.dartCd <= 0 && dist(goal, p) > 120; }
+    } else if (id === 'oly_dig') {
+      const t = near(g.items.filter(i => i.kind === 'pat'));
+      goal = t; if (t && dist(t, p) < 24) { hold = true; goal = null; }
+    } else if (id === 'oly_lift') {
+      if (p.carry) goal = g.home;
+      else { const t = g.items[0]; goal = t; if (t && dist(t, p) < 30) act = true; }
+    } else if (id === 'oly_buzz') {
+      const f = near(g.items.filter(i => i.pollen));
+      goal = f; if (f && dist(f, p) < 22) { hold = true; goal = null; }
     }
     return { goal, act, hold };
   }
@@ -169,7 +188,8 @@
       // 'tapper' plays like 'kid' but never holds the button: it taps instead.
       const tapper = skill === 'tapper';
       const kid = skill === 'kid' || tapper;
-      const st = { next: 0, d: null, wander: 0, wdir: 0, pressNext: false, tapT: 0, tapHeld: 0 };
+      kidLike = kid;
+      const st ={ next: 0, d: null, wander: 0, wdir: 0, pressNext: false, tapT: 0, tapHeld: 0 };
       const mx = Bot.metrics = { rewards: [], hints: {}, caught: 0, maxToasts: 0, tank: null, facts: 0 };
       // Instrument the game.
       const pop = Game.pop.bind(Game);

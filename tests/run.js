@@ -239,6 +239,46 @@ test('frog chorus: calls in the gap count, the heron hears you, the others call 
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+test('Bug Olympics: every event is open, jumps are measured, a finish gives a medal, the Book shows it', async (b) => {
+  const p = await openGame(b);
+  await p.locator('.pin', { hasText: 'Bug Olympics' }).click();
+  check(await p.locator('.stageBtn:not([disabled])').count() === 5, 'not every event is open');
+  check(await p.isHidden('#bugTree'), 'the family tree button shows for the Olympics');
+  // long jump: a full-power jump from the board lands far out, a weak one close; three jumps end the event
+  await startMission(p, 'oly_jump', {});
+  const sim = async (k) => p.evaluate((k) => {
+    const g = Game.g, m = g.mission, p = g.player;
+    g.restT = 0; p.onGround = true; p.x = JUMP.board; p.y = JUMP.ground - 12;
+    m.jump(g, k);
+    let n = 0; while (!p.onGround && n++ < 4000) m.move(g, 1 / 120, 0, 0);
+    return g.jumps[g.jumps.length - 1].bl;
+  }, k);
+  const far = await sim(1), nearJ = await sim(0.2);
+  check(far >= 36 && far <= 42, 'a full-power jump went ' + far + ' body lengths');
+  check(nearJ >= 6 && nearJ <= 14, 'a weak jump went ' + nearJ + ' body lengths');
+  await sim(0.5);
+  await p.waitForSelector('#end.active', { timeout: 10000 });
+  const end1 = await p.evaluate(() => ({ stars: document.getElementById('endStars').textContent, line: document.getElementById('endUnlock').textContent, best: Progress.best('oly_jump'), saved: Progress.stars('oly_jump') }));
+  check(end1.stars === '★★★' && /Gold medal/.test(end1.line) && /swimming pool/.test(end1.line), 'no gold for ' + far + ' body lengths: ' + JSON.stringify(end1));
+  check(end1.best === far && end1.saved === 3, 'best result not saved: ' + JSON.stringify(end1));
+  // sprint: through the rings in order stops the clock; a quick lap is gold
+  await p.click('#endMap');
+  await startMission(p, 'oly_sprint', {});
+  for (let i = 0; i < 6; i++) { await p.evaluate((i) => { const g = Game.g, [x, y] = SPRINT.gates[i]; g.player.x = x; g.player.y = y; }, i); await p.waitForTimeout(80); }
+  await p.waitForSelector('#end.active', { timeout: 10000 });
+  const end2 = await p.evaluate(() => ({ stars: document.getElementById('endStars').textContent, line: document.getElementById('endUnlock').textContent, time: Game.g.oly.result, gate: Game.g.gate }));
+  check(end2.gate === 6 && end2.time < 5 && end2.stars === '★★★' && /Gold medal/.test(end2.line) && /seconds/.test(end2.line), 'sprint result: ' + JSON.stringify(end2));
+  // the Bug Book and the bug page show the medals and best results
+  await p.click('#endMap');
+  await p.click('#bookBtn');
+  const book = await p.locator('.bookBug', { hasText: 'Bug Olympics' }).locator('.medals').textContent();
+  check(/Gold 2 · Silver 0 · Bronze 0/.test(book) && /Long jump 3\d body lengths/.test(book) && /Sprint [\d.]+ seconds/.test(book), 'book medals line: ' + book);
+  await p.click('#bookBack');
+  await p.locator('.pin', { hasText: 'Bug Olympics' }).click();
+  check(/★★★/.test(await p.locator('.stageBtn').first().textContent()), 'no stars on the event button');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('the progress ring shows while munching', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'snail', { noNet: true, noPred: true });

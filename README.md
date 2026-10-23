@@ -23,6 +23,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - **Keep exploring**: after finishing a goal you can carry on playing.
 - **Map**: a map of Perth. Tap a bug's place to open its page.
 - **Life stages**: several bugs have more than one stage, including female stages. Finishing a stage unlocks the next. Each bug page says who you are (female, male, worker, or both).
+- **Bug Olympics**: five short events at Perry Lakes, all open from the start. Each is a real thing a bug does, against real numbers from the sources in `docs/facts.md`: a result in body lengths or seconds, a medal (the stars) and a saved best. The end screen says what your result would be for a kid.
 - **Different views**: most levels are top-down; the sandhopper's beach is side-on with gravity and hopping, and the sugar ant's nest is a side-on cross-section you dig through; the mosquito's backyard is isometric; the painted lady's third stage is 3D flight (three.js, `vendor/three.min.js`); the garden, orb web and ant nest are building levels with a tool palette.
 - **Ten-minute day**: a sky dial shows the sun crossing the sky. The light warms in the last two minutes, then night falls, every bug goes to sleep and the game is over until you start a new day. The clock runs only while the game is on screen and lasts the browser session.
 - **Family tree**: a cladogram showing how all the bugs are related; tap a branch for a fact. Each bug page has a Family tree button that rings that bug.
@@ -58,6 +59,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 | Sugar ant worker (*Camponotus*) | Under a Bull Creek backyard (side-on) | dig tunnels, carry soil up to build the mound, make a nursery and food store, fetch honeydew, plug the entrance before rain |
 | Mosquito, female (*Culex quinquefasciatus*) | Backyard barbecue, Bassendean (isometric) | bite people while they chat, fly off before they swat, lay egg rafts on still water |
 | Motorbike frog, male (*Litoria moorei*) | Lake Joondalup, at night | call in the gaps of the chorus (hold Call, or shout) to be heard and bring a female; banjo frogs, moaning frogs and squelching froglets call round you in stereo; keep still and quiet when the night heron wades past |
+| Bug Olympics (five events) | Perry Lakes | long jump as a sandhopper (side-on: a power bar on the board, three jumps measured in body lengths), a dragonfly sprint through six rings with darts, a dung beetle burying race, a bull ant carry relay with heavier and heavier loads, and a blue-banded bee buzz-off (shouting works); medals are the stars and best results are kept; the games are pretend, the numbers are real |
 
 ## Code
 
@@ -78,6 +80,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - `js/night.js`: the ten-minute day and the night screen
 - `js/tools.js`: tool palette for building levels; `js/garden.js`, `js/web.js`, `js/dig.js`: the garden, orb web and ant nest
 - `js/frogs.js`: the frog chorus night level, with the four frog calls built from oscillators and panned to where they come from
+- `js/olympics.js`: the Bug Olympics (five timed or measured events, medals, best results)
 - `js/tree.js`: the bug family tree
 - `js/secrets.js`: Easter eggs
 - `js/ui.js`: map, bug page, end screen, Bug Book, saved progress

@@ -158,7 +158,8 @@ function selectStage(id) {
     b.addEventListener('click', () => selectStage(sid));
     box.appendChild(b);
   });
-  $('stagePlace').textContent = (bug.stages.length > 1 ? '' : m.stage + ' · ') + m.place + (viewTag(m) ? ' · ' + viewTag(m) + ' view' : '');
+  const best = m.unit && Progress.best(id) !== undefined ? ' · Your best: ' + Progress.best(id) + m.unit : '';   // an Olympics event
+  $('stagePlace').textContent = (bug.stages.length > 1 ? '' : m.stage + ' · ') + m.place + (viewTag(m) ? ' · ' + viewTag(m) + ' view' : '') + best;
   $('stageSex').textContent = m.sex || '';
   fillList($('stageFacts'), m.facts);
   fillList($('stageHow'), m.gentle ? m.how.concat('You can\u2019t lose this one. If you get caught you just go home.') : m.how);
@@ -245,6 +246,12 @@ function buildBook() {
     sec.querySelector('h2').textContent = bug.name;
     sec.querySelector('.sci').textContent = bug.sci + ' · ' + bug.place;
     sec.querySelector('.count').textContent = 'Facts found: ' + found + ' / ' + total;
+    if (bug.book) {   // the Olympics: medals and best results
+      const line = document.createElement('p');
+      line.className = 'count medals';
+      line.textContent = bug.book();
+      sec.querySelector('.bookHead div').appendChild(line);
+    }
     const ul = sec.querySelector('ul');
     for (const it of items) {
       const li = document.createElement('li');
