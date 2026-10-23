@@ -1587,7 +1587,10 @@ const Missions = {
 // A bug's first stage is gentle: getting caught never ends the game.
 for (const bug of Bugs) Missions[bug.stages[0]].gentle = true;
 
-// Every level has the kid-with-a-net event (js/tank.js); escaping adds this to the Bug Book.
-for (const id in Missions) {
-  Missions[id].factText.tank = 'It\u2019s fine to catch a bug to have a look, but always let it go where you found it.';
+// Levels with the kid-with-a-net event (js/tank.js) list the fact you get by escaping. Levels with no net
+// (noNet: the garden, web, nest and flight) must not, or the Bug Book would show a fact that can never be found.
+function tankFact(m) {
+  if (m.noNet) delete m.factText.tank;
+  else m.factText.tank = 'It\u2019s fine to catch a bug to have a look, but always let it go where you found it.';
 }
+for (const id in Missions) tankFact(Missions[id]);

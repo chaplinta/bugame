@@ -23,7 +23,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - **Keep exploring**: after finishing a goal you can carry on playing.
 - **Map**: a map of Perth. Tap a bug's place to open its page.
 - **Life stages**: several bugs have more than one stage, including female stages. Finishing a stage unlocks the next. Each bug page says who you are (female, male, worker, or both).
-- **Different views**: most levels are top-down; the sandhopper's beach is side-on with gravity and hopping; the mosquito's backyard is isometric; the painted lady's third stage is 3D flight (three.js, `vendor/three.min.js`, loaded only for that stage).
+- **Different views**: most levels are top-down; the sandhopper's beach is side-on with gravity and hopping, and the sugar ant's nest is a side-on cross-section you dig through; the mosquito's backyard is isometric; the painted lady's third stage is 3D flight (three.js, `vendor/three.min.js`); the garden, orb web and ant nest are building levels with a tool palette.
 - **Ten-minute day**: a sky dial shows the sun crossing the sky. The light warms in the last two minutes, then night falls, every bug goes to sleep and the game is over until you start a new day. The clock runs only while the game is on screen and lasts the browser session.
 - **Family tree**: a cladogram showing how all the bugs are related; tap a branch for a fact. Each bug page has a Family tree button that rings that bug.
 - **Building levels**: the native garden, orb web and ant nest let you build, dig and destroy. Tap or drag with tools from the palette on the left.

@@ -111,8 +111,8 @@
       } else if (m.openSpace(g) && g.rooms.length < 2) act = true;
       else if (p.crumbs >= 4 || (p.crumbs > 0 && !todo.length)) goal = ent;
       else if (todo.length) goal = cellPt(...todo[0]);
-      else if (g.mound < 30) { let r = 15; while (r < NEST.rows - 1 && g.grid[r][ec] === 0) r++; goal = cellPt(r, ec); }
-      else if (g.rooms.some(r => r.type === 'food') && g.food < 3) {
+      else if (g.mound < NEST.mound) { let r = 15; while (r < NEST.rows - 1 && g.grid[r][ec] === 0) r++; goal = cellPt(r, ec); }
+      else if (g.rooms.some(r => r.type === 'food') && g.food < NEST.food) {
         if (p.honey) { const f = g.rooms.find(r => r.type === 'food'); goal = cellPt(f.r, f.c); }
         else if (up && Math.abs(p.x - g.plant.x) < 40) { hold = true; goal = null; }
         else goal = up ? { x: g.plant.x, y: S - 8 } : ent;

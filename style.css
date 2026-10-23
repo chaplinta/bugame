@@ -6,6 +6,7 @@
   --panel: #fffaf0;
 }
 * { box-sizing: border-box; }
+html { -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; color: var(--ink);
   font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   background: radial-gradient(ellipse at 30% 0%, #fbf3dc 0%, var(--bg) 55%, #e8d8b0 100%) fixed; }
@@ -39,6 +40,7 @@ h1 { font-size: 3.2rem; margin: 8px 0 0; color: var(--accent); text-align: cente
 .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 button { font: inherit; font-size: 1.2rem; font-weight: bold; padding: 12px 26px; border-radius: 999px;
   border: none; background: linear-gradient(#e0682e, var(--accent) 60%, #a83e14); color: #fff; cursor: pointer; min-height: 48px;
+  touch-action: manipulation;   /* iPhones ignore user-scalable=no, so a double tap on a button would zoom the page */
   box-shadow: 0 3px 0 rgba(90,40,10,.35), inset 0 1px 0 rgba(255,255,255,.35); text-shadow: 0 1px 1px rgba(0,0,0,.25); }
 button:not(.pin):active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(90,40,10,.35); }
 button.secondary { background: linear-gradient(#a0906e, #8a7a5c 60%, #6e6046); }
@@ -50,12 +52,13 @@ button.secondary { background: linear-gradient(#a0906e, #8a7a5c 60%, #6e6046); }
   pointer-events: none; }
 #hud > * { background: rgba(255,250,240,.88); box-shadow: 0 2px 6px rgba(60,30,10,.2); border-radius: 999px; padding: 4px 12px; font-weight: bold;
   font-size: 1.05rem; }
+#hud > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }   /* one line, even on a phone held upright */
 #hud > span:empty { display: none; }
 #hud button { pointer-events: auto; }
 .hudToggle { color: var(--ink); min-height: 0; padding: 2px 12px; font-size: 1.2rem; }
 .hudToggle.off { opacity: .5; }
 #menuBtn { pointer-events: auto; color: var(--ink); min-height: 0; padding: 2px 12px; font-size: 1.3rem; }
-#hudLives { margin-left: auto; color: #c0392b; letter-spacing: 2px; }
+#hudLives { margin-left: auto; color: #c0392b; letter-spacing: 2px; flex: none; }
 #toast { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); max-width: 70%;
   background: rgba(43,33,24,.9); color: #fff; padding: 10px 16px; border-radius: 14px; font-size: 1.05rem;
   line-height: 1.3; opacity: 0; transition: opacity .3s; pointer-events: none; }
@@ -71,17 +74,19 @@ button.secondary { background: linear-gradient(#a0906e, #8a7a5c 60%, #6e6046); }
 /* Map */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .top h1 { text-align: left; margin: 4px 0; }
-.toggles { display: flex; gap: 8px; }
+.toggles { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .toggle { font-size: 1rem; padding: 8px 16px; background: var(--accent2); }
 .toggle.off { background: #b8ab8f; }
 .sub { text-align: left; }
 #mapWrap { position: relative; width: 100%; aspect-ratio: 960 / 600; }
 #mapCanvas { width: 100%; height: 100%; display: block; border-radius: 16px; border: 3px solid #e2d3ae; box-shadow: 0 8px 24px rgba(60,40,10,.25); }
 .pin { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center;
+  left: clamp(72px, var(--x), calc(100% - 72px)); top: clamp(60px, var(--y), calc(100% - 60px));   /* --x/--y set per pin in buildMap; kept on the map */
   background: linear-gradient(#fffdf6, #f6ecd4); color: var(--ink); border: 3px solid var(--accent); border-radius: 16px; padding: 4px 8px;
   min-height: 0; font-size: .9rem; line-height: 1.15; box-shadow: 0 4px 0 rgba(0,0,0,.18), 0 6px 14px rgba(60,30,10,.2); text-shadow: none; }
 .pin:hover, .pin:focus { background: #fff; outline: 3px solid #ffd23f; }
 .pin canvas { width: 56px; height: 56px; }
+.pinName, .pinPlace { white-space: nowrap; }   /* a pin near the right edge would otherwise wrap into a tall column */
 .pinPlace { font-weight: normal; font-size: .8rem; }
 .pinStars { color: #c08a00; font-size: .8rem; }
 .pinStars:empty { display: none; }
@@ -119,7 +124,7 @@ li.unknown { color: #9a8d72; font-style: italic; }
 .rotate { display: none; }
 
 @media (max-width: 700px) {
-  .pin { padding: 2px; border-width: 2px; border-radius: 50%; }
+  .pin { padding: 2px; border-width: 2px; border-radius: 50%; left: clamp(22px, var(--x), calc(100% - 22px)); top: clamp(22px, var(--y), calc(100% - 22px)); }
   .pin canvas { width: 34px; height: 34px; }
   .pinName, .pinPlace, .pinStars { display: none; }
   #placeList { display: grid; gap: 8px; margin-top: 12px; }
@@ -139,6 +144,7 @@ li.unknown { color: #9a8d72; font-style: italic; }
   #app { padding: 6px 10px; }
   #actionBtn { width: 76px; height: 76px; font-size: .95rem; }
   #toast { max-width: 62%; font-size: .9rem; left: 38%; }
+  #stage.hasTools #toast { left: 49%; }   /* between the tool palette and the action button */
   #hud > * { font-size: .85rem; padding: 3px 8px; }
 }
 
@@ -175,7 +181,7 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
   background: rgba(255,250,240,.88); border-radius: 14px; padding: 6px 4px; box-shadow: 0 2px 8px rgba(60,30,10,.25); scrollbar-width: thin; }
 #tools[hidden] { display: none; }
 .toolGroup { flex: none; font-size: .7rem; font-weight: bold; color: #8a6a3a; text-transform: uppercase; text-align: center; margin-top: 4px; }
-.tool { flex: none; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 2px; min-height: 0; font-size: .68rem; line-height: 1.05;
+.tool { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 3px 2px; min-height: 40px; font-size: .68rem; line-height: 1.05;
   background: #fffaf0; color: var(--ink); border: 2px solid #e2d3ae; border-radius: 10px; box-shadow: none; text-shadow: none; }
 .tool canvas { width: 34px; height: 34px; }
 .tool.on { border-color: var(--accent); background: #ffe9c8; }
@@ -183,4 +189,10 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
   #tools { width: 64px; top: 40px; }
   .tool canvas { width: 26px; height: 26px; }
   .tool { font-size: .58rem; }
+}
+/* A phone held upright: the stage is short, so messages sit beside the action button instead of above it. */
+@media (max-width: 700px) and (orientation: portrait) {
+  #toast { left: 8px; transform: none; max-width: calc(100% - 108px); font-size: .85rem; padding: 8px 12px; }
+  #stage.hasTools #toast { left: 78px; max-width: calc(100% - 178px); }
+  #hud .sunClock, #hudSound { display: none; }   /* room for the goal and the hearts; both are on the map too */
 }

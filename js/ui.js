@@ -82,8 +82,9 @@ function buildMap() {
   for (const bug of Bugs) {
     const b = document.createElement('button');
     b.className = 'pin';
-    b.style.left = (bug.pin.x / W * 100) + '%';
-    b.style.top = (bug.pin.y / H * 100) + '%';
+    // The CSS clamps these, so a pin near the edge stays on the map.
+    b.style.setProperty('--x', (bug.pin.x / W * 100) + '%');
+    b.style.setProperty('--y', (bug.pin.y / H * 100) + '%');
     const max = bug.stages.length * 3, got = bugStars(bug);
     b.innerHTML = '<span class="viewTag"></span><canvas></canvas><span class="pinName"></span><span class="pinPlace"></span><span class="pinStars"></span>';
     const vt = viewTag(Missions[bug.stages[0]]);
@@ -174,13 +175,19 @@ function startGame() {
 // ---------------------------------------------------------------- End
 
 Game.onFact = (missionId, key) => Progress.addFact(missionId, key);
+// Stars are saved the moment a level is won, so leaving during the confetti keeps them.
+Game.onWin = (g) => {
+  if (!currentMission) return;
+  g.firstWin = !Progress.stars(currentMission.id);   // the end screen says what this win unlocked
+  Progress.setStars(currentMission.id, g.lives);
+};
 
 Game.onEnd = (won, g) => {
   const m = currentMission, bug = currentBug;
   const stars = won ? g.lives : 0;
   const idx = bug.stages.indexOf(m.id);
   const next = bug.stages[idx + 1];
-  const wasLocked = next && !Progress.stars(m.id);
+  const wasLocked = next && (g.firstWin || !Progress.stars(m.id));
   if (won) Progress.setStars(m.id, stars);
   $('endTitle').textContent = won ? 'Well done, ' + bug.name + '!' : 'Caught! Try again?';
   $('endStars').textContent = won ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '';
@@ -208,6 +215,7 @@ function buildBook() {
       const m = Missions[id], have = Progress.found(id);
       for (const f of m.facts) items.push({ text: f, known: true });
       for (const key of Object.keys(m.factText)) {
+        if (!m.factText[key]) continue;   // nothing to find
         total++;
         const known = have.includes(key);
         if (known) found++;

@@ -523,6 +523,134 @@ test('tank is side-on: gaps only open at the top', async (b) => {
   check(ys.every(y => y < 150), 'gap not at the top: ' + ys);
 });
 
+// ------------------------------------------------------------------ controls and layout
+test('controls: a second finger, lost focus, leaving after a catch', async (b) => {
+  const ctx = await b.newContext({ viewport: { width: 1000, height: 720 }, hasTouch: true });
+  const p = await ctx.newPage();
+  p.errors = [];
+  p.on('pageerror', (e) => p.errors.push(e.message));
+  p.on('console', (m) => { if (m.type() === 'error') p.errors.push(m.text()); });
+  await p.goto(FILE_URL);
+  const cdp = await ctx.newCDPSession(p);
+  const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
+  await startMission(p, 'ant', { noNet: true, noPred: true });
+  const box = await p.locator('#game').boundingBox();
+  const a = { x: box.x + box.width * 0.75, y: box.y + box.height * 0.65, id: 1 }, s = { x: box.x + box.width * 0.4, y: box.y + box.height * 0.5, id: 2 };
+  await touch('touchStart', [a]); await p.waitForTimeout(300);
+  await touch('touchStart', [a, s]); await touch('touchEnd', [s]);   // a second finger taps and lifts (touchEnd lists the points released); the first keeps steering
+  await p.waitForTimeout(150);
+  check(await p.evaluate(() => Input.target !== null && Game.g.player.moving), 'a second finger stopped the drag');
+  await touch('touchEnd', []); await p.waitForTimeout(100);
+  check(await p.evaluate(() => Input.target === null && Input.pointer === null), 'the drag did not end');
+  // keys held when the window loses focus are let go
+  await p.keyboard.down('ArrowRight'); await p.waitForTimeout(100);
+  await p.evaluate(() => window.dispatchEvent(new Event('blur')));
+  check(await p.evaluate(() => Input.keys.size === 0 && !Input.held), 'keys stuck after losing focus');
+  await p.keyboard.up('ArrowRight');
+  // leaving right after being caught out must not bring the end screen up over the map
+  await p.click('#menuBtn');
+  await startMission(p, 'queen', { noNet: true, noPred: true });
+  await p.evaluate(() => { Game.g.lives = 1; Game.caught({ name: 'test' }); });
+  await p.click('#menuBtn'); await p.waitForTimeout(1300);
+  check(await p.isVisible('#map.active'), 'the end screen came up after leaving');
+  // leaving during the win confetti keeps the stars
+  await startMission(p, 'bee', { noNet: true, noPred: true });
+  await p.evaluate(() => { Game.g.score = 99; }); await p.waitForTimeout(300);
+  await p.click('#menuBtn');
+  check(await p.evaluate(() => Progress.stars('bee') > 0), 'stars lost by leaving during the confetti');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('sugar ant: digging at an angle never makes a dead end', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'nest', { noNet: true });
+  const r = await p.evaluate(() => {
+    const g = Game.g, m = g.mission, p = g.player, N = NEST.cell, ec = Math.floor(960 / N);
+    p.x = ec * N + N / 2; p.y = NEST.surf + 4.5 * N; p.crumbs = 0;
+    // Push at angles for a long while, dropping the soil whenever the jaws fill, as a kid steering by thumb does
+    const dirs = [[0.8, 0.9], [-0.7, 0.9], [0.9, -0.6], [0.6, 0.95], [-0.9, 0.5]];
+    for (let i = 0; i < 3000; i++) { const d = dirs[Math.floor(i / 600)]; m.move(g, 1 / 60, d[0], d[1]); if (p.crumbs >= 4) p.crumbs = 0; }
+    // Every open cell must be reachable from the entrance moving only up, down, left or right
+    const R = NEST.rows, C = NEST.cols, seen = new Set(), q = [];
+    for (let c = 0; c < C; c++) if (g.grid[0][c] === 0) { q.push([0, c]); seen.add(c); }
+    while (q.length) {
+      const [r, c] = q.pop();
+      for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nr >= R || nc < 0 || nc >= C || g.grid[nr][nc] !== 0 || seen.has(nr * 1000 + nc)) continue;
+        seen.add(nr * 1000 + nc); q.push([nr, nc]);
+      }
+    }
+    let open = 0; for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) if (g.grid[i][j] === 0) open++;
+    return { open, reached: seen.size };
+  });
+  check(r.open > 25, 'the ant hardly dug: ' + JSON.stringify(r));
+  check(r.reached === r.open, 'tunnel cells cut off from the rest: ' + JSON.stringify(r));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('Bug Book: every fact can be found', async (b) => {
+  const p = await openGame(b);
+  const bad = await p.evaluate(() => {
+    const out = [];
+    for (const [id, m] of Object.entries(Missions)) {
+      for (const [k, t] of Object.entries(m.factText)) if (!t) out.push(id + '.' + k + ' is empty');
+      if (m.noNet && 'tank' in m.factText) out.push(id + ' lists the tank fact but has no net');
+      if (!m.noNet && !m.factText.tank) out.push(id + ' has a net but no tank fact');
+    }
+    return out;
+  });
+  check(bad.length === 0, bad.join('; '));
+  await p.click('#bookBtn');
+  const counts = await p.evaluate(() => [...document.querySelectorAll('.bookBug:not(.secrets)')].map(s => ({ name: s.querySelector('h2').textContent, count: s.querySelector('.count').textContent, unknown: s.querySelectorAll('li.unknown').length })));
+  const totals = await p.evaluate(() => Bugs.map(bg => ({ name: bg.name, total: bg.stages.reduce((n, id) => n + Object.keys(Missions[id].factText).length, 0) })));
+  for (const c of counts) {
+    const t = totals.find(x => x.name === c.name);
+    check(t && c.count === 'Facts found: 0 / ' + t.total && c.unknown === t.total, c.name + ': ' + c.count + ', ' + c.unknown + ' unknown');
+  }
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('phone layouts: messages clear the tools, the HUD stays one line, pins stay on the map', async (b) => {
+  // a phone on its side with a building level open: the message must not cover the tool palette
+  let p = await openGame(b, { width: 640, height: 360 });
+  await startMission(p, 'garden', {});
+  await p.evaluate(() => Game.showToast({ text: 'Bug fact: Blue-banded bees nest in burrows in clay banks and buzz pollen out of flowers. Dianella keeps its pollen locked inside tubes.', kind: 'fact' }));
+  await p.waitForTimeout(400);
+  const r = await p.evaluate(() => {
+    const q = (id) => document.getElementById(id).getBoundingClientRect();
+    const over = (a, c) => a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom;
+    return { toastTools: over(q('toast'), q('tools')), toolH: Math.min(...[...document.querySelectorAll('#tools .tool')].map(e => e.getBoundingClientRect().height)) };
+  });
+  check(!r.toastTools, 'the message covers the tool palette');
+  check(r.toolH >= 40, 'tool buttons only ' + r.toolH + ' px tall');
+  // a phone held upright: no sideways scroll, every pin on the map, a one-line HUD that the message stays clear of
+  p = await openGame(b, { width: 360, height: 740 });
+  const m = await p.evaluate(() => {
+    const map = document.getElementById('mapWrap').getBoundingClientRect();
+    const out = [...document.querySelectorAll('.pin')].filter(el => { const r = el.getBoundingClientRect(); return r.left < map.left - 1 || r.right > map.right + 1 || r.top < map.top - 1 || r.bottom > map.bottom + 1; }).length;
+    return { over: document.documentElement.scrollWidth - document.documentElement.clientWidth, out };
+  });
+  check(m.over <= 0, 'the map page scrolls sideways by ' + m.over + ' px');
+  check(m.out === 0, m.out + ' pins poke outside the map');
+  await startMission(p, 'ant', { noNet: true, noPred: true });
+  await p.evaluate(() => {
+    setHud('Food: 10 / 12', 'Carrying: a caterpillar'); document.getElementById('hudFind').textContent = '\u{1F50D} 3 / 3';
+    let best = ''; for (const mm of Object.values(Missions)) for (const t of Object.values(mm.factText)) if (t && t.length > best.length) best = t;
+    Game.showToast({ text: best, kind: 'fact' });
+  });
+  await p.waitForTimeout(400);
+  const h = await p.evaluate(() => {
+    const q = (id) => document.getElementById(id).getBoundingClientRect();
+    const hud = q('hud'), toast = q('toast'), btn = q('actionBtn');
+    return { hudH: hud.height, toastHud: toast.bottom > hud.top && toast.top < hud.bottom, toastBtn: toast.left < btn.right && btn.left < toast.right && toast.top < btn.bottom && btn.top < toast.bottom };
+  });
+  check(h.hudH <= 40, 'the HUD wraps to ' + h.hudH + ' px');
+  check(!h.toastHud, 'the message runs into the HUD');
+  check(!h.toastBtn, 'the message covers the action button');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 // ------------------------------------------------------------------ platform
 test('works offline after one visit (service worker)', async (b) => {
   const srv = await serve(ROOT);

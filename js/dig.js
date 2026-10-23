@@ -2,7 +2,7 @@
 // Sugar ant nest, side-on like an ant farm. Dig tunnels anywhere, carry the soil up to build the mound,
 // make rooms for the queen's eggs and for food, fetch honeydew, and plug the entrance before rain floods in.
 
-const NEST = { cell: 24, surf: 300, cols: 80, rows: 37 };   // world 1920 x (300 + 37 * 24 = 1188)
+const NEST = { cell: 24, surf: 300, cols: 80, rows: 37, mound: 20, food: 2 };   // world 1920 x (300 + 37 * 24 = 1188); mound crumbs and honeydew drops to finish
 const SOIL_HARD = { 1: 0.3, 2: 0.4, 3: 0.9, 6: 0.25 };      // seconds to dig: topsoil, deep soil, clay, packed soil
 const ROOM_TYPES = [
   { id: 'nursery', name: 'Nursery', color: 'rgba(255,240,200,.18)' },
@@ -58,8 +58,8 @@ Missions.nest = {
     win: 'Your nest is up and running! A sugar ant colony can grow to thousands of ants.',
   },
 
+  noNet: true,   // no bug net underground
   setup(g) {
-    g.netDone = true;
     const R = NEST.rows, C = NEST.cols, r = rng(Math.floor(Math.random() * 1000));
     // Soil types: topsoil near the top, darker deep soil below, patches of clay, rocks and roots
     g.grid = [];
@@ -121,19 +121,27 @@ Missions.nest = {
       return !this.solid(g, ex, ey);
     };
     const nx = p.x + dx * sp * dt, ny = p.y + dy * sp * dt;
-    if (tryMove(nx, ny, dx, dy)) { p.x = nx; p.y = ny; p.moving = true; g.digCell = null; return; }
+    if (tryMove(nx, ny, dx, dy)) { p.x = nx; p.y = ny; p.moving = true; g.digCell = null; g.fullT = 0; return; }
     // Slide along walls when heading at an angle
-    if (Math.abs(dx) > 0.3 && tryMove(nx, p.y, dx, 0)) { p.x = nx; p.moving = true; return; }
-    if (Math.abs(dy) > 0.3 && tryMove(p.x, ny, 0, dy)) { p.y = ny; p.moving = true; return; }
-    // Blocked: dig the cell in front
-    const { r, c } = this.cellOf(p.x + dx * (look + 4), p.y + dy * (look + 4));
+    if (Math.abs(dx) > 0.3 && tryMove(nx, p.y, dx, 0)) { p.x = nx; p.moving = true; g.fullT = 0; return; }
+    if (Math.abs(dy) > 0.3 && tryMove(p.x, ny, 0, dy)) { p.y = ny; p.moving = true; g.fullT = 0; return; }
+    // Blocked: dig the cell in front, along whichever way you're pushing hardest. Digging only up, down, left or
+    // right keeps every tunnel cell joined edge to edge; a corner-only pocket would trap an ant whose jaws are full.
+    const { r, c } = Math.abs(dx) >= Math.abs(dy)
+      ? this.cellOf(p.x + Math.sign(dx) * (look + 4), p.y)
+      : this.cellOf(p.x, p.y + Math.sign(dy) * (look + 4));
     this.digAt(g, r, c, dt);
   },
   digAt(g, r, c, dt) {
     const p = g.player, N = NEST.cell, type = this.at(g, r, c);
     if (type === 0) return;
     if (type === 4 || type === 5) { if (Math.random() < dt) Game.fact('rock'); g.digCell = null; return; }
-    if (p.crumbs >= 4) { Game.hint('Your jaws are full! Take the soil up to the surface.'); Game.fact('full'); return; }
+    if (p.crumbs >= 4) {
+      // A real push, not every brush against a tunnel wall, earns the reminder
+      g.fullT = (g.fullT || 0) + dt;
+      if (g.fullT > 0.8) { Game.hint('Your jaws are full! Go back along your tunnel to the surface.'); Game.fact('full'); }
+      return;
+    }
     if (!g.digCell || g.digCell.r !== r || g.digCell.c !== c) { g.digCell = { r, c }; g.digT = 0; }
     g.digT += dt;
     p.progress = g.digT / SOIL_HARD[type];
@@ -210,7 +218,7 @@ Missions.nest = {
     this.weather(g, dt);
     g.score = this.jobs(g);
   },
-  jobs(g) { return (g.mound >= 30 ? 1 : 0) + (g.rooms.some(r => r.type === 'nursery') ? 1 : 0) + (g.rooms.some(r => r.type === 'food') ? 1 : 0) + (g.food >= 3 ? 1 : 0); },
+  jobs(g) { return (g.mound >= NEST.mound ? 1 : 0) + (g.rooms.some(r => r.type === 'nursery') ? 1 : 0) + (g.rooms.some(r => r.type === 'food') ? 1 : 0) + (g.food >= NEST.food ? 1 : 0); },
   entrances(g) { const out = []; for (let c = 0; c < NEST.cols; c++) if (g.grid[0][c] === 0) out.push(c); return out; },
   roomAt(g, x, y) { const { r, c } = this.cellOf(x, y); return g.rooms.find(rm => rm.cells.some(([i, j]) => i === r && j === c)); },
   // Rain: water pours into any open entrance and runs down the tunnels, then soaks away.
@@ -334,12 +342,12 @@ Missions.nest = {
     const p = g.player;
     if (p.honey) { const f = g.rooms.find(r => r.type === 'food'); return f ? { x: f.c * NEST.cell, y: NEST.surf + f.r * NEST.cell } : null; }
     if (p.crumbs >= 4) { const e = this.entrances(g)[0]; return e !== undefined ? { x: e * NEST.cell, y: NEST.surf - 8 } : null; }
-    if (g.rooms.some(r => r.type === 'food') && g.food < 3) return { x: g.plant.x, y: g.plant.y };
+    if (g.rooms.some(r => r.type === 'food') && g.food < NEST.food) return { x: g.plant.x, y: g.plant.y };
     return null;
   },
   hud(g) {
-    const done = [g.mound >= 30, g.rooms.some(r => r.type === 'nursery'), g.rooms.some(r => r.type === 'food'), g.food >= 3];
-    setHud('Nest jobs: ' + done.filter(Boolean).length + ' / 4', 'Mound ' + Math.min(g.mound, 30) + '/30 · Soil ' + g.player.crumbs + '/4' + (g.rooms.some(r => r.type === 'food') ? ' · Food ' + g.food + '/3' : ''));
+    const done = [g.mound >= NEST.mound, g.rooms.some(r => r.type === 'nursery'), g.rooms.some(r => r.type === 'food'), g.food >= NEST.food];
+    setHud('Nest jobs: ' + done.filter(Boolean).length + ' / 4', 'Mound ' + Math.min(g.mound, NEST.mound) + '/' + NEST.mound + ' · Soil ' + g.player.crumbs + '/4' + (g.rooms.some(r => r.type === 'food') ? ' · Food ' + g.food + '/' + NEST.food : ''));
   },
   won(g) { return g.score >= 4; },
 };
@@ -362,4 +370,3 @@ Backgrounds.nestSoil = function (ctx, W, H) {
 };
 
 finishMissions();
-Missions.nest.factText.tank = '';

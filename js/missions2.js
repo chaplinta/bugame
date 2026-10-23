@@ -447,7 +447,7 @@ Object.assign(Missions, {
 // Same rules as the first bugs (see the end of missions.js): first stages are gentle, and the tank fact.
 function finishMissions() {
   for (const bug of Bugs) Missions[bug.stages[0]].gentle = true;
-  for (const id in Missions) Missions[id].factText.tank = 'It’s fine to catch a bug to have a look, but always let it go where you found it.';
+  for (const id in Missions) tankFact(Missions[id]);
 }
 finishMissions();
 

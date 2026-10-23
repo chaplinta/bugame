@@ -8,6 +8,7 @@ const Tools = {
     const box = $('tools');
     box.innerHTML = '';
     box.hidden = !m.tools;
+    $('stage').classList.toggle('hasTools', !!m.tools);   // messages move over to clear the palette on phones
     $('actionBtn').style.display = m.pointerOnly ? 'none' : '';
     if (!m.tools) return;
     for (const grp of m.tools) {
@@ -40,7 +41,7 @@ const Tools = {
     if (Game.g) Game.g.tool = id;
     for (const b of document.querySelectorAll('#tools .tool')) b.classList.toggle('on', b.dataset.tool === id);
   },
-  hide() { $('tools').hidden = true; $('actionBtn').style.display = ''; },
+  hide() { $('tools').hidden = true; $('stage').classList.remove('hasTools'); $('actionBtn').style.display = ''; },
   icon(c, t) {
     const dpr = window.devicePixelRatio || 1, s = 34;
     c.width = s * dpr; c.height = s * dpr;

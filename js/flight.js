@@ -250,8 +250,8 @@ Missions.flight = {
     win: 'Six flowers! A well-fed painted lady can live for a few weeks and fly a long way.',
   },
 
+  noNet: true,   // no bug net up in the air
   setup(g) {
-    g.netDone = true;   // no bug net up in the air
     const p = g.player;
     p.flat = true;
     g.fl = { x: 0, y: heathHeight(0, 0) + 3.2, z: 0, yaw: 0, vy: 0, flap: 0, flying: false, landed: null, sipT: 0, wingT: 0,

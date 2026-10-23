@@ -19,11 +19,17 @@ Settings.load();
 // Small synthesised sound effects, no audio files.
 const Sound = {
   ac: null,
+  // Browsers start audio suspended until a tap, and iOS suspends it again after a phone call or an app switch:
+  // wake the context whenever a sound is wanted, so the game doesn't go silent for the rest of the visit.
+  ensure() {
+    if (!this.ac) this.ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (this.ac.state !== 'running' && this.ac.resume) this.ac.resume().catch(() => { /* needs a tap first */ });
+    return this.ac;
+  },
   tone(freq, dur, type, vol, slideTo, delay) {
     if (!Settings.sound) return;
     try {
-      if (!this.ac) this.ac = new (window.AudioContext || window.webkitAudioContext)();
-      const ac = this.ac, t0 = ac.currentTime + (delay || 0);
+      const ac = this.ensure(), t0 = ac.currentTime + (delay || 0);
       const o = ac.createOscillator(), g = ac.createGain();
       o.type = type || 'sine';
       o.frequency.setValueAtTime(freq, t0);
@@ -71,6 +77,7 @@ const Speech = {
 const Input = {
   keys: new Set(),
   target: null,      // pointer position the player moves toward
+  pointer: null,     // id of the finger (or mouse button) that is steering; other touches are ignored
   pressed: false,    // action pressed this frame
   held: false,       // action held
 };
@@ -165,7 +172,6 @@ const Game = {
       const r = this.canvas.getBoundingClientRect();
       return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
     };
-    let down = false;
     // Building levels (garden, web, nest) get taps and drags in world coordinates through mission.onPointer.
     const tell = (type, e) => {
       const g = this.g, m = g && g.mission;
@@ -174,14 +180,24 @@ const Game = {
       m.onPointer(g, type, s.x / z + g.cam.x, s.y / z + g.cam.y);
       return !!m.pointerOnly;
     };
+    // One finger steers: the first one down (Input.pointer). A second finger or a resting thumb is ignored until
+    // the first lets go, so a stray touch never stops the bug or cuts a drag short.
+    const mine = (e) => Input.pointer !== null && e.pointerId === Input.pointer;
     this.canvas.addEventListener('pointerdown', (e) => {
-      down = true; this.canvas.setPointerCapture(e.pointerId);
+      if (Input.pointer !== null && !mine(e)) return;
+      Input.pointer = e.pointerId;
+      try { this.canvas.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
       if (!tell('down', e)) Input.target = toWorld(e);
     });
-    this.canvas.addEventListener('pointermove', (e) => { if (down && !tell('move', e)) Input.target = toWorld(e); });
-    const up = (e) => { if (down) tell('up', e); down = false; Input.target = null; };
-    this.canvas.addEventListener('pointerup', up);
-    this.canvas.addEventListener('pointercancel', up);
+    this.canvas.addEventListener('pointermove', (e) => { if (mine(e) && !tell('move', e)) Input.target = toWorld(e); });
+    const up = (e) => { if (!mine(e)) return; tell('up', e); Input.pointer = null; Input.target = null; };
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) this.canvas.addEventListener(ev, up);
+    // Keys or a finger held when the window loses focus (a notification, an app switch) never get their release: let go.
+    const letGo = () => { Input.keys.clear(); Input.held = false; Input.target = null; Input.pointer = null; };
+    window.addEventListener('blur', letGo);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) letGo(); });
+    // A long press on Android would otherwise open a context menu and cancel the touch.
+    document.getElementById('stage').addEventListener('contextmenu', (e) => e.preventDefault());
 
     const btn = document.getElementById('actionBtn');
     btn.addEventListener('pointerdown', (e) => { e.preventDefault(); Input.pressed = true; Input.held = true; });
@@ -200,7 +216,7 @@ const Game = {
       items: [], preds: [], fx: [], timers: [], cam: { x: 0, y: 0 },
       predCfg: null, predT: 0,
       seen: new Set(), learned: [], toasts: [], toastT: 0, hintT: 0,
-      netT: 15 + Math.random() * 20, event: null, parts: [], shake: 0, flash: 0,   // the kid-with-a-net event (js/tank.js)
+      netT: 15 + Math.random() * 20, netDone: !!mission.noNet, event: null, parts: [], shake: 0, flash: 0,   // the kid-with-a-net event (js/tank.js); noNet levels never have it
     };
     g.finds = (mission.discoveries || []).map(d => Object.assign({ found: false, angle: 0 }, d,
       { x: d.fx * World.w, y: d.fy * World.h }));
@@ -227,17 +243,19 @@ const Game = {
     this.bgMini.getContext('2d').drawImage(this.bg, 0, 0, mw, mh);
     // Pre-render the bug you play from every heading, a few milliseconds a frame, so turning never stalls
     if (typeof Models !== 'undefined' && typeof Render3D !== 'undefined' && Render3D.ok) SpriteCache.warm(Models.warmList(g));
-    Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false;
+    Input.keys.clear(); Input.target = null; Input.pointer = null; Input.held = false; Input.pressed = false;
     const btn = document.getElementById('actionBtn');
     btn.textContent = mission.action;
     btn.classList.remove('ready');
     this.showToast(null);
+    clearTimeout(this.endTimer);
     this.running = true;
     this.fact('start');
   },
 
   stop() {
     this.running = false; this.showToast(null); Speech.stop();
+    clearTimeout(this.endTimer);   // an end screen due after a catch must not pop up over the map
     if (typeof Tools !== 'undefined') Tools.hide();
     if (this.g && this.g.mission.teardown) this.g.mission.teardown(this.g);
   },
@@ -476,6 +494,7 @@ const Game = {
     const g = this.g;
     g.done = true;
     if (won) {
+      if (this.onWin) this.onWin(g);   // the stars are kept from this moment, even if you leave during the confetti
       // Celebrate for a moment in the world before the end screen.
       Sound.play('win');
       this.fact('win');
@@ -492,7 +511,8 @@ const Game = {
     }
     this.running = false;
     this.showToast(null);
-    setTimeout(() => this.onEnd && this.onEnd(won, g), 900);
+    clearTimeout(this.endTimer);
+    this.endTimer = setTimeout(() => this.onEnd && this.onEnd(won, g), 900);
   },
 
   celebrateTick(dt) {

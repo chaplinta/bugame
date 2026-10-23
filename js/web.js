@@ -98,8 +98,8 @@ Missions.web = {
     win: 'What a web! Golden orb-weavers can keep the same web for weeks, mending it every day.',
   },
 
+  noNet: true,   // no bug net: the spider stays on her web
   setup(g) {
-    g.netDone = true;
     g.threads = []; g.prey = []; g.drawing = null; g.silk = SILK_MAX; g.spawnT = 3; g.job = null; g.path = [];
     const p = g.player; p.x = 520; p.y = 300; p.angle = Math.PI / 2; p.flat = true;
     // Start with one dry bridge line across the top, like a real spider's first thread
@@ -409,4 +409,3 @@ Backgrounds.webBush = function (ctx, W, H) {
 };
 
 finishMissions();
-Missions.web.factText.tank = '';

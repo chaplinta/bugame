@@ -333,11 +333,10 @@ Missions.garden = {
   factText: Object.assign({
     start: 'Lots of Perth gardeners plant natives to bring wildlife back to the suburbs.',
     win: 'Your garden is full of life! Every native plant helps local animals.',
-    tank: '',
   }, Object.fromEntries(VISITORS.map(v => [v.id, v.name + ': ' + v.fact]))),
 
+  noNet: true,   // no bug net in your own garden
   setup(g) {
-    g.netDone = true;
     const p = g.player; p.x = -400; p.y = -400; p.flat = true;
     const saved = GardenStore.load();
     g.cells = saved && saved.cells && saved.cells.length === GARDEN.rows ? saved.cells
@@ -582,4 +581,3 @@ Backgrounds.gardenYard = function (ctx, W, H) {
 };
 
 finishMissions();
-Missions.garden.factText.tank = '';
