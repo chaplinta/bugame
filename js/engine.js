@@ -618,7 +618,7 @@ const Game = {
     const z = this.zoom || 1;
     ctx.scale(z, z);
     ctx.translate(-Math.round(g.cam.x) + (Math.random() - 0.5) * sh, -Math.round(g.cam.y) + (Math.random() - 0.5) * sh);
-    ctx.drawImage(this.bg, 0, 0, World.w, World.h);
+    if (!(m.liveBg && m.liveBg(g))) ctx.drawImage(this.bg, 0, 0, World.w, World.h);   // liveBg: a camera frame is already down (js/hand.js)
 
     // Home marker
     ctx.beginPath();

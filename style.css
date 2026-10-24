@@ -188,6 +188,7 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
   background: #fffaf0; color: var(--ink); border: 2px solid #e2d3ae; border-radius: 10px; box-shadow: none; text-shadow: none; }
 .tool canvas { width: 34px; height: 34px; }
 .tool.on { border-color: var(--accent); background: #ffe9c8; }
+.tool.locked { opacity: .45; filter: grayscale(.8); }
 @media (max-width: 600px), (max-height: 500px) {
   #tools { width: 64px; top: 40px; }
   .tool canvas { width: 26px; height: 26px; }

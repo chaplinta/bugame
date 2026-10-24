@@ -250,6 +250,20 @@ The events are invented games; each is a thing the bug really does, and every nu
 - Buzz-off. The blue-banded bee *Amegilla murrayensis* buzz-pollinates by banging its head against the anthers about 350 times a second (buzzes at about 350 Hz, against about 240 Hz for the bumblebee *Bombus impatiens*), and spends less time on each flower, usually buzzing it once; tomatoes need buzz pollination. Switzer, Hogendoorn, Ravi & Combes 2016, "Shakers and head bangers: differences in sonication behavior between Australian *Amegilla murrayensis* (blue-banded bees) and North American *Bombus impatiens* (bumblebees)", Arthropod-Plant Interactions 10: 1–8. A bee's buzz comes from the flight muscles (see the bee section).
 - Medals are the game's own invention (3, 2 and 1 stars); the thresholds are tuned so the test bots get gold (perfect) and silver or bronze (kid).
 
+## Bug on your hand (the camera level)
+The bug is a drawing over the live camera frame; the level says so ("The bug is pretend"). The camera and microphone are used live on the device only; nothing is recorded or sent anywhere.
+- Handling advice (let a bug walk onto a flat hand, never squeeze, put it back where it was found): standard museum and school bug-collecting guidance (e.g. Australian Museum), as in the Catch and release section.
+- Ladybirds, when alarmed, exude a yellow drop of alkaloid-rich haemolymph from their leg joints (reflex bleeding) that tastes bad to birds and other predators. Holloway, de Jong & Brakefield 1991 (Chemoecology 2: 7–14, the seven-spot ladybird's coccinelline); general coccinellid biology (AM).
+- Snail foot and mucus: see the native snail section.
+- Butterflies taste with their feet: see the painted lady section (tarsal chemoreceptors).
+- Blue-banded bees can sting but are not aggressive and do not attack unless disturbed or handled. DBCA (Western Australian government newsletter, 2007); Aussie Bee; Australian Museum (Common blue-banded bee).
+- Bush flies land on people for the moisture and salts of sweat and skin: see the bush fly section (CSIRO).
+- *Maratus speciosus* is about 4–5 mm long (a grain of rice is 5–7 mm) and, like all peacock spiders, harmless to people. Otto & Hill 2011 (Peckhamia); WAM.
+- Dragonflies have no sting; a large one held roughly may nip with its jaws. Illinois State Museum (The Dragonfly: Friend or Foe?); World Dragonfly Association (Paulson & Silsby); Australian Museum (Odonata).
+- Termite workers are soft-bodied, blind and dry out quickly in the open, so they live inside tunnels and galleries. CSIRO; AM.
+- Painted lady caterpillars are covered in rows of branched spines, hide by day and feed at night. Butterfly House (*Vanessa kershawi*); Braby 2000, *Butterflies of Australia*. No source was found on whether the spines irritate skin, so the game does not say they are harmless.
+- Simplification: a real bug would leave a hand within seconds; the pretend one stays, comes when called and sits for a photo.
+
 ## Native garden (build your own)
 - Native plants support native wildlife (nectar, seed, shelter); Perth councils and the Water Corporation promote waterwise native gardens. Water Corporation; City of Melville/Bayswater wildlife-garden guides.
 - Earthworms break down organic matter and improve soil. CSIRO.

@@ -821,6 +821,69 @@ test('shout to buzz: the toggle asks for the mic, a loud room buzzes the bee, qu
   } finally { await b2.close(); srv.close(); }
 });
 
+// ------------------------------------------------------------------ camera
+test('bug on your hand: the camera is the level, taps call the bug, a photo is made, leaving stops the camera', async () => {
+  const srv = await serve(ROOT);
+  const b2 = await launchMedia();
+  try {
+    const ctx = await b2.newContext({ permissions: ['camera'] });
+    const p = await ctx.newPage();
+    p.errors = [];
+    p.on('pageerror', (e) => p.errors.push(e.message));
+    p.on('console', (m) => { if (m.type() === 'error') p.errors.push(m.text()); });
+    await p.goto(srv.url);
+    await startMission(p, 'hand', {});
+    await p.waitForFunction(() => Game.g.live.ready && Game.g.mission.liveBg(Game.g), null, { timeout: 10000 });
+    await p.waitForTimeout(300);
+    const live = await p.evaluate(() => ({ w: Game.g.live.video.videoWidth, fact: Game.g.seen.has('camera'), locked: document.querySelectorAll('#tools .tool.locked').length, open: document.querySelectorAll('#tools .tool:not(.locked)').length }));
+    check(live.w > 0 && live.fact, 'no live frame: ' + JSON.stringify(live));
+    check(live.locked === 7 && live.open === 4, 'palette: ' + JSON.stringify(live));   // ladybird and snail always, photo and flip; the rest need a star
+    // the frame on the canvas is the camera, not the painted hand (Chromium's fake camera is a bright green pattern)
+    const px = await p.evaluate(() => { const c = document.getElementById('game'), d = c.getContext('2d').getImageData(Math.round(c.width * 0.6), Math.round(c.height * 0.3), 1, 1).data; return [d[0], d[1], d[2]]; });
+    check(px[1] > 100 && px[0] < 80, 'the canvas does not show the camera frame: ' + px);
+    // a tap calls the bug over, a tap on it says hello and gives its fact
+    const before = await p.evaluate(() => [Game.g.bug.x, Game.g.bug.y]);
+    await p.evaluate(() => Game.g.mission.onPointer(Game.g, 'down', 760, 160));
+    await p.waitForTimeout(1200);
+    const after = await p.evaluate(() => [Game.g.bug.x, Game.g.bug.y]);
+    check(Math.hypot(after[0] - before[0], after[1] - before[1]) > 30, 'the bug did not come: ' + before + ' -> ' + after);
+    await p.evaluate(() => Game.g.mission.onPointer(Game.g, 'down', Game.g.bug.x, Game.g.bug.y));
+    check(await p.evaluate(() => Game.g.hello === 1 && Game.g.seen.has('ladybird')), 'tapping the bug gave no hello');
+    // the palette swaps the bug; a locked one only explains
+    await p.locator('#tools .tool[data-tool="snail"]').click();
+    await p.waitForTimeout(100);
+    check(await p.evaluate(() => Game.g.bug.kind === 'snail' && Game.g.items[0].sprite === 'snail'), 'the snail did not come out');
+    await p.locator('#tools .tool[data-tool="bee"]').click();
+    await p.waitForTimeout(100);
+    check(await p.evaluate(() => Game.g.bug.kind === 'snail' && Game.g.toasts.concat([{ text: document.getElementById('toast').textContent }]).some(t => /Finish the Blue-banded Bee level first/.test(t.text))), 'a locked bug came out, or no hint');
+    // a photo: a PNG of the frame and the bug, and the secret
+    const url = await p.evaluate(() => Game.g.mission.snap(Game.g, true));
+    check(url.startsWith('data:image/png') && url.length > 5000 && await p.evaluate(() => Game.g.photos === 1 && Progress.hasSecret('s_photo')), 'no photo');
+    // flip asks for the other camera
+    await p.locator('#tools .tool[data-tool="flip"]').click();
+    await p.waitForFunction(() => Game.g.live.ready && !Game.g.live.opening, null, { timeout: 10000 });
+    check(await p.evaluate(() => Game.g.live.facing === 'user' && Game.g.live.mirror), 'flip did not switch to the front camera');
+    // leaving stops the stream
+    await p.click('#menuBtn');
+    await p.waitForTimeout(200);
+    check(await p.evaluate(() => Game.g.live.stream === null && !Game.g.live.ready), 'the camera kept running after leaving');
+    check(p.errors.length === 0, p.errors.join('; '));
+  } finally { await b2.close(); srv.close(); }
+});
+
+test('bug on your hand without a camera: the painted hand, the note, and the bug still walks', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(() => { Media.get = async () => ({ error: 'none' }); });
+  await startMission(p, 'hand', {});
+  await p.waitForTimeout(400);
+  const r = await p.evaluate(() => ({ err: Game.g.live.error, note: !document.getElementById('mediaNote').hidden, fact: Game.g.seen.has('camera'), hud: document.getElementById('hudExtra').textContent, running: Game.running }));
+  check(r.err === 'none' && r.note && r.fact && /painted hand/.test(r.hud) && r.running, 'fallback: ' + JSON.stringify(r));
+  await p.evaluate(() => Game.g.mission.onPointer(Game.g, 'down', 300, 150));
+  await p.waitForTimeout(1000);
+  check(await p.evaluate(() => Math.hypot(Game.g.bug.x - 300, Game.g.bug.y - 150) < 400 && Game.g.bug.moving), 'the bug did not walk on the painted hand');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('mic refused: the toggle switches itself back off and play goes on', async (b) => {
   const p = await openGame(b);
   await p.evaluate(() => { Media.get = async () => ({ error: 'denied' }); });

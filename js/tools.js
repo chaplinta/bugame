@@ -2,6 +2,7 @@
 // Tool palette for the building levels (garden, web, nest): a column of buttons down the left of the game.
 // A mission lists its tools as groups: tools: [{ name, items: [{ id, label, sprite?, color?, now? }] }].
 // Picking a tool sets g.tool; tools with now: true call mission.onTool(g, id) straight away instead.
+// A tool with locked: true is greyed out and a tap calls mission.onLocked(g, id) (the hand level's unplayed bugs).
 
 const Tools = {
   build(m, g) {
@@ -17,8 +18,8 @@ const Tools = {
       box.appendChild(h);
       for (const t of grp.items) {
         const b = document.createElement('button');
-        b.className = 'tool'; b.dataset.tool = t.id;
-        b.setAttribute('aria-label', t.label);
+        b.className = 'tool' + (t.locked ? ' locked' : ''); b.dataset.tool = t.id;
+        b.setAttribute('aria-label', t.label + (t.locked ? ' (play its level first)' : ''));
         if (t.sprite || t.color) {
           const c = document.createElement('canvas');
           this.icon(c, t);
@@ -28,13 +29,14 @@ const Tools = {
         b.addEventListener('pointerdown', (e) => e.stopPropagation());
         b.addEventListener('click', () => {
           Sound.play('tap');
+          if (t.locked) { if (m.onLocked) m.onLocked(Game.g, t.id); return; }   // greyed out: the level says what to play first
           if (t.now) { if (m.onTool) m.onTool(Game.g, t.id, b); return; }
           this.select(t.id);
         });
         box.appendChild(b);
       }
     }
-    const first = m.tools[0].items.find(t => !t.now);
+    const first = m.tools[0].items.find(t => !t.now && !t.locked);
     if (first) this.select(m.defaultTool || first.id);
   },
   select(id) {

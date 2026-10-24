@@ -69,7 +69,7 @@ if (typeof Render3D !== 'undefined') Render3D.whenReady(redrawPortraits);
 
 function bugSprite(bug) { return bug.sprite; }
 // How a level is seen, when it isn't the usual top-down view.
-function viewTag(m) { return { side: 'Side-on', iso: 'Isometric', '3d': '3D', build: 'Build' }[m && m.view] || ''; }
+function viewTag(m) { return { side: 'Side-on', iso: 'Isometric', '3d': '3D', build: 'Build', camera: 'Camera' }[m && m.view] || ''; }
 function bugStars(bug) { return bug.stages.reduce((n, id) => n + Progress.stars(id), 0); }
 
 function fillList(el, items) {
