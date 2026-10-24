@@ -159,7 +159,8 @@ Missions.hand = {
   setBug(g, kind) {
     const b = HAND_BUGS[kind], old = g.bug;
     g.bug = Object.assign({ kind, sprite: b.sprite, x: old ? old.x : W / 2, y: old ? old.y : H / 2, r: b.r, angle: old ? old.angle : 0.6, scale: b.scale,
-      moving: false, target: null, sitT: 2 + Math.random() * 2, turn: 0, t: 0, flapT: 0, buzzT: 0, sipT: 0, fanT: 0, hop: 0, nextT: 6 + Math.random() * 4 }, b.o || {});
+      moving: false, target: null, sitT: 2 + Math.random() * 2, turn: 0, t: 0, flapT: 0, buzzT: 0, sipT: 0, fanT: 0, hop: 0, nextT: 6 + Math.random() * 4,
+      paint: typeof Paint !== 'undefined' ? Paint.stamp(kind) : undefined }, b.o || {});   // in your own design, if you painted this bug
     g.items = [g.bug]; g.trail = [];
     if (old) { Game.pop(g.bug.x, g.bug.y - 36, b.name + '!', '#fff'); Sound.play('pick'); }
   },

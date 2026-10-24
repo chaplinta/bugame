@@ -474,6 +474,11 @@ Missions.garden = {
     const v = { def, sprite: def.sprite, x: fromLeft ? 100 : World.w + 30, y: def.move === 'fly' ? -20 : to.y, r: 0, scale: def.scale, angle: 0, flat: true,
       tx: to.x, ty: to.y, rest: 0, moving: true, flying: true };
     if (def.move !== 'fly') v.x = fromLeft ? 110 : World.w + 20;
+    // one ladybird wears your own design, if you painted one (js/paint.js)
+    if (def.id === 'v_ladybird' && typeof Paint !== 'undefined' && Paint.stamp('ladybird') && !g.visitors.some(x => x.paint)) {
+      v.paint = Paint.stamp('ladybird');
+      Game.later(1.5, () => { g.toasts.unshift({ text: 'Your ladybird came to visit!', kind: 'hint' }); g.toastT = 0; });
+    }
     g.visitors.push(v);
     if (!g.kinds.has(def.id)) {
       g.kinds.add(def.id);

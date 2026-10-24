@@ -242,7 +242,7 @@ test('frog chorus: calls in the gap count, the heron hears you, the others call 
 test('Bug Olympics: every event is open, jumps are measured, a finish gives a medal, the Book shows it', async (b) => {
   const p = await openGame(b);
   await p.locator('.pin', { hasText: 'Bug Olympics' }).click();
-  check(await p.locator('.stageBtn:not([disabled])').count() === 5, 'not every event is open');
+  check(await p.locator('#stages .stageBtn:not([disabled])').count() === 5, 'not every event is open');   // (the paint screen's part buttons share the class)
   check(await p.isHidden('#bugTree'), 'the family tree button shows for the Olympics');
   // long jump: a full-power jump from the board lands far out, a weak one close; three jumps end the event
   await startMission(p, 'oly_jump', {});
@@ -819,6 +819,80 @@ test('shout to buzz: the toggle asks for the mic, a loud room buzzes the bee, qu
     check(heard, 'the fake microphone was silent');
     check(p.errors.length === 0, p.errors.join('; '));
   } finally { await b2.close(); srv.close(); }
+});
+
+// ------------------------------------------------------------------ paint a bug
+test('paint a bug: strokes save, the drawing and the model wear the design, the real one stays', async (b) => {
+  const p = await openGame(b);
+  await p.click('#paintBtn');
+  check(await p.isVisible('#paint.active'), 'the paint screen did not open');
+  check(await p.locator('#paintParts .stageBtn').count() === 3 && await p.locator('#paintTools .swatch').count() === 10, 'parts or colours missing');
+  // a white spot stamped with a tap, then a black brush stroke, both in the ladybird's own units (cx + S·x, cy + S·y)
+  const box = await p.locator('#paintCanvas').boundingBox();
+  const at = (x, y) => [box.x + box.width * (292 + 36 * x) / 512, box.y + box.height * (256 + 36 * y) / 512];
+  await p.locator('#paintTools [data-tool="c#f4f4f0"]').click();
+  await p.locator('#paintTools [data-tool="spot"]').click();
+  await p.mouse.click(...at(3, 3));
+  await p.locator('#paintTools [data-tool="c#111111"]').click();
+  await p.locator('#paintTools [data-tool="s18"]').click();
+  await p.mouse.move(...at(-4, -3)); await p.mouse.down(); await p.mouse.move(...at(-2, -3), { steps: 4 }); await p.mouse.up();
+  const px = await p.evaluate(() => { const d = Paint.image('ladybird').getContext('2d'); const q = (x, y) => [...d.getImageData(x, y, 1, 1).data].slice(0, 3); return { spot: q(400, 364), stroke: q(184, 148), plain: q(184, 364) }; });
+  check(px.spot[0] > 230 && px.spot[1] > 230 && px.stroke[0] < 40 && px.plain[0] > 180 && px.plain[1] < 90, 'the strokes did not land: ' + JSON.stringify(px));
+  await p.click('#paintSave');
+  const saved = await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('bugame.paint')); return { img: !!(d.img && d.img.ladybird), use: d.use.ladybird, stamp: Paint.stamp('ladybird'), secret: Progress.hasSecret('s_paint'), note: document.getElementById('paintNote').textContent }; });
+  check(saved.img && saved.use && saved.stamp === 1 && saved.secret && /Saved!/.test(saved.note), 'save: ' + JSON.stringify(saved));
+  // the drawing wears it where painted and keeps the base elsewhere; the real one keeps its bands
+  const d2 = await p.evaluate(() => {
+    const draw = (o) => { const c = document.createElement('canvas'); c.width = c.height = 120; const ctx = c.getContext('2d'); ctx.translate(60, 60); ctx.scale(8, 8); Sprites.ladybird(ctx, o, 0.4); return ctx; };
+    const q = (ctx, x, y) => [...ctx.getImageData(Math.round(60 + 8 * x), Math.round(60 + 8 * y), 1, 1).data].slice(0, 3);
+    const real = draw({ moving: false }), mine = draw({ moving: false, paint: Paint.stamp('ladybird') });
+    return { realBand: q(real, -4.2, 2.6), mineBand: q(mine, -4.2, 2.6), mineStroke: q(mine, -3, -3), realStroke: q(real, -3, -3) };
+  });
+  check(d2.realBand[0] < 60 && d2.mineBand[0] > 150 && d2.mineStroke[0] < 60 && d2.realStroke[0] > 150, 'the drawing: ' + JSON.stringify(d2));
+  // the parade gains a marcher in the design; the Book labels a painted butterfly as yours; one garden ladybird and the hand's wear it
+  await p.evaluate(() => { PaintUI.pick('butterfly'); PaintUI.colour = '#3a5ab0'; PaintUI.stamp({ x: 256 + 14 * 10, y: 60 + 14 * 15 }, 'star'); PaintUI.save(); });
+  check(await p.evaluate(() => paradeMarchers().length === Bugs.length + 2 && paradeMarchers().slice(-2).every(m => m.paint)), 'the parade did not gain the painted bugs');
+  await p.click('#paintBack');
+  await p.click('#bookBtn');
+  check(await p.locator('.bookBug', { hasText: 'Painted Lady' }).locator('.mine').count() === 1 && await p.locator('.bookBug', { hasText: 'Bull Ant' }).locator('.mine').count() === 0, 'the Book does not show the design as yours');
+  check(/My design/.test(await p.locator('.bookBug', { hasText: 'Painted Lady' }).locator('.mine').textContent()), 'no label on the design');
+  await p.click('#bookBack');
+  await startMission(p, 'butterfly', { noNet: true, noPred: true });
+  check(await p.evaluate(() => Game.g.player.paint === 1), 'the butterfly you play does not wear the design');
+  await p.click('#menuBtn');
+  await startMission(p, 'garden', {});
+  await p.evaluate(() => { const g = Game.g, m = g.mission; m.addThing(g, 'everlasting', 400, 300, 1); for (let i = 0; i < 2; i++) m.arrive(g, VISITORS.find(v => v.id === 'v_ladybird')); });
+  check(await p.evaluate(() => Game.g.visitors.filter(v => v.paint).length === 1), 'not exactly one garden ladybird wears the design');
+  await p.click('#menuBtn');
+  await p.evaluate(() => { Media.get = async () => ({ error: 'none' }); });
+  await startMission(p, 'hand', {});
+  check(await p.evaluate(() => Game.g.bug.paint === 1), 'the ladybird on your hand does not wear the design');
+  await p.click('#menuBtn');
+  // the switch takes the design out of the game without losing it
+  await p.click('#paintBtn');
+  await p.evaluate(() => PaintUI.pick('ladybird'));
+  await p.locator('#paintUse').click();
+  check(await p.evaluate(() => Paint.stamp('ladybird') === undefined && !!JSON.parse(localStorage.getItem('bugame.paint')).img.ladybird), 'the switch did not take the design out');
+  check(p.errors.length === 0, p.errors.join('; '));
+  // the 3D model: the design goes into the dome map, the painted render differs, the real render is unchanged
+  const p3 = await openGame(b, null, FILE_URL + '?3d=force');
+  await p3.waitForFunction(() => typeof Render3D !== 'undefined' && (Render3D.ok || Render3D.failed), null, { timeout: 60000 });
+  check(await p3.evaluate(() => Render3D.ok), 'Render3D did not start');
+  await p3.click('#paintBtn');
+  const r3 = await p3.evaluate(() => {
+    const img = (o) => SpriteCache.image('ladybird', o, { t: 0.4, px: 4, angle: 0 });
+    const before = img({ moving: false }).c.toDataURL();
+    PaintUI.pick('ladybird'); PaintUI.colour = '#f4f4f0'; PaintUI.stamp({ x: 292 + 36 * 3, y: 256 + 36 * 3 }, 'spot'); PaintUI.save();
+    const st = Paint.stamp('ladybird'), real = img({ moving: false }), mine = img({ moving: false, paint: st });
+    const a = real.c.getContext('2d').getImageData(0, 0, real.c.width, real.c.height).data, m = mine.c.getContext('2d').getImageData(0, 0, mine.c.width, mine.c.height).data;
+    let diff = 0; for (let i = 0; i < Math.min(a.length, m.length); i += 4) if (Math.abs(a[i] - m[i]) + Math.abs(a[i + 1] - m[i + 1]) + Math.abs(a[i + 2] - m[i + 2]) > 60) diff++;
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128; const ctx = c.getContext('2d');
+    Paint.build('ladybird', 'ladybirdDome', ctx, 256, 128);
+    const texel = [...ctx.getImageData(88, 105, 1, 1).data].slice(0, 3), under = [...ctx.getImageData(200, 64, 1, 1).data].slice(0, 3);
+    return { stamp: st, same: real.c.toDataURL() === before, diff, texel, under, keys: [...Models.built.keys()].filter(k => /U1/.test(k)).length };
+  });
+  check(r3.stamp === 1 && r3.same && r3.diff > 20 && r3.texel[0] > 230 && r3.under[0] < 40 && r3.keys === 1, '3D: ' + JSON.stringify(r3));
+  check(p3.errors.length === 0, p3.errors.join('; '));
 });
 
 // ------------------------------------------------------------------ camera

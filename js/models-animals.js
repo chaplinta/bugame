@@ -581,15 +581,17 @@ Models.define('resinBee', {
 
 Models.define('ladybird', {
   // Transverse ladybird: glossy orange-red dome with black bands, a black pronotum with two white spots.
-  key(o, t) { return (o.moving ? 'm' + SpriteCache.phase(t, 10, 8) : 'x'); },
-  build(M) {
+  variant(o) { return o.paint ? 'U' + o.paint : ''; },   // a design of your own on the wing cases (js/paint.js)
+  key(o, t) { return (o.paint ? 'U' + o.paint : '') + (o.moving ? 'm' + SpriteCache.phase(t, 10, 8) : 'x'); },
+  build(M, o) {
     const g = new THREE.Group();
     g.userData.legs = M.legs6(g, { cx: 0, wide: 1.3, len: 0.55, z: 2.4, mat: M.chitin('#111111'), w: 0.7, L: 6, pitch: 0.5, lift: 1 });
     // The dome is a banded ellipsoid, so (as for the birds' bodies) x runs round the body with the top of the back
     // a quarter of the way across, and y runs along it from the tail (top row) to the head. The markings are laid
     // out in the top-view coordinates of the 2D drawing (art-world2.js) and mapped: U for a point's y across the
     // body, V for its x along it.
-    const dome = M.paint('ladybirdDome', 256, 128, (ctx, w, h) => {
+    const user = o && o.paint && typeof Paint !== 'undefined' ? Paint.texture('ladybird', 'ladybirdDome') : null;
+    const dome = user || M.paint('ladybirdDome', 256, 128, (ctx, w, h) => {
       const U = (y) => w * (0.25 + Math.asin(Math.max(-1, Math.min(1, y / 5.4))) / TAU), V = (x) => h * (x + 7.2) / 12.4;
       ctx.fillStyle = '#e03a1a'; ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = '#111';

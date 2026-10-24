@@ -189,6 +189,25 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
 .tool canvas { width: 34px; height: 34px; }
 .tool.on { border-color: var(--accent); background: #ffe9c8; }
 .tool.locked { opacity: .45; filter: grayscale(.8); }
+
+/* Paint a bug */
+.paintRow { display: flex; gap: 14px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+.paintTools { display: flex; flex-wrap: wrap; gap: 6px; max-width: 170px; justify-content: center; align-content: flex-start; }
+.swatch { width: 38px; height: 38px; padding: 0; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.swatch.on { border-color: var(--accent); transform: scale(1.12); }
+.paintTool { font-size: .9rem; padding: 6px 10px; min-height: 40px; background: #b8ab8f; }
+.paintTool.on { background: var(--accent2); }
+#paintBox { position: relative; width: min(512px, 92vw); aspect-ratio: 1; background: #fffaf0; border-radius: 14px; box-shadow: 0 2px 8px rgba(60,30,10,.25); touch-action: none; overflow: hidden; }
+#paintBox canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+#paintGuide { pointer-events: none; }
+.paintPreview { text-align: center; }
+.paintPreview p { margin: 4px 0; font-weight: bold; }
+.paintPreview canvas { display: block; margin: 0 auto 8px; width: 150px; height: 150px; background: #fffaf0; border-radius: 14px; box-shadow: 0 2px 8px rgba(60,30,10,.2); }
+.paintUse { display: inline-flex; align-items: center; gap: 8px; font-weight: bold; font-size: 1.1rem; padding: 10px 16px; background: var(--panel); border-radius: 999px; }
+.paintUse input { width: 24px; height: 24px; }
+.bookHead .mine { text-align: center; font-size: .75rem; font-weight: bold; color: #8a6a3a; }
+.bookHead .mine canvas { width: 80px; height: 80px; }
+@media (max-width: 700px) { .paintTools { max-width: none; } }
 @media (max-width: 600px), (max-height: 500px) {
   #tools { width: 64px; top: 40px; }
   .tool canvas { width: 26px; height: 26px; }

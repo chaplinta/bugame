@@ -243,6 +243,13 @@ function buildBook() {
     }
     sec.innerHTML = '<div class="bookHead"><canvas></canvas><div><h2></h2><p class="sci"></p><p class="count"></p></div></div><ul class="facts"></ul>';
     portrait(sec.querySelector('canvas'), bugSprite(bug), 80);
+    const design = typeof Paint !== 'undefined' ? Paint.stamp(bug.sprite) : undefined;   // your own design, labelled as yours (js/paint.js)
+    if (design) {
+      const mine = document.createElement('div');
+      mine.className = 'mine'; mine.innerHTML = '<canvas></canvas>My design';
+      sec.querySelector('.bookHead').insertBefore(mine, sec.querySelector('.bookHead div'));
+      portrait(mine.querySelector('canvas'), bug.sprite, 80, { paint: design, fan: bug.sprite === 'spider' ? 1 : 0 });
+    }
     sec.querySelector('h2').textContent = bug.name;
     sec.querySelector('.sci').textContent = bug.sci + ' · ' + bug.place;
     sec.querySelector('.count').textContent = 'Facts found: ' + found + ' / ' + total;
@@ -318,13 +325,23 @@ $('title').addEventListener('click', () => {
   bugParade();
 });
 
+// Every bug marches, plus one bug per design you painted (js/paint.js), wearing it.
+function paradeMarchers() {
+  const list = Bugs.map((b, i) => ({ sprite: b.sprite, x: -60 - i * 70, y: 300 + Math.sin(i) * 40 }));
+  if (typeof Paint !== 'undefined') for (const name of Object.keys(PAINT_PARTS)) {
+    const st = Paint.stamp(name);
+    if (st) { const i = list.length; list.push({ sprite: name, paint: st, x: -60 - i * 70, y: 300 + Math.sin(i) * 40 }); }
+  }
+  return list;
+}
+
 function bugParade() {
   const c = $('parade');
   const dpr = window.devicePixelRatio || 1;
   c.width = W * dpr; c.height = H * dpr;
   c.hidden = false;
   const ctx = c.getContext('2d');
-  const marchers = Bugs.map((b, i) => ({ sprite: b.sprite, x: -60 - i * 70, y: 300 + Math.sin(i) * 40 }));
+  const marchers = paradeMarchers();
   const start = performance.now();
   Sound.play('win');
   const step = (now) => {
@@ -333,9 +350,10 @@ function bugParade() {
     ctx.clearRect(0, 0, W, H);
     for (const m of marchers) {
       const x = m.x + t * 180, y = m.y + Math.sin(t * 8 + m.x) * 6, k = 1.6 * (ICON_SCALE[m.sprite] || 1);
-      if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, m.sprite, { moving: true, load: 0 }, t, { x, y, scale: k })) continue;
+      const o = { moving: true, load: 0, paint: m.paint, fan: m.paint && m.sprite === 'spider' ? 1 : 0 };
+      if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, m.sprite, o, t, { x, y, scale: k })) continue;
       ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
-      Sprites[m.sprite](ctx, { moving: true, load: 0 }, t);
+      Sprites[m.sprite](ctx, o, t);
       ctx.restore();
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

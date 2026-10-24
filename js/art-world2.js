@@ -118,9 +118,12 @@ Object.assign(Sprites, {
   ladybird(ctx, o, t) {
     legs6r(ctx, 0, 6, '#111', 0.7, t, o.moving, { wide: 1.3 });
     ell(ctx, -1, 0, 6.2, 5.4, '#e03a1a', 0, 'chitin');
+    // a design of your own on the wing cases (js/paint.js), else the real bands and spots
+    let design = false;
+    if (o.paint && typeof Paint !== 'undefined') { ctx.save(); ctx.beginPath(); ctx.ellipse(-1, 0, 6.2, 5.4, 0, 0, TAU); ctx.clip(); design = Paint.draw(ctx, 'ladybird'); ctx.restore(); }
     plainLine(ctx, [-7, 0, 4, 0], '#111', 0.9);
     ctx.fillStyle = '#111';
-    for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(2.5, s * 0.6); ctx.quadraticCurveTo(0, s * 3.2, -1.5, s * 3.6); ctx.quadraticCurveTo(-2.5, s * 2.6, -1.2, s * 1.4); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.ellipse(-4.2, s * 2.6, 1.3, 1, s * 0.4, 0, TAU); ctx.fill(); }
+    if (!design) for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(2.5, s * 0.6); ctx.quadraticCurveTo(0, s * 3.2, -1.5, s * 3.6); ctx.quadraticCurveTo(-2.5, s * 2.6, -1.2, s * 1.4); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.ellipse(-4.2, s * 2.6, 1.3, 1, s * 0.4, 0, TAU); ctx.fill(); }
     ell(ctx, 4.2, 0, 1.9, 3.8, '#111', 0, 'chitin'); plainEll(ctx, 3.8, -2.4, 0.9, 0.8, '#f4f4f4'); plainEll(ctx, 3.8, 2.4, 0.9, 0.8, '#f4f4f4');
     ell(ctx, 6.4, 0, 1.3, 1.8, '#111', 0, 'chitin'); plainEll(ctx, 6.6, -1.1, 0.5, 0.4, '#eee'); plainEll(ctx, 6.6, 1.1, 0.5, 0.4, '#eee');
     plainLine(ctx, [7.2, -0.6, 8.4, -1.6], '#111', 0.4); plainLine(ctx, [7.2, 0.6, 8.4, 1.6], '#111', 0.4);

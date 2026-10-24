@@ -45,7 +45,7 @@ function wingTexture() {
   ctx.rotate(-Math.PI / 2);
   // Reuse the 2D butterfly's wing shapes: draw it and keep one side.
   ctx.save(); ctx.beginPath(); ctx.rect(-30, 0, 60, 40); ctx.clip();
-  Sprites.butterfly(ctx, { landed: false }, Math.PI / 36);   // wings fully open
+  Sprites.butterfly(ctx, { landed: false, paint: typeof Paint !== 'undefined' ? Paint.stamp('butterfly') : undefined }, Math.PI / 36);   // wings fully open, in your design if you painted one
   ctx.restore();
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -172,7 +172,7 @@ function makeButterfly(T) {
   // The sprite model, turned from its ground frame (x forward, z up) into the flight scene (z forward, y up)
   if (typeof Models !== 'undefined' && typeof Render3D !== 'undefined' && Render3D.ok && Models.has('butterfly')) {
     try {
-      const root = Models.build('butterfly', { landed: false }), mirror = new T.Group(), wrap = new T.Group(), g = new T.Group();
+      const root = Models.build('butterfly', { landed: false, paint: typeof Paint !== 'undefined' ? Paint.stamp('butterfly') : undefined }), mirror = new T.Group(), wrap = new T.Group(), g = new T.Group();
       mirror.scale.set(1, -1, 1); mirror.add(root);
       wrap.setRotationFromMatrix(new T.Matrix4().makeBasis(new T.Vector3(0, 0, 1), new T.Vector3(1, 0, 0), new T.Vector3(0, 1, 0)));
       wrap.add(mirror); wrap.scale.setScalar(0.12); wrap.position.y = -0.5; g.add(wrap);

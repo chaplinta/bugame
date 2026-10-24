@@ -231,7 +231,7 @@ const PL = {
 // Peacock spider, Maratus speciosus: shared by the player and the female's suitors. The display parts are separate:
 // o.fan raises and tips the fan, o.wave raises the third legs, o.bob shakes the abdomen (o.dance: all at once);
 // o.col picks a fan colouring from SPIDER_COLS (js/art-bugs2.js).
-function spiderVariant(o) { return (o.dance > 0 || o.fan > 0 ? 'F' : '') + (o.dance > 0 || o.wave > 0 ? 'L' : '') + 'c' + (o.col || 0); }
+function spiderVariant(o) { return (o.dance > 0 || o.fan > 0 ? 'F' : '') + (o.dance > 0 || o.wave > 0 ? 'L' : '') + 'c' + (o.col || 0) + (o.paint ? 'U' + o.paint : ''); }
 function peacockSpider(M, o) {
   const g = new THREE.Group(), fanUp = o.dance > 0 || o.fan > 0, legsUp = o.dance > 0 || o.wave > 0, col = o.col || 0, C = SPIDER_COLS[col], angles = [0.55, 1.15, 1.9, 2.5];
   g.userData.legs = [];
@@ -247,7 +247,8 @@ function peacockSpider(M, o) {
   }
   // the fan: iridescent, banded red, fringed when raised
   const ax = fanUp ? 8.5 : 7.2, ay = fanUp ? 13 : 6.4, az = fanUp ? 1.6 : 3.4;
-  const fanMap = M.paint('maratusFan' + col + (fanUp ? 'D' : ''), 128, 256, (ctx, w, h) => {
+  const user = o.paint && typeof Paint !== 'undefined' ? Paint.texture('spider', 'maratusFanD') : null;   // a design of your own (js/paint.js)
+  const fanMap = user || M.paint('maratusFan' + col + (fanUp ? 'D' : ''), 128, 256, (ctx, w, h) => {
     const gr = ctx.createLinearGradient(0, 0, w, h); gr.addColorStop(0, C.g[0]); gr.addColorStop(0.35, C.g[1]); gr.addColorStop(0.7, C.g[2]); gr.addColorStop(1, C.g[3]);
     ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
     for (let k = -1; k <= 1; k++) { const y = h / 2 + k * h * 0.2, bw = h * (fanUp ? 0.04 : 0.03); const gb = ctx.createLinearGradient(0, y - bw * 1.4, 0, y + bw * 1.4); gb.addColorStop(0, 'rgba(255,90,26,0)'); gb.addColorStop(0.3, C.band); gb.addColorStop(0.7, C.band); gb.addColorStop(1, 'rgba(255,90,26,0)'); ctx.fillStyle = gb; ctx.fillRect(0, y - bw * 1.4, w, bw * 2.8); ctx.fillStyle = 'rgba(255,230,120,.5)'; ctx.fillRect(0, y - bw * 1.2, w, bw * 0.4); }
@@ -425,7 +426,9 @@ Models.define('emerge', {
 // Australian painted lady: four painted wings on hinges along the body, furry body, clubbed antennae.
 function paintedLady(M, o) {
   const g = new THREE.Group();
-  const foreTex = patternTexture(M, 'plFore', PL.fore(), (ctx) => PL.paintFore(ctx)), hindTex = patternTexture(M, 'plHind', PL.hind(), (ctx) => PL.paintHind(ctx));
+  const user = o.paint && typeof Paint !== 'undefined';   // a design of your own on the wings (js/paint.js)
+  const foreTex = (user && Paint.texture('butterfly', 'plFore')) || patternTexture(M, 'plFore', PL.fore(), (ctx) => PL.paintFore(ctx));
+  const hindTex = (user && Paint.texture('butterfly', 'plHind')) || patternTexture(M, 'plHind', PL.hind(), (ctx) => PL.paintHind(ctx));
   g.userData.wings = [];
   for (const s of [-1, 1]) {
     const hw = paintedWing(M, g, [0, 0, 5.4], PL.hind(), hindTex, s, { key: 'plHind' }); hw.kind = 'hind'; g.userData.wings.push(hw);
@@ -442,8 +445,8 @@ function paintedLady(M, o) {
 }
 Models.define('butterfly', {
   buckets: 16,
-  variant(o) { return (o.sip ? 'S' : '') + (o.landed ? 'L' : ''); },
-  key(o, t) { return (o.sip ? 'S' : '') + (o.landed ? 'L' : 'w' + SpriteCache.phase(t, 18, 6)); },
+  variant(o) { return (o.sip ? 'S' : '') + (o.landed ? 'L' : '') + (o.paint ? 'U' + o.paint : ''); },
+  key(o, t) { return (o.sip ? 'S' : '') + (o.paint ? 'U' + o.paint : '') + (o.landed ? 'L' : 'w' + SpriteCache.phase(t, 18, 6)); },
   build(M, o) { return paintedLady(M, o); },
   pose(root, o, t) {
     const f = o.landed ? 0.35 : 0.55 + Math.sin((SpriteCache.phase(t, 18, 6) + 0.5) / 6 * TAU) * 0.45;   // how open the wings are, as the 2D drew them

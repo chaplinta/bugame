@@ -236,10 +236,13 @@ Object.assign(Sprites, {
     else for (const s of [-1, 1]) { ctx.beginPath(); for (let k = 0; k < 9; k++) { ctx.moveTo(-13.5 + k * 1.4, s * 5.6); ctx.lineTo(-14 + k * 1.4, s * 8.4); } ctx.strokeStyle = C.fringe; ctx.lineWidth = 0.7; ctx.stroke(); }
     ell(ctx, -8, 0, ax, ay, C.g[1], 0, 'none');
     ctx.save(); ctx.beginPath(); ctx.ellipse(-8, 0, ax, ay, 0, 0, TAU); ctx.clip();
-    const gr = ctx.createLinearGradient(-16, -ay, 0, ay);
-    gr.addColorStop(0, C.g[0]); gr.addColorStop(0.35, C.g[1]); gr.addColorStop(0.7, C.g[2]); gr.addColorStop(1, C.g[3]);
-    ctx.fillStyle = gr; ctx.fillRect(-17, -ay, 18, ay * 2);
-    for (let k = -2; k <= 2; k++) { ctx.fillStyle = C.band; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36, ax, 0.9 + (fanUp ? 0.7 : 0), 0, 0, TAU); ctx.fill(); ctx.fillStyle = 'rgba(255,230,120,.6)'; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36 - 0.7, ax * 0.9, 0.3, 0, 0, TAU); ctx.fill(); }
+    // a design of your own on the fan (js/paint.js, painted for the raised fan and shrunk onto the folded one), else the real colours
+    if (!(o.paint && typeof Paint !== 'undefined' && Paint.draw(ctx, 'spider', { x: -8, y: 0, sx: ax / 8.5, sy: ay / 13 }))) {
+      const gr = ctx.createLinearGradient(-16, -ay, 0, ay);
+      gr.addColorStop(0, C.g[0]); gr.addColorStop(0.35, C.g[1]); gr.addColorStop(0.7, C.g[2]); gr.addColorStop(1, C.g[3]);
+      ctx.fillStyle = gr; ctx.fillRect(-17, -ay, 18, ay * 2);
+      for (let k = -2; k <= 2; k++) { ctx.fillStyle = C.band; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36, ax, 0.9 + (fanUp ? 0.7 : 0), 0, 0, TAU); ctx.fill(); ctx.fillStyle = 'rgba(255,230,120,.6)'; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36 - 0.7, ax * 0.9, 0.3, 0, 0, TAU); ctx.fill(); }
+    }
     if (Shade.rich) Tex.fillPath(ctx, 'chitinHi', 1.5, 0.35, 'screen');
     ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.ellipse(-10, -ay * 0.45, ax * 0.5, ay * 0.16, -0.3, 0, TAU); ctx.fill();
     ctx.restore();
@@ -286,6 +289,7 @@ Object.assign(Sprites, {
   // bars across the forewing, a row of blue-centred eyespots on the hindwing, furry body, clubbed antennae.
   butterfly(ctx, o, t) {
     const f = o.landed ? 0.35 : 0.55 + Math.sin(t * 18) * 0.45;
+    const design = !!(o.paint && typeof Paint !== 'undefined' && Paint.image('butterfly'));   // a design of your own on the wings (js/paint.js)
     for (const s of [-1, 1]) {
       ctx.save(); ctx.scale(1, s * f);
       // Hindwing first (behind)
@@ -293,23 +297,29 @@ Object.assign(Sprites, {
       let g = ctx.createLinearGradient(-2, 0, -12, 17); g.addColorStop(0, '#9a3e18'); g.addColorStop(0.5, '#e07a2a'); g.addColorStop(1, '#c86022');
       ctx.fillStyle = g; ctx.fill();
       if (Shade.rich) Tex.fillPath(ctx, 'grain', 2, 0.25, 'multiply');
+      if (design) { ctx.save(); ctx.clip(); Paint.draw(ctx, 'butterfly'); ctx.restore(); }
       ctx.strokeStyle = 'rgba(40,20,5,.7)'; ctx.lineWidth = 0.6; ctx.stroke();
-      // dark margin and eyespots
-      ctx.beginPath(); ctx.moveTo(-13, 17); ctx.bezierCurveTo(-5, 20, 1, 12, -1, 1); ctx.strokeStyle = '#2a1a10'; ctx.lineWidth = 1.4; ctx.stroke();
-      for (let k = 0; k < 4; k++) { const ex = -12.5 + k * 3.1, ey = 14 - k * 1.9; plainEll(ctx, ex, ey, 1.7, 1.7, '#1e1a18'); plainEll(ctx, ex, ey, 0.9, 0.9, '#3a78e0'); plainEll(ctx, ex - 0.3, ey - 0.3, 0.35, 0.35, '#cfe6ff'); }
+      if (!design) {
+        // dark margin and eyespots
+        ctx.beginPath(); ctx.moveTo(-13, 17); ctx.bezierCurveTo(-5, 20, 1, 12, -1, 1); ctx.strokeStyle = '#2a1a10'; ctx.lineWidth = 1.4; ctx.stroke();
+        for (let k = 0; k < 4; k++) { const ex = -12.5 + k * 3.1, ey = 14 - k * 1.9; plainEll(ctx, ex, ey, 1.7, 1.7, '#1e1a18'); plainEll(ctx, ex, ey, 0.9, 0.9, '#3a78e0'); plainEll(ctx, ex - 0.3, ey - 0.3, 0.35, 0.35, '#cfe6ff'); }
+      }
       // Forewing
       ctx.beginPath(); ctx.moveTo(2, 0); ctx.bezierCurveTo(10, 1, 17, 9, 14, 23); ctx.bezierCurveTo(8, 25, 1, 18, -2, 2); ctx.closePath();
       g = ctx.createLinearGradient(0, 0, 12, 22); g.addColorStop(0, '#a84a1a'); g.addColorStop(0.4, '#f08a2e'); g.addColorStop(1, '#e8802a');
       ctx.fillStyle = g; ctx.fill();
       if (Shade.rich) Tex.fillPath(ctx, 'grain', 2, 0.25, 'multiply');
       ctx.save(); ctx.clip();
-      // black apex with white spots, black bars
-      ctx.beginPath(); ctx.moveTo(7, 7); ctx.quadraticCurveTo(17, 7, 17, 27); ctx.lineTo(2, 27); ctx.quadraticCurveTo(4, 14, 7, 7); ctx.fillStyle = '#1c1816'; ctx.fill();
-      for (const [px, py, pr] of [[11.5, 19.5, 1.5], [9, 16, 1.1], [13.2, 14.5, 1], [7.5, 21.5, 0.8], [13.5, 23, 0.9]]) plainEll(ctx, px, py, pr, pr * 0.9, '#f8f4ee');
-      ctx.fillStyle = '#1c1816';
-      ctx.beginPath(); ctx.ellipse(5.5, 4, 1.2, 3.2, 0.3, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(3, 10, 2.4, 1.1, -0.2, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(8, 11.5, 1, 2.2, 0.2, 0, TAU); ctx.fill();
+      if (design) Paint.draw(ctx, 'butterfly');
+      else {
+        // black apex with white spots, black bars
+        ctx.beginPath(); ctx.moveTo(7, 7); ctx.quadraticCurveTo(17, 7, 17, 27); ctx.lineTo(2, 27); ctx.quadraticCurveTo(4, 14, 7, 7); ctx.fillStyle = '#1c1816'; ctx.fill();
+        for (const [px, py, pr] of [[11.5, 19.5, 1.5], [9, 16, 1.1], [13.2, 14.5, 1], [7.5, 21.5, 0.8], [13.5, 23, 0.9]]) plainEll(ctx, px, py, pr, pr * 0.9, '#f8f4ee');
+        ctx.fillStyle = '#1c1816';
+        ctx.beginPath(); ctx.ellipse(5.5, 4, 1.2, 3.2, 0.3, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(3, 10, 2.4, 1.1, -0.2, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(8, 11.5, 1, 2.2, 0.2, 0, TAU); ctx.fill();
+      }
       ctx.restore();
       ctx.strokeStyle = 'rgba(40,20,5,.75)'; ctx.lineWidth = 0.6; ctx.stroke();
       ctx.beginPath(); for (let k = 0; k < 5; k++) { ctx.moveTo(1, 1); ctx.quadraticCurveTo(4 + k * 1.2, 8 + k, 2 + k * 3, 19 + k * 0.8); }

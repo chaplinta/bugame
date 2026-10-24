@@ -74,6 +74,7 @@ Each bug gets 2–3 short stages (2–4 min each). Verbs stay to two at most: **
 - Allowed simplifications: size scaling, compressed time, fewer individuals. Each one goes in `docs/facts.md`.
 - No invented abilities. Bugs only get verbs the real animal has.
 - The Bug Olympics are labelled as pretend games on every event page; the bugs only do what they really do (jump, dart, dig, carry, buzz) and every number in the text is sourced.
+- Player designs (Paint a bug) are labelled as such and never replace the real pictures: one individual wears the design, the species keeps its real look everywhere else, and the Bug Book shows both.
 
 ## Technical requirements
 - Plain HTML5 Canvas + vanilla JS, no build step. Runs from `index.html` or GitHub Pages. Classic `<script>` tags so `file://` works.

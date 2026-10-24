@@ -30,6 +30,7 @@ const SECRETS = {
     s_parade: { name: 'Bug parade', text: 'Tap the Bugame title lots of times.' },
     s_wheee: { name: 'Wheee!', text: 'Press the action button really fast when there’s nothing to do.' },
     s_photo: { name: 'Bug photo', text: 'Take a photo in Bug on your hand.' },
+    s_paint: { name: 'Painted bug', text: 'Paint a bug and save your design.' },
   },
   all() {
     const list = Object.values(this.places).map(s => ({ key: s.key, name: s.name, text: s.text }));

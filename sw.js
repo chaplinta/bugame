@@ -3,7 +3,7 @@
 // Bump VERSION whenever any file below changes, so players get the update.
 // For a release, also update the version and date shown on the map screen (index.html, .version).
 
-const VERSION = 'bugame-v42';
+const VERSION = 'bugame-v43';
 const FILES = [
   './',
   'index.html',
@@ -17,7 +17,7 @@ const FILES = [
   'js/tank.js', 'js/tools.js',
   'js/secrets.js',
   'js/missions.js', 'js/missions2.js', 'js/flight.js', 'js/garden.js', 'js/web.js', 'js/dig.js', 'js/frogs.js', 'js/olympics.js', 'js/hand.js', 'js/art-world2.js', 'js/models-bugs.js', 'js/models-plants.js', 'js/models-animals.js', 'js/models-props.js', 'vendor/three.min.js',
-  'js/ui.js', 'js/night.js', 'js/tree.js',
+  'js/ui.js', 'js/paint.js', 'js/night.js', 'js/tree.js',
 ];
 
 self.addEventListener('install', (e) => {

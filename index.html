@@ -44,9 +44,10 @@
     <div class="buttons">
       <button id="bookBtn">Bug Book</button>
       <button id="treeBtn">Family tree</button>
+      <button id="paintBtn">Paint a bug</button>
       <button id="installBtn" class="secondary" hidden>Install app</button>
     </div>
-    <p class="version">Version 3.7 · released 23 October 2026</p>
+    <p class="version">Version 3.8 · released 24 October 2026</p>
   </section>
 
   <section id="bug" class="screen">
@@ -137,6 +138,34 @@
     <div id="bookList"></div>
   </section>
 
+  <section id="paint" class="screen">
+    <header class="top">
+      <h1>Paint a bug</h1>
+      <button id="paintBack" class="secondary">Map</button>
+    </header>
+    <p class="sub">Paint your own design on a ladybird, a peacock spider’s fan or a painted lady’s wings. The real one stays in the game; yours joins it.</p>
+    <div id="paintParts" class="stages"></div>
+    <div class="paintRow">
+      <div id="paintTools" class="paintTools"></div>
+      <div id="paintBox">
+        <canvas id="paintCanvas" aria-label="Paint here"></canvas>
+        <canvas id="paintGuide"></canvas>
+      </div>
+      <div class="paintPreview">
+        <p>Your design</p>
+        <canvas id="paintMine"></canvas>
+        <p>The real one</p>
+        <canvas id="paintReal"></canvas>
+      </div>
+    </div>
+    <p id="paintCaption" class="unlock"></p>
+    <p id="paintNote" class="sub center"></p>
+    <div class="buttons">
+      <label class="paintUse"><input type="checkbox" id="paintUse"> Use my design in the game</label>
+      <button id="paintSave">Save</button>
+    </div>
+  </section>
+
 </main>
 <script src="js/sprites.js"></script>
 <script src="js/textures.js"></script>
@@ -169,6 +198,7 @@
 <script src="js/models-animals.js"></script>
 <script src="js/models-props.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/paint.js"></script>
 <script src="js/night.js"></script>
 <script src="js/tree.js"></script>
 </body>

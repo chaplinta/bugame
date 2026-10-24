@@ -227,6 +227,7 @@ const Game = {
     g.finds = (mission.discoveries || []).map(d => Object.assign({ found: false, angle: 0 }, d,
       { x: d.fx * World.w, y: d.fy * World.h }));
     this.g = g;
+    if (typeof Paint !== 'undefined') g.player.paint = Paint.stamp(mission.sprite || mission.id);   // a design of your own on your bug (js/paint.js)
     if (typeof SpriteCache !== 'undefined') SpriteCache.clear();
     if (typeof Tex !== 'undefined') Tex.ready();
     mission.setup(g);

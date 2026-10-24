@@ -39,6 +39,7 @@ const SpriteCache = {
     if (o.stuck) k += 'k';
     if (o.face !== undefined) k += 'F' + (o.face < 0 ? 0 : 1);
     if (o.dive) k += 'D';
+    if (o.paint) k += 'U' + o.paint;   // a design of your own (js/paint.js)
     if (o.pose) k += 'P' + o.pose;
     if (o.water !== undefined) k += 'w' + (o.water ? 1 : 0);
     if (o.seed !== undefined) k += 'd' + o.seed;
