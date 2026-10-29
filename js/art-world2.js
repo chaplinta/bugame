@@ -219,3 +219,38 @@ Object.assign(Sprites, {
   // rocks already lying about the levels.
   rock(ctx, o) { Ground.rock(ctx, 0, 0, 18, o.seed || 2, { kind: o.kind || 'limestone', moss: true }); },
 });
+
+// Click beetle (Elateridae), side-on for the Bug Olympics gymnastics: long and narrow, dark brown, the pronotum's
+// hind corners drawn out into spines, serrate antennae. The feet sit at the origin; o.spin turns it head over tail
+// about its middle (on its back at π); o.face is the way it faces. The model is in js/models-animals.js.
+Object.assign(Sprites, {
+  clickBeetle(ctx, o, t) {
+    ctx.save();
+    ctx.rotate(-(o.angle || 0));
+    ctx.scale(o.face !== undefined && o.face < 0 ? -1 : 1, 1);
+    ctx.translate(0, -5);
+    ctx.rotate(o.spin || 0);
+    const walk = o.moving ? Math.sin(t * 16) : 0;
+    // Legs: the far side first and paler; three short pairs under the thorax and the front of the wing cases
+    for (const [far, col, w] of [[1, '#5a4634', 0.8], [0, '#2a1c12', 0.9]]) for (let i = 0; i < 3; i++) {
+      const x = 6.5 - i * 4.2, k = (i === 1 ? -walk : walk) * 0.8, kx = (i - 1) * 1.4 + k;
+      line(ctx, [x, 2.2, x + kx - far * 0.5, 3.8, x + kx * 1.8 - far, 5], col, w);
+    }
+    // Wing cases: a long lens tapering to the tail, ridged, with a soft highlight along the top
+    ctx.beginPath(); ctx.moveTo(3.5, -3); ctx.quadraticCurveTo(-4, -4.6, -13.5, -0.6); ctx.quadraticCurveTo(-5, 3.2, 3.5, 2.6); ctx.closePath();
+    const g = ctx.createLinearGradient(0, -4, 0, 3); g.addColorStop(0, '#4a3524'); g.addColorStop(0.5, '#2e2016'); g.addColorStop(1, '#1c130c');
+    ctx.fillStyle = g; ctx.fill();
+    if (Shade.rich) Tex.fillPath(ctx, 'chitin', 1.2, 0.3, 'multiply');
+    for (let k = 0; k < 3; k++) plainLine(ctx, [2.5, -2 + k * 1.5, -12 + k * 0.6, -0.4 + k * 0.6], 'rgba(0,0,0,.35)', 0.4);
+    plainEll(ctx, -4, -2.4, 5.5, 0.7, 'rgba(255,255,255,.14)');
+    // Pronotum: a rounded block whose hind corner runs back into a spine
+    ctx.beginPath(); ctx.moveTo(3.6, 1.6); ctx.lineTo(0.4, 3.4); ctx.lineTo(3.8, 2.8); ctx.closePath(); ctx.fillStyle = '#2a1c12'; ctx.fill();
+    ell(ctx, 6.5, -0.2, 3.6, 3.1, '#3a2a1c', 0, 'chitin');
+    // Head, small and tucked down, with an eye and a serrate antenna
+    ell(ctx, 10.6, 0.8, 2.1, 1.7, '#241810');
+    plainEll(ctx, 11.2, 0.1, 0.7, 0.7, '#0a0806'); plainEll(ctx, 11.4, -0.1, 0.25, 0.25, '#fff');
+    plainLine(ctx, [11.8, 0.4, 14.2, -0.6, 17.5, 1.2], '#3a2a1c', 0.7);
+    for (let k = 0; k < 4; k++) plainLine(ctx, [13.6 + k, -0.3 + k * 0.45, 13.4 + k, 0.7 + k * 0.45], '#3a2a1c', 0.6);
+    ctx.restore();
+  },
+});

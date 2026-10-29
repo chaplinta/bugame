@@ -966,3 +966,31 @@ Models.define('pat', {
   },
   pose(root, o, t) { if (!o.maggots) return; const ph = (SpriteCache.phase(t, 6, 4) + 0.5) / 4 * TAU; for (const { m, i, x } of root.userData.maggots) { const w = Math.sin(ph + i) * 2; m.position.x = x + w; m.rotation.z = i + w * 0.2; } },
 });
+
+// Click beetle (Elateridae): a long, narrow, dark-brown beetle whose pronotum ends in two hind-corner spines, with
+// serrate antennae. Side-on for the Bug Olympics gymnastics: o.spin turns the whole beetle head over tail about its
+// middle (the pose moves the root so the pivot sits at the body, not the feet); on its back at π.
+Models.define('clickBeetle', {
+  view: 'side',
+  key(o, t) { return (o.face < 0 ? 'L' : 'R') + 's' + Math.round(((((o.spin || 0) % TAU) + TAU) % TAU) / TAU * 24) % 24 + (o.moving ? 'm' + SpriteCache.phase(t, 16, 6) : 'x'); },
+  build(M) {
+    const g = new THREE.Group();
+    const dark = M.chitin('#2e2016', { coat: 0.7, rough: 0.35 }), mid = M.chitin('#3a2a1c', { coat: 0.6 }), legMat = M.chitin('#2a1c12');
+    g.userData.legs = M.legs6(g, { cx: 1, wide: 1.6, z: 3.2, mat: legMat, w: 0.55, L: 6, pitch: 0.6, lift: 1 });
+    M.ellipsoid(g, 9.5, 3.2, 2.7, dark, [-3.5, 0, 5]);                       // wing cases
+    M.seg(g, [-9, 0, 5], [-14.5, 0, 4.4], 2.2, dark, { cone: 0.15 });          // tapering to the tail
+    for (let k = -1; k <= 1; k++) M.seg(g, [2, k * 1.4, 7.6 - Math.abs(k) * 0.6], [-11, k * 1.1, 6.6 - Math.abs(k) * 0.5], 0.12, M.matte('#1a1208'), { full: true });   // ridges
+    M.ellipsoid(g, 3.6, 3.4, 2.8, mid, [7, 0, 5.2]);                           // pronotum
+    for (const s of [-1, 1]) M.seg(g, [5, s * 3, 4.4], [1.6, s * 3.8, 3.8], 0.5, mid, { cone: 0.1 });   // its hind-corner spines
+    M.ellipsoid(g, 2, 2.1, 1.7, dark, [11.4, 0, 4.4]);                         // head, tucked down
+    for (const s of [-1, 1]) M.ellipsoid(g, 0.7, 0.6, 0.6, M.eye({ color: '#1a1410' }), [12, s * 1.6, 4.9]);
+    for (const s of [-1, 1]) M.antenna(g, [13, s * 1.2, 4.4], s * 0.5, 2, s * 0.3, 5, 4, mid, 0.5, { rise: -0.1, droop: -0.15 });
+    return g;
+  },
+  pose(root, o, t) {
+    const spin = o.spin || 0, c = 5;   // the body's middle, the pivot of the somersault
+    root.rotation.y = spin;
+    root.position.set(-c * Math.sin(spin), 0, c - c * Math.cos(spin));
+    root.userData.legs.pose(o.moving ? Math.sin((SpriteCache.phase(t, 16, 6) + 0.5) / 6 * TAU) : 0);
+  },
+});

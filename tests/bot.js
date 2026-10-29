@@ -179,6 +179,10 @@
     } else if (id === 'oly_buzz') {
       const f = near(g.items.filter(i => i.pollen));
       goal = f; if (f && dist(f, p) < 22) { hold = true; goal = null; }
+    } else if (id === 'oly_gym') {
+      // Press Click near full power, then Land just before touching the mat (a kid presses at about half, and late)
+      if (p.onGround) act = g.meter > (kidLike ? 0.55 : 0.93);
+      else act = !p.recover && !p.landPress && p.vy > 0 && m.toLand(p) <= (kidLike ? 0.3 : 0.4);
     }
     return { goal, act, hold };
   }

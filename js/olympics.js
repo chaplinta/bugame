@@ -1,10 +1,10 @@
 'use strict';
-// The Bug Olympics at Perry Lakes: five events, each a thing a real bug does, measured against real numbers.
+// The Bug Olympics at Perry Lakes: six events, each a thing a real bug does, measured against real numbers.
 // Medals are the stars (gold 3, silver 2, bronze 1); the best result is kept. No nets and no predators here.
 // Every number is sourced in docs/facts.md (Bug Olympics). Perry Lakes Stadium held the 1962 Commonwealth Games.
 
-Bugs.push({ id: 'olympics', name: 'Bug Olympics', sci: 'Five events', place: 'Perry Lakes', sprite: 'medalIcon',
-  pin: { x: 278, y: 160 }, stages: ['oly_jump', 'oly_sprint', 'oly_dig', 'oly_lift', 'oly_buzz'], kind: 'sandbox', free: true,
+Bugs.push({ id: 'olympics', name: 'Bug Olympics', sci: 'Six events', place: 'Perry Lakes', sprite: 'medalIcon',
+  pin: { x: 278, y: 160 }, stages: ['oly_jump', 'oly_sprint', 'oly_dig', 'oly_lift', 'oly_buzz', 'oly_gym'], kind: 'sandbox', free: true,
   // The Bug Book's extra line: medals won and best results
   book() {
     const st = this.stages.map(id => Progress.stars(id)), n = (k) => st.filter(s => s === k).length;
@@ -68,25 +68,32 @@ const OLY = {
 // Three jumps; the best counts, measured in body lengths along the ruler.
 const JUMP = { W: 2600, H: 600, ground: 440, start: 150, board: 620, BL: 44, attempts: 3, swing: 1.4, medals: [16, 26, 34] };
 
-Backgrounds.olyBeach = function (ctx, W, H) {
-  const r = rng(62), J = JUMP, gy = J.ground;
-  let g = ctx.createLinearGradient(0, 0, 0, gy); g.addColorStop(0, '#4a90d8'); g.addColorStop(1, '#cfe6f6');
+// The stadium seen side-on: the sky with clouds, the grandstand full of bugs with its banner (centred at bx), and
+// the grass down to the ground line gy. The events draw their own ground below it.
+function drawStadium(ctx, W, H, gy, r, bx, label, clouds) {
+  const g = ctx.createLinearGradient(0, 0, 0, gy); g.addColorStop(0, '#4a90d8'); g.addColorStop(1, '#cfe6f6');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, gy);
-  for (let i = 0; i < 9; i++) { const x = r() * W, y = 30 + r() * 110; for (let k = 0; k < 4; k++) plainEll(ctx, x + k * 24 - 36, y + (k % 2) * 7, 26 + r() * 12, 13 + r() * 6, 'rgba(255,255,255,.85)'); }
+  const cn = clouds ? clouds.n : 9, ch = clouds ? clouds.h : 110;
+  for (let i = 0; i < cn; i++) { const x = r() * W, y = 30 + r() * ch; for (let k = 0; k < 4; k++) plainEll(ctx, x + k * 24 - 36, y + (k % 2) * 7, 26 + r() * 12, 13 + r() * 6, 'rgba(255,255,255,.85)'); }
   // The grandstand: rows of seats with a crowd of bugs, a front wall and the banner
   for (let row = 0; row < 5; row++) {
-    ctx.fillStyle = row % 2 ? '#7a8088' : '#949aa2'; ctx.fillRect(0, 250 + row * 22, W, 22);
-    for (let x = 10; x < W; x += 14) if (r() < 0.75) plainEll(ctx, x, 262 + row * 22, 4, 4, ['#e85a3a', '#f0c030', '#3a8ad8', '#5aa848', '#f4f4f0', '#1a1a1a'][Math.floor(r() * 6)]);
+    ctx.fillStyle = row % 2 ? '#7a8088' : '#949aa2'; ctx.fillRect(0, gy - 190 + row * 22, W, 22);
+    for (let x = 10; x < W; x += 14) if (r() < 0.75) plainEll(ctx, x, gy - 178 + row * 22, 4, 4, ['#e85a3a', '#f0c030', '#3a8ad8', '#5aa848', '#f4f4f0', '#1a1a1a'][Math.floor(r() * 6)]);
   }
-  ctx.fillStyle = '#2b2118'; ctx.fillRect(0, 360, W, 20);
-  ctx.fillStyle = '#2f6a9a'; ctx.fillRect(J.board - 70, 198, 560, 46);
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('BUG OLYMPICS · PERRY LAKES', J.board + 210, 231);
-  // Grass between the stand and the track
-  ctx.save(); ctx.beginPath(); ctx.rect(0, 380, W, gy - 380); ctx.clip(); ctx.translate(0, 380);
-  Ground.grass(ctx, W, gy - 380, 63, { height: 6, cell: 120 });
+  ctx.fillStyle = '#2b2118'; ctx.fillRect(0, gy - 80, W, 20);
+  ctx.fillStyle = '#2f6a9a'; ctx.fillRect(bx - 280, gy - 242, 560, 46);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, bx, gy - 209);
+  // Grass between the stand and the ground line
+  ctx.save(); ctx.beginPath(); ctx.rect(0, gy - 60, W, 60); ctx.clip(); ctx.translate(0, gy - 60);
+  Ground.grass(ctx, W, 60, 63, { height: 6, cell: 120 });
   ctx.restore();
+}
+
+Backgrounds.olyBeach = function (ctx, W, H) {
+  const r = rng(62), J = JUMP, gy = J.ground;
+  drawStadium(ctx, W, H, gy, r, J.board + 210, 'BUG OLYMPICS · PERRY LAKES');
   // The run-up track and the soil under everything, in cross-section
-  g = ctx.createLinearGradient(0, gy + 30, 0, H); g.addColorStop(0, '#8a6a40'); g.addColorStop(1, '#4a3420');
+  let g = ctx.createLinearGradient(0, gy + 30, 0, H); g.addColorStop(0, '#8a6a40'); g.addColorStop(1, '#4a3420');
   ctx.fillStyle = g; ctx.fillRect(0, gy + 30, W, H - gy - 30);
   ctx.fillStyle = '#b84a30'; ctx.fillRect(0, gy, J.board + 2, 30);
   for (let x = 20; x < J.board; x += 60) plainLine(ctx, [x, gy + 15, x + 30, gy + 15], 'rgba(255,255,255,.35)', 2);
@@ -486,7 +493,180 @@ Missions.oly_buzz = {
   won(g) { return OLY.won(g); },
 };
 
+// ---------------------------------------------------------------- 6. Gymnastics (side-on)
+// A click beetle on its back on the mat. Press Click when the power bar is full: the beetle snaps itself into the
+// air (a real click beetle's launch is near vertical, so only the height varies) and somersaults on the way; press
+// Land as it comes down to land on its feet (the one made-up part: a real beetle can't steer, see docs/facts.md).
+// Three flips; the best counts: 2 points a somersault, 3 for landing on your feet.
+const GYM = { floor: 1100, ground: 1076, H: 1200, BL: 36, mat: 240, attempts: 3, swing: 1.4, g: 1100, window: 0.45, medals: [7, 11, 15] };   // window: seconds before touchdown in which Land counts
+GYM.v = (k) => 400 + k * 1007;                                // launch speed: full power flies about 25 body lengths up
+GYM.rate = 6.15 * TAU / (2 * GYM.v(0.85) / GYM.g);            // the spin: six somersaults from about 85% power up (never more than six count)
+
+Backgrounds.olyGym = function (ctx, W, H) {
+  const r = rng(64), G = GYM, cx = Math.round(W / 2);
+  drawStadium(ctx, W, H, G.floor, r, cx, 'BUG OLYMPICS · GYMNASTICS', { n: 22, h: G.floor - 360 });
+  // The soil under the grass
+  const g = ctx.createLinearGradient(0, G.floor, 0, H); g.addColorStop(0, '#8a6a40'); g.addColorStop(1, '#4a3420');
+  ctx.fillStyle = g; ctx.fillRect(0, G.floor, W, H - G.floor);
+  ctx.fillStyle = 'rgba(255,250,220,.8)'; ctx.fillRect(0, G.floor - 1, W, 2);
+  // The mat on the grass, and the height ruler beside it: a tick every body length, a number every five
+  softShadow(ctx, cx + 6, G.floor + 2, G.mat / 2 + 10, 8, 0.3);
+  ctx.fillStyle = '#2a5a9a'; ctx.fillRect(cx - G.mat / 2, G.ground, G.mat, G.floor - G.ground);
+  ctx.fillStyle = '#4a86c8'; ctx.fillRect(cx - G.mat / 2, G.ground, G.mat, 5);
+  ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fillRect(cx - 2, G.ground + 8, 4, 12); ctx.fillRect(cx - 24, G.ground + 12, 48, 4);
+  const rx = cx - 180, top = G.ground - 29 * G.BL;
+  ctx.fillStyle = 'rgba(255,250,240,.75)'; ctx.fillRect(rx - 3, top - 10, 6, G.floor - top + 10);
+  ctx.strokeStyle = 'rgba(60,40,20,.8)'; ctx.lineWidth = 1.5; ctx.fillStyle = '#2b2118'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 29; i++) {
+    const y = G.ground - i * G.BL, tall = i % 5 === 0;
+    ctx.beginPath(); ctx.moveTo(rx - (tall ? 12 : 7), y); ctx.lineTo(rx + 3, y); ctx.stroke();
+    if (tall && i) ctx.fillText(String(i), rx - 16, y + 5);
+  }
+  ctx.save(); ctx.translate(rx - 40, G.ground - 12 * G.BL); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.font = '12px sans-serif'; ctx.fillText('body lengths', 0, 0); ctx.restore();
+};
+
+Missions.oly_gym = {
+  id: 'oly_gym', bug: 'olympics', stage: 'Gymnastics', place: OLY.place, view: 'side',
+  get world() { return { w: W, h: GYM.H }; }, sprite: 'clickBeetle', bg: 'olyGym',
+  action: 'Click', radius: 12, speed: 0, scale: 1.5, noNet: true, gentle: true,
+  medals: GYM.medals, higher: true, unit: ' points',
+  get home() { return { x: Math.round(W / 2), y: GYM.ground, r: 1, label: '' }; },
+  facts: [
+    'You’re a click beetle. Flipped on its back, a click beetle snaps a peg on its chest into a notch: click, and up it goes.',
+    'A click beetle flips about 30 centimetres into the air, more than 25 times its own length, and somersaults on the way.',
+    'It can’t steer in the air, so it lands on its back about half the time. Then it just clicks again.',
+  ],
+  how: [
+    'This event is side-on. You start on your back on the mat.',
+    'A power bar swings. Press Click when it’s full to snap into the air.',
+    'You somersault as you fly: 2 points for every full somersault. Press Land just before you touch the mat to land on your feet: 3 more points.',
+    'Three flips. Your best one counts. Bronze at 7 points, silver at 11, gold at 15.',
+  ],
+  factText: {
+    start: 'Gymnastics! Three flips off the mat. A real click beetle flips to get back on its feet, not for a medal.',
+    click: 'Click! The beetle locks a peg on its chest into a notch, loads it like a spring, and lets go: the jolt throws it into the air.',
+    high: 'That’s more than 20 times your own length. A real click beetle flips about 30 centimetres into the air.',
+    spin: 'In the air the beetle somersaults, up to six times on a high flip. Real click beetles can’t choose how many.',
+    back: 'Landed on your back! Real click beetles land on their back about half the time. Then they click again.',
+    feet: 'On your feet! A real click beetle can’t steer in the air, so landing feet first is luck. Here, Land does it.',
+    win: 'The click jolts the beetle at about 380 times the pull of gravity. A rocket launch is about 3.',
+  },
+
+  setup(g) {
+    const p = g.player;
+    p.vx = 0; p.vy = 0; p.face = 1; p.angle = 0; p.onGround = true; p.flat = true; p.y = GYM.ground;
+    p.spin = Math.PI; p.spinRate = 0; p.spinStart = Math.PI; p.peak = p.y; p.landPress = false; p.recover = false;
+    g.oly = OLY.clock(); g.flips = []; g.restT = 0; g.recoverT = 0; g.meter = -1; g.meterT = 0; g.bestH = 0;
+    Game.later(2, () => Game.hint('Press Click when the power bar is full!'));
+  },
+  locked() { return true; },   // no walking: the beetle lies on the mat
+  move(g, dt) {
+    const p = g.player, G = GYM;
+    if (!p.onGround) {
+      p.vy += G.g * dt; p.x = clamp(p.x + p.vx * dt, 40, World.w - 40); p.y += p.vy * dt;
+      p.spin += p.spinRate * dt; p.peak = Math.min(p.peak, p.y);
+      if (p.y >= G.ground && p.vy > 0) { p.y = G.ground; p.onGround = true; p.vx = 0; p.vy = 0; this.land(g); }
+    }
+    p.air = !p.onGround;
+  },
+  update(g, dt, input) {
+    const p = g.player, G = GYM, o = g.oly;
+    if (g.restT > 0) { g.restT -= dt; if (g.restT <= 0) this.lineUp(g); }
+    if (g.recoverT > 0) { g.recoverT -= dt; if (g.recoverT <= 0) this.hop(g); }
+    // On the mat the power bar swings; in the air, Land is ready just before touchdown
+    const ready = p.onGround && g.restT <= 0 && g.recoverT <= 0 && !o.finished && !p.recover;
+    if (ready) { g.meterT += dt; g.meter = 0.5 - 0.5 * Math.cos(g.meterT / G.swing * TAU); } else { g.meter = -1; g.meterT = 0; }
+    const window = !p.onGround && !p.recover && p.vy > 0 && this.toLand(p) <= G.window;
+    setAction(p.onGround ? 'Click' : 'Land', ready || (window && !p.landPress));
+    if (input.pressed && !o.finished) {
+      if (ready) this.click(g, g.meter);
+      else if (window && !p.landPress) { p.landPress = true; Sound.play('tap'); Game.pop(p.x, p.y - 30, 'Feet first!', '#3fd06a'); }
+      else if (!p.onGround && !p.recover && !p.landPress) Game.hint('Too early! Press Land just before you touch the mat.');
+    }
+    if (ready && p.stillT > 6 && !g.nudged) { g.nudged = true; Game.hint('Press Click when the power bar is full!'); }   // once a flip
+    if (o.finished) o.doneT += dt;
+  },
+  // Seconds until the falling beetle touches the mat
+  toLand(p) { const G = GYM, h = Math.max(0, G.ground - p.y); return (-p.vy + Math.sqrt(p.vy * p.vy + 2 * G.g * h)) / G.g; },
+  click(g, k) {
+    const p = g.player, G = GYM;
+    p.vy = -G.v(k); p.vx = p.face * (20 + 50 * k); p.onGround = false; p.spinRate = G.rate; p.spinStart = p.spin; p.peak = p.y; p.landPress = false; p.recover = false;
+    Sound.play('jump'); Game.fact('click');
+    Game.pop(p.x, p.y - 30, k > 0.9 ? 'Click! Perfect!' : k > 0.6 ? 'Click!' : 'Click…', k > 0.9 ? '#3fd06a' : '#fff');
+  },
+  // Back on the mat: count the somersaults, feet or back, score the flip
+  land(g) {
+    const p = g.player, G = GYM, o = g.oly;
+    Game.burst(p.x, p.y + 4, '#e8d4a0', 6);
+    p.spinRate = 0;
+    if (p.recover) { p.recover = false; p.spin = 0; Game.pop(p.x, p.y - 30, 'On your feet!', '#fff'); if (!o.finished) g.restT = 1.6; return; }
+    const turns = Math.min(6, Math.floor(Math.abs(p.spin - p.spinStart) / TAU)), feet = !!p.landPress, height = Math.max(0, Math.round((G.ground - p.peak) / G.BL));
+    const points = turns * 2 + (feet ? 3 : 0);
+    p.spin = feet ? 0 : Math.PI;
+    g.flips.push({ turns, feet, points, height }); o.result = Math.max(o.result, points); g.bestH = Math.max(g.bestH, height);
+    Sound.play(feet ? 'score' : 'tap');
+    Game.pop(p.x, p.y - 36, turns + (turns === 1 ? ' somersault' : ' somersaults') + (feet ? ' + feet: ' : ': ') + points + (points === 1 ? ' point' : ' points'), '#ffd23f');
+    if (height >= 20) Game.fact('high');
+    if (turns >= 2) Game.fact('spin');
+    Game.fact(feet ? 'feet' : 'back');
+    if (g.flips.length >= G.attempts) {
+      o.finished = true; o.doneT = 0; Sound.play('win');
+      if (typeof Progress !== 'undefined') o.newBest = Progress.setBest(this.id, o.result, true);
+    }
+    if (!feet) g.recoverT = 0.8;                       // on its back: it clicks again to get onto its feet
+    else if (!o.finished) g.restT = 2.2;
+  },
+  // The small click that rights a beetle lying on its back: a half turn and down on its feet
+  hop(g) {
+    const p = g.player, G = GYM, vy = 380, air = 2 * vy / G.g;
+    p.vy = -vy; p.vx = p.face * 30; p.onGround = false; p.recover = true; p.spinRate = Math.PI / air; p.spinStart = p.spin; p.landPress = false;
+    Sound.play('jump'); Game.pop(p.x, p.y - 24, 'Click!', '#fff');
+  },
+  lineUp(g) {
+    const p = g.player;
+    p.x = Math.round(World.w / 2); p.face = 1; p.spin = Math.PI; p.stillT = 0; g.nudged = false;
+    if (!g.oly.finished) Game.pop(p.x, p.y - 30, 'Flip ' + (g.flips.length + 1) + ' of ' + GYM.attempts, '#fff');
+  },
+  drawExtra(ctx, g) {
+    const p = g.player, G = GYM, rx = Math.round(World.w / 2) - 180;
+    // The beetle's shadow on the mat, smaller the higher it flies
+    const h = G.ground - p.y, k = Math.max(0.25, 1 - h / 900);
+    softShadow(ctx, p.x + 3, G.ground + 2, 18 * k, 4 * k, 0.3 * k);
+    // A marker on the ruler for the top of each flip, and one that rides with the beetle in the air
+    ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left';
+    for (const f of g.flips) {
+      const y = G.ground - f.height * G.BL;
+      plainLine(ctx, [rx + 4, y, rx + 24, y], '#e8c030', 3);
+      ctx.fillStyle = '#2b2118'; ctx.fillText(f.height + ' · ' + f.points + (f.points === 1 ? ' pt' : ' pts'), rx + 28, y + 4);
+    }
+    if (!p.onGround && !p.recover) plainLine(ctx, [rx - 8, p.y, rx + 8, p.y], 'rgba(255,255,255,.9)', 2);
+    // The power bar over the beetle while it waits on the mat
+    if (g.meter >= 0) {
+      const x = p.x - 40, y = p.y - 58;
+      ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(x - 2, y - 2, 84, 14);
+      const grad = ctx.createLinearGradient(x, 0, x + 80, 0); grad.addColorStop(0, '#f0c030'); grad.addColorStop(1, '#3fd06a');
+      ctx.fillStyle = grad; ctx.fillRect(x, y, 80 * g.meter, 10);
+      ctx.fillStyle = '#fff'; ctx.fillRect(x + 80 * g.meter - 1.5, y - 3, 3, 16);
+      ctx.textAlign = 'center'; ctx.fillText('Power', p.x, y - 7);
+    }
+  },
+  goalPoint() { return null; },
+  hud(g) {
+    const o = g.oly, G = GYM, p = g.player, n = Math.min(G.attempts, g.flips.length + (o.finished ? 0 : 1));
+    setHud('Flip ' + n + ' of ' + G.attempts, !p.onGround && !p.recover ? 'Height ' + Math.max(0, Math.round((G.ground - p.y) / G.BL)) + ' body lengths' : o.result ? 'Best: ' + o.result + ' points' : '');
+  },
+  stars(g) { return OLY.stars(this, g); },
+  // The medal and points, and how high the best flip would take a kid about 1.2 m tall
+  endLine(g) {
+    const m = Math.round(g.bestH * 1.2);
+    return OLY.endLine(this, g) + ' Your highest flip was ' + g.bestH + ' body lengths. A kid flipping that high would go ' + m + ' metres up: ' +
+      (m >= 24 ? 'as high as an eight-storey building!' : m >= 12 ? 'as high as a four-storey building!' : m >= 6 ? 'over the roof of a house!' : 'higher than a car!');
+  },
+  won(g) { return g.oly.finished && g.oly.doneT >= 2.4; },
+};
+
 Missions.oly_jump.sex = 'You are a female sandhopper.';
+Missions.oly_gym.sex = 'You are a click beetle. Males and females both click.';
 Missions.oly_sprint.sex = 'You are a male blue skimmer.';
 Missions.oly_dig.sex = 'You are a dung beetle. Males and females both dig.';
 Missions.oly_lift.sex = 'You are a female worker bull ant.';

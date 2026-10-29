@@ -242,7 +242,7 @@ test('frog chorus: calls in the gap count, the heron hears you, the others call 
 test('Bug Olympics: every event is open, jumps are measured, a finish gives a medal, the Book shows it', async (b) => {
   const p = await openGame(b);
   await p.locator('.pin', { hasText: 'Bug Olympics' }).click();
-  check(await p.locator('#stages .stageBtn:not([disabled])').count() === 5, 'not every event is open');   // (the paint screen's part buttons share the class)
+  check(await p.locator('#stages .stageBtn:not([disabled])').count() === 6, 'not every event is open');
   check(await p.isHidden('#bugTree'), 'the family tree button shows for the Olympics');
   // long jump: a full-power jump from the board lands far out, a weak one close; three jumps end the event
   await startMission(p, 'oly_jump', {});
@@ -268,11 +268,32 @@ test('Bug Olympics: every event is open, jumps are measured, a finish gives a me
   await p.waitForSelector('#end.active', { timeout: 10000 });
   const end2 = await p.evaluate(() => ({ stars: document.getElementById('endStars').textContent, line: document.getElementById('endUnlock').textContent, time: Game.g.oly.result, gate: Game.g.gate }));
   check(end2.gate === 6 && end2.time < 5 && end2.stars === '★★★' && /Gold medal/.test(end2.line) && /seconds/.test(end2.line), 'sprint result: ' + JSON.stringify(end2));
+  // gymnastics: a full-power click flies over 20 body lengths with five or more somersaults and, with Land pressed in
+  // the window, comes down on its feet; a half-power flip without Land lands on its back and clicks again
+  await p.click('#endMap');
+  await startMission(p, 'oly_gym', {});
+  check(await p.evaluate(() => World.w === W && World.h === GYM.H && Game.g.player.spin === Math.PI && Game.g.player.onGround), 'the beetle does not start on its back on the mat');
+  const flip = async (k, land) => p.evaluate(([k, land]) => {
+    const g = Game.g, m = g.mission, p = g.player;
+    g.restT = 0; g.recoverT = 0; p.onGround = true; p.recover = false; p.x = World.w / 2; p.y = GYM.ground;
+    m.click(g, k);
+    let n = 0, peakCam = 1e9;
+    while (!p.onGround && n++ < 6000) { m.move(g, 1 / 120, 0, 0); Game.updateCamera(); peakCam = Math.min(peakCam, g.cam.y); if (land && p.vy > 0 && m.toLand(p) <= GYM.window) p.landPress = true; }
+    const f = g.flips[g.flips.length - 1];
+    return { turns: f.turns, feet: f.feet, points: f.points, height: f.height, peakCam, recover: g.recoverT > 0, spin: p.spin };
+  }, [k, land]);
+  const f1 = await flip(1, true), f2 = await flip(0.5, false);
+  check(f1.turns === 6 && f1.feet && f1.points === 15 && f1.height >= 20 && f1.peakCam === 0 && f1.spin === 0, 'a full-power flip: ' + JSON.stringify(f1));
+  check(f2.turns >= 2 && f2.turns <= 4 && !f2.feet && f2.points === 2 * f2.turns && f2.recover && f2.spin === Math.PI, 'a half-power flip without Land: ' + JSON.stringify(f2));
+  await flip(0.2, true);
+  await p.waitForSelector('#end.active', { timeout: 10000 });
+  const end3 = await p.evaluate(() => ({ stars: document.getElementById('endStars').textContent, line: document.getElementById('endUnlock').textContent, best: Progress.best('oly_gym') }));
+  check(end3.stars === '★★★' && /Gold medal/.test(end3.line) && /points/.test(end3.line) && /storey/.test(end3.line) && end3.best === f1.points, 'gymnastics result: ' + JSON.stringify(end3));
   // the Bug Book and the bug page show the medals and best results
   await p.click('#endMap');
   await p.click('#bookBtn');
   const book = await p.locator('.bookBug', { hasText: 'Bug Olympics' }).locator('.medals').textContent();
-  check(/Gold 2 · Silver 0 · Bronze 0/.test(book) && /Long jump 3\d body lengths/.test(book) && /Sprint [\d.]+ seconds/.test(book), 'book medals line: ' + book);
+  check(/Gold 3 · Silver 0 · Bronze 0/.test(book) && /Long jump 3\d body lengths/.test(book) && /Sprint [\d.]+ seconds/.test(book) && /Gymnastics 1\d points/.test(book), 'book medals line: ' + book);
   await p.click('#bookBack');
   await p.locator('.pin', { hasText: 'Bug Olympics' }).click();
   check(/★★★/.test(await p.locator('.stageBtn').first().textContent()), 'no stars on the event button');
