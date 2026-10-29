@@ -33,7 +33,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - **Bug Book**: every fact you've found, plus "???" for the ones still to find. Progress is saved in the browser.
 - **Sound**, **Read to me** (reads facts aloud) and **3D pictures** can be turned on or off on the map. The 3D pictures are small three.js models of every bug, bird, plant and prop, rendered with real shadows; on a device without WebGL (or with it turned off, or with `?no3d=1` in the address) the same things are drawn flat.
 - **Shout to buzz**: off until you turn it on. Then the microphone is a second action button in the levels that allow it: land on a flower as the blue-banded bee and shout BUZZ, or call like a motorbike frog at the night lake. It listens only while the game is running, on your device; nothing is recorded or sent anywhere. The button still works too.
-- **Paint a bug**: a paint screen on the map. Paint your own design on a ladybird's wing cases, a peacock spider's fan or a painted lady's wings (colours, brushes, spot, stripe and star stamps, an eraser, and the real one to trace). The whole bug is shown with the part outlined; zoom with a pinch, the mouse wheel or the + and − buttons, and drag the picture with two fingers or the Move tool. Saved in the browser. With "Use my design in the game" on, one bug wears it: your own butterfly and spider when you play them (in 2D and on the 3D models), a ladybird in the garden and on your hand, and an extra marcher in the parade. The real species stays everywhere else, and the Bug Book shows your design labelled as yours.
+- **Paint a bug**: a paint screen on the map. Pick any of the 18 bugs you can be and paint anywhere on it (colours, brushes, spot, stripe and star stamps, an eraser). The paint is a see-through layer that sticks only to the bug: wherever you leave it bare, the real markings show. Zoom with a pinch, the mouse wheel or the + and − buttons, and drag the picture with two fingers or the Move tool; "Your design" and "The real one" are shown full size underneath. Saved in the browser. With "Use my design in the game" on, one bug of that kind wears it: the bug you play (in 2D and on the 3D models, including its queen or baby stages), the bug on your hand, one garden visitor, and an extra marcher in the parade. The real species stays everywhere else, and the Bug Book shows your design labelled as yours.
 - **Bug on your hand**: the camera as a level. The camera is asked for when you press Start and stopped when you leave. The picture is used live on your device only; nothing is recorded or sent anywhere, and a photo you take goes only where you send or save it.
 
 ## Missions
@@ -88,7 +88,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - `js/tree.js`: the bug family tree
 - `js/secrets.js`: Easter eggs
 - `js/ui.js`: map, bug page, end screen, Bug Book, saved progress
-- `js/paint.js`: Paint a bug (the paint screen, saved designs, and the maps the 3D models wear)
+- `js/paint.js`: Paint a bug (the paint screen, saved designs, the layer laid over drawings and 3D renders, and the wing maps the butterfly model wears)
 
 Tests: `node tests/run.js` (see `tests/README.md`). Draw cost per level: `node tests/perf.js`.
 

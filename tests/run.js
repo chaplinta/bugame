@@ -822,33 +822,47 @@ test('shout to buzz: the toggle asks for the mic, a loud room buzzes the bee, qu
 });
 
 // ------------------------------------------------------------------ paint a bug
-test('paint a bug: strokes save, the drawing and the model wear the design, the real one stays', async (b) => {
+test('paint a bug: every bug, strokes on the whole bug save, the drawings and models wear the design, the real one stays', async (b) => {
   const p = await openGame(b);
   await p.click('#paintBtn');
   check(await p.isVisible('#paint.active'), 'the paint screen did not open');
-  check(await p.locator('#paintParts .stageBtn').count() === 3 && await p.locator('#paintTools .swatch').count() === 10, 'parts or colours missing');
-  // the view shows the whole bug fitted to the box: the black head sits outside the wing cases
+  check(await p.evaluate(() => Object.keys(PAINT_BUGS).length) === 18 && await p.locator('#paintParts button[data-part]').count() === 18 && await p.locator('#paintTools .swatch').count() === 10, 'bugs or colours missing');
+  check(await p.evaluate(() => Object.keys(PAINT_BUGS).every(n => typeof Sprites[n] === 'function') && Object.keys(PAINT_ALIAS).every(n => typeof Sprites[n] === 'function' && !!PAINT_BUGS[PAINT_ALIAS[n].of])), 'a bug to paint has no drawing');
+  check(await p.locator('#paintTools [data-tool="real"]').count() === 0, 'the tracing tool is still there');
+  // the view shows the whole ladybird fitted to the box: the black head sits outside the wing cases
   const box = await p.locator('#paintCanvas').boundingBox();
-  const viewPx = (x, y) => p.evaluate(([x, y]) => { const v = PaintUI.viewAt(x, y); return [...document.getElementById('paintCanvas').getContext('2d').getImageData(Math.round(v.x), Math.round(v.y), 1, 1).data].slice(0, 3); }, [x, y]);
-  const head = await viewPx(6.6, 0), wing = await viewPx(-1, 2.5);   // (the seam runs along y = 0)
+  const viewPx = (x, y) => p.evaluate(([x, y]) => { const v = PaintUI.viewAt(x, y); return [...document.getElementById('paintCanvas').getContext('2d').getImageData(Math.round(v.x), Math.round(v.y), 1, 1).data]; }, [x, y]);
+  const head = await viewPx(6.6, 0), wing = await viewPx(-6, 1);   // (the seam runs along y = 0, the spots sit at y = ±2.6)
   check(head[0] < 60 && head[1] < 60 && wing[0] > 180 && wing[1] < 90, 'the view does not show the whole bug: ' + JSON.stringify({ head, wing }));
-  // a white spot stamped with a tap, then a black brush stroke, placed through the view in the ladybird's own units
+  // a white spot stamped with a tap, then a black brush stroke, placed through the view in the ladybird's own
+  // units; the layer stays clear where nothing was painted
   const at = async (x, y) => { const v = await p.evaluate(([x, y]) => PaintUI.viewAt(x, y), [x, y]); return [box.x + box.width * v.x / 512, box.y + box.height * v.y / 512]; };
+  const designPx = (name, x, y) => p.evaluate(([name, x, y]) => { const f = Paint.frame(name); return [...Paint.image(name).getContext('2d').getImageData(Math.round(f.cx + f.S * x), Math.round(f.cy + f.S * y), 1, 1).data]; }, [name, x, y]);
   await p.locator('#paintTools [data-tool="c#f4f4f0"]').click();
   await p.locator('#paintTools [data-tool="spot"]').click();
   await p.mouse.click(...await at(3, 3));
   await p.locator('#paintTools [data-tool="c#111111"]').click();
   await p.locator('#paintTools [data-tool="s18"]').click();
-  await p.mouse.move(...await at(-4, -3)); await p.mouse.down(); await p.mouse.move(...await at(-2, -3), { steps: 4 }); await p.mouse.up();
-  const px = await p.evaluate(() => { const d = Paint.image('ladybird').getContext('2d'); const q = (x, y) => [...d.getImageData(x, y, 1, 1).data].slice(0, 3); return { spot: q(400, 364), stroke: q(184, 148), plain: q(184, 364) }; });
-  check(px.spot[0] > 230 && px.spot[1] > 230 && px.stroke[0] < 40 && px.plain[0] > 180 && px.plain[1] < 90, 'the strokes did not land: ' + JSON.stringify(px));
+  await p.mouse.move(...await at(-4, -4)); await p.mouse.down(); await p.mouse.move(...await at(-2, -4), { steps: 4 }); await p.mouse.up();
+  const px = { spot: await designPx('ladybird', 3, 3), stroke: await designPx('ladybird', -2.6, -4), plain: await designPx('ladybird', -3, 3) };
+  check(px.spot[0] > 230 && px.spot[1] > 230 && px.spot[3] === 255 && px.stroke[0] < 40 && px.stroke[3] === 255 && px.plain[3] === 0, 'the strokes did not land: ' + JSON.stringify(px));
+  // the view wears the stroke, and the real ladybird's own spot shows through where nothing is painted
+  const vStroke = await viewPx(-2.6, -4), vSpot = await viewPx(-4.2, 2.6);
+  check(vStroke[0] < 60 && vSpot[0] < 60 && vSpot[3] === 255, 'the view does not show the paint over the real bug: ' + JSON.stringify({ vStroke, vSpot }));
+  // the eraser takes paint off and shows the real bug again
+  await p.locator('#paintTools [data-tool="eraser"]').click();
+  await p.mouse.move(...await at(-4, -4)); await p.mouse.down(); await p.mouse.move(...await at(-3.6, -4), { steps: 3 }); await p.mouse.up();
+  const erased = await designPx('ladybird', -3.8, -4), kept = await designPx('ladybird', -2.6, -4);
+  check(erased[3] === 0 && kept[3] === 255 && (await viewPx(-3.8, -4))[0] > 150, 'the eraser did not clear the paint: ' + JSON.stringify({ erased, kept }));
+  await p.locator('#paintTools [data-tool="c#111111"]').click();
+  check(await p.evaluate(() => PaintUI.tool === 'brush'), 'a colour did not leave the eraser');
   // zoom: the buttons, the wheel and Fit; a stroke still lands where the bug is under the finger when zoomed in
   await p.locator('#paintBox [data-zoom="in"]').click();
   check(await p.evaluate(() => PaintUI.view.z === 1.5), 'the + button did not zoom');
   await p.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5); await p.mouse.wheel(0, -120);
   check(await p.evaluate(() => PaintUI.view.z > 1.5), 'the wheel did not zoom');
   await p.mouse.move(...await at(3, -3)); await p.mouse.down(); await p.mouse.move(...await at(4, -3), { steps: 3 }); await p.mouse.up();
-  check(await p.evaluate(() => { const d = Paint.image('ladybird').getContext('2d'); return d.getImageData(292 + 36 * 3.5, 256 - 36 * 3, 1, 1).data[0] < 40; }), 'a stroke while zoomed in missed');
+  check((await designPx('ladybird', 3.5, -3))[0] < 40, 'a stroke while zoomed in missed');
   await p.locator('#paintBox [data-zoom="fit"]').click();
   check(await p.evaluate(() => PaintUI.view.z === 1 && PaintUI.view.px === 0), 'Fit did not reset the view');
   // the Move tool drags the picture, and picking a colour goes back to painting
@@ -859,26 +873,40 @@ test('paint a bug: strokes save, the drawing and the model wear the design, the 
   check(await p.evaluate(() => PaintUI.tool === 'brush'), 'a colour did not leave the Move tool');
   await p.locator('#paintBox [data-zoom="fit"]').click();
   // the butterfly is painted on both sides (a stroke on the left wing lands on the stored right side), and
-  // switching parts keeps the unsaved ladybird
+  // switching bugs keeps the unsaved ladybird
   await p.evaluate(() => PaintUI.pick('butterfly'));
   await p.mouse.move(...await at(9, -15)); await p.mouse.down(); await p.mouse.move(...await at(11, -15), { steps: 3 }); await p.mouse.up();
-  check(await p.evaluate(() => Paint.image('butterfly').getContext('2d').getImageData(256 + 14 * 10, 60 + 14 * 15, 1, 1).data[0] < 40), 'a stroke on the left wing was not mirrored');
+  check((await designPx('butterfly', 10, 15))[0] < 40, 'a stroke on the left wing was not mirrored');
   await p.evaluate(() => PaintUI.pick('ladybird'));
-  check(await p.evaluate(() => Paint.image('ladybird').getContext('2d').getImageData(184, 148, 1, 1).data[0] < 40), 'switching parts lost the unsaved strokes');
-  await p.click('#paintSave');
-  const saved = await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('bugame.paint')); return { img: !!(d.img && d.img.ladybird), use: d.use.ladybird, stamp: Paint.stamp('ladybird'), secret: Progress.hasSecret('s_paint'), note: document.getElementById('paintNote').textContent }; });
-  check(saved.img && saved.use && saved.stamp === 1 && saved.secret && /Saved!/.test(saved.note), 'save: ' + JSON.stringify(saved));
-  // the drawing wears it where painted and keeps the base elsewhere; the real one keeps its bands
-  const d2 = await p.evaluate(() => {
-    const draw = (o) => { const c = document.createElement('canvas'); c.width = c.height = 120; const ctx = c.getContext('2d'); ctx.translate(60, 60); ctx.scale(8, 8); Sprites.ladybird(ctx, o, 0.4); return ctx; };
-    const q = (ctx, x, y) => [...ctx.getImageData(Math.round(60 + 8 * x), Math.round(60 + 8 * y), 1, 1).data].slice(0, 3);
-    const real = draw({ moving: false }), mine = draw({ moving: false, paint: Paint.stamp('ladybird') });
-    return { realBand: q(real, -4.2, 2.6), mineBand: q(mine, -4.2, 2.6), mineStroke: q(mine, -3, -3), realStroke: q(real, -3, -3) };
+  check((await designPx('ladybird', -2.6, -4))[0] < 40, 'switching bugs lost the unsaved strokes');
+  // a spot off the bug: the paint only shows on the bug
+  const off = await p.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = c.height = 400; const ctx = c.getContext('2d'); ctx.setTransform(8, 0, 0, 8, 200, 200); Sprites.ladybird(ctx, { moving: false }, 0.4);
+    const bare = [[8, 7], [9, 8], [-10, 8], [0, -8.5], [10, -7]].find(([x, y]) => ctx.getImageData(Math.round(200 + 8 * x), Math.round(200 + 8 * y), 1, 1).data[3] === 0);
+    if (!bare) return null;
+    const f = Paint.frame('ladybird'); PaintUI.colour = '#f4f4f0'; PaintUI.stamp({ x: f.cx + f.S * bare[0], y: f.cy + f.S * bare[1] }, 'spot');
+    return bare;
   });
-  check(d2.realBand[0] < 60 && d2.mineBand[0] > 150 && d2.mineStroke[0] < 60 && d2.realStroke[0] > 150, 'the drawing: ' + JSON.stringify(d2));
-  // the parade gains a marcher in the design; the Book labels a painted butterfly as yours; one garden ladybird and the hand's wear it
-  await p.evaluate(() => { PaintUI.pick('butterfly'); PaintUI.colour = '#3a5ab0'; PaintUI.stamp({ x: 256 + 14 * 10, y: 60 + 14 * 15 }, 'star'); PaintUI.save(); });
-  check(await p.evaluate(() => paradeMarchers().length === Bugs.length + 2 && paradeMarchers().slice(-2).every(m => m.paint)), 'the parade did not gain the painted bugs');
+  check(off && (await viewPx(off[0], off[1]))[3] === 0 && (await designPx('ladybird', off[0], off[1]))[3] === 255, 'paint off the bug showed in the view');
+  await p.click('#paintSave');
+  const saved = await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('bugame.paint')), f = Paint.frame('ladybird'); return { img: !!(d.img && d.img.ladybird), use: d.use.ladybird, stamp: Paint.stamp('ladybird'), secret: Progress.hasSecret('s_paint'), note: document.getElementById('paintNote').textContent, frame: d.frame.ladybird && d.frame.ladybird.S === f.S && d.frame.ladybird.cx === f.cx }; });
+  check(saved.img && saved.use && saved.stamp === 1 && saved.secret && saved.frame && /Saved!/.test(saved.note), 'save: ' + JSON.stringify(saved));
+  // the drawing wears the paint where painted, the real markings show through elsewhere, nothing lands off the
+  // bug, and the real one is untouched
+  const d2 = await p.evaluate((off) => {
+    const draw = (o) => { const c = document.createElement('canvas'); c.width = c.height = 240; const ctx = c.getContext('2d'); ctx.translate(120, 120); ctx.scale(8, 8); Paint.drawSprite(ctx, 'ladybird', o, 0.4); return ctx; };
+    const q = (ctx, x, y) => [...ctx.getImageData(Math.round(120 + 8 * x), Math.round(120 + 8 * y), 1, 1).data];
+    const real = draw({ moving: false }), mine = draw({ moving: false, paint: Paint.stamp('ladybird') });
+    return { realSpot: q(real, -4.2, 2.6), mineSpot: q(mine, -4.2, 2.6), mineStroke: q(mine, -2.6, -4), realStroke: q(real, -2.6, -4), mineWhite: q(mine, 3, 3), realWhite: q(real, 3, 3), mineOff: q(mine, off[0], off[1]) };
+  }, off);
+  check(d2.realSpot[0] < 60 && d2.mineSpot[0] < 60 && d2.mineStroke[0] < 60 && d2.realStroke[0] > 150 && d2.mineWhite[1] > 180 && d2.realWhite[1] < 90 && d2.mineOff[3] === 0, 'the drawing: ' + JSON.stringify(d2));
+  // the parade gains a marcher per design; the Book labels a painted butterfly as yours; one garden ladybird and
+  // one garden butterfly wear theirs, as does the ladybird on your hand; the sugar ant's nest wears the sugar ant's
+  await p.evaluate(() => {
+    PaintUI.pick('butterfly'); PaintUI.colour = '#3a5ab0'; const f = Paint.frame('butterfly'); PaintUI.stamp({ x: f.cx + f.S * 10, y: f.cy + f.S * 15 }, 'star'); PaintUI.save();
+    PaintUI.pick('sugarAnt'); PaintUI.colour = '#f4f4f0'; const g = Paint.frame('sugarAnt'); PaintUI.stamp({ x: g.cx, y: g.cy }, 'spot'); PaintUI.save();
+  });
+  check(await p.evaluate(() => paradeMarchers().length === Bugs.length + 3 && paradeMarchers().slice(-3).every(m => m.paint)), 'the parade did not gain the painted bugs');
   await p.click('#paintBack');
   await p.click('#bookBtn');
   check(await p.locator('.bookBug', { hasText: 'Painted Lady' }).locator('.mine').count() === 1 && await p.locator('.bookBug', { hasText: 'Bull Ant' }).locator('.mine').count() === 0, 'the Book does not show the design as yours');
@@ -887,9 +915,12 @@ test('paint a bug: strokes save, the drawing and the model wear the design, the 
   await startMission(p, 'butterfly', { noNet: true, noPred: true });
   check(await p.evaluate(() => Game.g.player.paint === 1), 'the butterfly you play does not wear the design');
   await p.click('#menuBtn');
+  await startMission(p, 'nest', {});
+  check(await p.evaluate(() => Game.g.player.paint === 1), 'the sugar ant in the nest does not wear the design');
+  await p.click('#menuBtn');
   await startMission(p, 'garden', {});
-  await p.evaluate(() => { const g = Game.g, m = g.mission; m.addThing(g, 'everlasting', 400, 300, 1); for (let i = 0; i < 2; i++) m.arrive(g, VISITORS.find(v => v.id === 'v_ladybird')); });
-  check(await p.evaluate(() => Game.g.visitors.filter(v => v.paint).length === 1), 'not exactly one garden ladybird wears the design');
+  await p.evaluate(() => { const g = Game.g, m = g.mission; m.addThing(g, 'everlasting', 400, 300, 1); for (const id of ['v_ladybird', 'v_butterfly']) for (let i = 0; i < 2; i++) m.arrive(g, VISITORS.find(v => v.id === id)); });
+  check(await p.evaluate(() => Game.g.visitors.filter(v => v.paint && v.sprite === 'ladybird').length === 1 && Game.g.visitors.filter(v => v.paint && v.sprite === 'butterfly').length === 1), 'not exactly one garden ladybird and one butterfly wear the designs');
   await p.click('#menuBtn');
   await p.evaluate(() => { Media.get = async () => ({ error: 'none' }); });
   await startMission(p, 'hand', {});
@@ -900,25 +931,45 @@ test('paint a bug: strokes save, the drawing and the model wear the design, the 
   await p.evaluate(() => PaintUI.pick('ladybird'));
   await p.locator('#paintUse').click();
   check(await p.evaluate(() => Paint.stamp('ladybird') === undefined && !!JSON.parse(localStorage.getItem('bugame.paint')).img.ladybird), 'the switch did not take the design out');
+  // frames come back after a reload, and a design saved before 3.9 (no frame) keeps its old place
+  await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('bugame.paint')); delete d.frame.butterfly; localStorage.setItem('bugame.paint', JSON.stringify(d)); });
+  await p.reload(); await p.waitForTimeout(300);
+  const fr = await p.evaluate(() => ({ lady: Paint.frame('ladybird'), fly: Paint.frame('butterfly'), fit: Paint.fitFrame('ladybird') }));
+  check(fr.lady.S === fr.fit.S && fr.lady.cx === fr.fit.cx && fr.fly.S === 14 && fr.fly.cy === 60, 'frames: ' + JSON.stringify(fr));
   check(p.errors.length === 0, p.errors.join('; '));
-  // the 3D model: the design goes into the dome map, the painted render differs, the real render is unchanged
+  // the 3D models: the design lands on the ant's render but not on its shadow, the real render is unchanged, the
+  // butterfly's wing maps carry the real pattern under the design
   const p3 = await openGame(b, null, FILE_URL + '?3d=force');
   await p3.waitForFunction(() => typeof Render3D !== 'undefined' && (Render3D.ok || Render3D.failed), null, { timeout: 60000 });
   check(await p3.evaluate(() => Render3D.ok), 'Render3D did not start');
   await p3.click('#paintBtn');
   const r3 = await p3.evaluate(() => {
-    const img = (o) => SpriteCache.image('ladybird', o, { t: 0.4, px: 4, angle: 0 });
-    const before = img({ moving: false }).c.toDataURL();
-    PaintUI.pick('ladybird'); PaintUI.colour = '#f4f4f0'; PaintUI.stamp({ x: 292 + 36 * 3, y: 256 + 36 * 3 }, 'spot'); PaintUI.save();
-    const st = Paint.stamp('ladybird'), real = img({ moving: false }), mine = img({ moving: false, paint: st });
+    const img = (n, o, t) => SpriteCache.image(n, o, { t: t || 0.4, px: 4, angle: 0 });
+    const before = img('ant', { moving: false }).c.toDataURL();
+    PaintUI.pick('ant'); PaintUI.colour = '#f4f4f0'; PaintUI.size = 34; PaintUI.tool = 'brush';
+    const f = Paint.frame('ant'); PaintUI.down({ x: f.cx + f.S * -14, y: f.cy }); PaintUI.move({ x: f.cx + f.S * 12, y: f.cy }); PaintUI.last = null; PaintUI.save();
+    const st = Paint.stamp('ant'), real = img('ant', { moving: false }), mine = img('ant', { moving: false, paint: st });
     const a = real.c.getContext('2d').getImageData(0, 0, real.c.width, real.c.height).data, m = mine.c.getContext('2d').getImageData(0, 0, mine.c.width, mine.c.height).data;
-    let diff = 0; for (let i = 0; i < Math.min(a.length, m.length); i += 4) if (Math.abs(a[i] - m[i]) + Math.abs(a[i + 1] - m[i + 1]) + Math.abs(a[i + 2] - m[i + 2]) > 60) diff++;
-    const c = document.createElement('canvas'); c.width = 256; c.height = 128; const ctx = c.getContext('2d');
-    Paint.build('ladybird', 'ladybirdDome', ctx, 256, 128);
-    const texel = [...ctx.getImageData(88, 105, 1, 1).data].slice(0, 3), under = [...ctx.getImageData(200, 64, 1, 1).data].slice(0, 3);
-    return { stamp: st, same: real.c.toDataURL() === before, diff, texel, under, keys: [...Models.built.keys()].filter(k => /U1/.test(k)).length };
+    let diff = 0, shadowTouched = 0;
+    for (let i = 0; i < Math.min(a.length, m.length); i += 4) {
+      const d = Math.abs(a[i] - m[i]) + Math.abs(a[i + 1] - m[i + 1]) + Math.abs(a[i + 2] - m[i + 2]) + Math.abs(a[i + 3] - m[i + 3]);
+      if (d > 60) diff++;
+      if (a[i + 3] <= 200 && d > 0) shadowTouched++;
+    }
+    PaintUI.pick('butterfly'); PaintUI.colour = '#3a5ab0'; const g = Paint.frame('butterfly'); PaintUI.stamp({ x: g.cx + g.S * 10, y: g.cy + g.S * 15 }, 'star'); PaintUI.save();
+    const st2 = Paint.stamp('butterfly');
+    img('butterfly', { moving: false, landed: false, paint: st2 }, Math.PI / 36);
+    const c = document.createElement('canvas'); c.width = c.height = 256; const ctx = c.getContext('2d');
+    Paint.build('butterfly', 'plFore', ctx, 256, 256);
+    const c2 = document.createElement('canvas'); c2.width = c2.height = 256; const ctx2 = c2.getContext('2d');
+    PAINT_MAPS.plFore.base(ctx2, 256, 256);
+    const bb = PAINT_MAPS.plFore.bounds(), uv = (x, y) => [Math.round((x - bb[0]) / (bb[2] - bb[0]) * 256), Math.round((y - bb[1]) / (bb[3] - bb[1]) * 256)];
+    const [sx, sy] = uv(10, 15), [rx, ry] = uv(6, 5);
+    const star = [...ctx.getImageData(sx, sy, 1, 1).data].slice(0, 3), under = [...ctx.getImageData(rx, ry, 1, 1).data].slice(0, 3), realUnder = [...ctx2.getImageData(rx, ry, 1, 1).data].slice(0, 3);
+    const keys = [...Models.built.keys()];
+    return { stamp: st, same: real.c.toDataURL() === before, diff, shadowTouched, star, under, realUnder, flyKeys: keys.filter(k => /U1/.test(k)).length, antKeys: keys.filter(k => /^ant\|.*U/.test(k)).length };
   });
-  check(r3.stamp === 1 && r3.same && r3.diff > 20 && r3.texel[0] > 230 && r3.under[0] < 40 && r3.keys === 1, '3D: ' + JSON.stringify(r3));
+  check(r3.stamp === 1 && r3.same && r3.diff > 20 && r3.shadowTouched === 0 && r3.star[2] > r3.star[0] + 40 && r3.under.join() === r3.realUnder.join() && r3.flyKeys === 1 && r3.antKeys === 0, '3D: ' + JSON.stringify(r3));
   check(p3.errors.length === 0, p3.errors.join('; '));
 });
 

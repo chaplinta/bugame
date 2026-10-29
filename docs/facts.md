@@ -265,11 +265,12 @@ The bug is a drawing over the live camera frame; the level says so ("The bug is 
 - Simplification: a real bug would leave a hand within seconds; the pretend one stays, comes when called and sits for a photo.
 
 ## Paint your own bug
-A paint screen for three parts: a ladybird's wing cases, a peacock spider's fan and a painted lady's wings. The design is the player's own and the game keeps it apart from the real species: it is shown only on one labelled individual (your own butterfly and spider when you play them, one ladybird visitor in the garden and on your hand, one extra marcher in the parade) and the Bug Book labels it "My design". The real drawings and models are never replaced.
+A paint screen for every bug you can be (18 of them). The design is a see-through layer of paint over the whole bug; where nothing is painted the real markings show. The design is the player's own and the game keeps it apart from the real species: it is shown only on one labelled individual of that kind (the bug you play, the bug on your hand, one garden visitor, one extra marcher in the parade) and the Bug Book labels it "My design". The real drawings and models are never replaced.
 - Ladybirds' bright colours are warning (aposematic) colours that tell birds they taste bad, backed by the alkaloid-rich fluid they bleed from their leg joints. AM (ladybird beetles); Holloway, de Jong & Brakefield 1991 (Chemoecology 2: 7–14).
 - Butterfly wings are covered in thousands of tiny overlapping scales, like roof tiles, which carry the colours. AM (butterflies and moths, Order Lepidoptera); Braby 2000, *Butterflies of Australia*.
 - The peacock spider's fan colours come from structural scales that bend and reflect light (and pigments for the reds). Stavenga, Otto & Wilts 2016 (J R Soc Interface 13: 20160437); Hsiung et al. 2017 (Nature Communications 8: 2278); see the coastal peacock spider section.
-- Simplification: a painted design is a game of make-believe, labelled as such; real ladybirds, butterflies and peacock spiders cannot change their patterns.
+- The other 15 captions each repeat one line from that bug's own level, sourced in its section above: the ant, bee, fly, caterpillar, termite, snail and spiderling body-plan lines; the nymph's wing pads; the blue skimmer's sexes; the sandhopper as a crustacean; female mosquitoes biting; the sugar ant's nests; the golden orb-weaver's webs; the dung beetle burying dung; the frog's backbone.
+- Simplification: a painted design is a game of make-believe, labelled as such; real bugs cannot change their patterns.
 
 ## Native garden (build your own)
 - Native plants support native wildlife (nectar, seed, shelter); Perth councils and the Water Corporation promote waterwise native gardens. Water Corporation; City of Melville/Bayswater wildlife-garden guides.

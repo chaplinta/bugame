@@ -58,7 +58,8 @@ function portrait(canvas, sprite, size, o) {
   ctx.translate(size / 2, size / 2);
   ctx.rotate(angle);
   ctx.scale(k, k);
-  Sprites[sprite](ctx, st, 0.4);
+  if (st.paint && typeof Paint !== 'undefined') Paint.drawSprite(ctx, sprite, st, 0.4);
+  else Sprites[sprite](ctx, st, 0.4);
 }
 // Every portrait on the page again (the 3D renderer came up, the 3D setting changed, a design was painted).
 function redrawPortraits() {
@@ -248,7 +249,7 @@ function buildBook() {
       const mine = document.createElement('div');
       mine.className = 'mine'; mine.innerHTML = '<canvas></canvas>My design';
       sec.querySelector('.bookHead').insertBefore(mine, sec.querySelector('.bookHead div'));
-      portrait(mine.querySelector('canvas'), bug.sprite, 80, { paint: design, fan: bug.sprite === 'spider' ? 1 : 0 });
+      portrait(mine.querySelector('canvas'), bug.sprite, 80, Object.assign(Paint.optsOf(bug.sprite), { paint: design }));
     }
     sec.querySelector('h2').textContent = bug.name;
     sec.querySelector('.sci').textContent = bug.sci + ' · ' + bug.place;
@@ -328,7 +329,7 @@ $('title').addEventListener('click', () => {
 // Every bug marches, plus one bug per design you painted (js/paint.js), wearing it.
 function paradeMarchers() {
   const list = Bugs.map((b, i) => ({ sprite: b.sprite, x: -60 - i * 70, y: 300 + Math.sin(i) * 40 }));
-  if (typeof Paint !== 'undefined') for (const name of Object.keys(PAINT_PARTS)) {
+  if (typeof Paint !== 'undefined') for (const name of Object.keys(PAINT_BUGS)) {
     const st = Paint.stamp(name);
     if (st) { const i = list.length; list.push({ sprite: name, paint: st, x: -60 - i * 70, y: 300 + Math.sin(i) * 40 }); }
   }
@@ -350,10 +351,10 @@ function bugParade() {
     ctx.clearRect(0, 0, W, H);
     for (const m of marchers) {
       const x = m.x + t * 180, y = m.y + Math.sin(t * 8 + m.x) * 6, k = 1.6 * (ICON_SCALE[m.sprite] || 1);
-      const o = { moving: true, load: 0, paint: m.paint, fan: m.paint && m.sprite === 'spider' ? 1 : 0 };
+      const o = Object.assign({ load: 0 }, m.paint ? Paint.optsOf(m.sprite) : {}, { moving: true, paint: m.paint });
       if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, m.sprite, o, t, { x, y, scale: k })) continue;
       ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
-      Sprites[m.sprite](ctx, o, t);
+      if (m.paint) Paint.drawSprite(ctx, m.sprite, o, t); else Sprites[m.sprite](ctx, o, t);
       ctx.restore();
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

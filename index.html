@@ -47,7 +47,7 @@
       <button id="paintBtn">Paint a bug</button>
       <button id="installBtn" class="secondary" hidden>Install app</button>
     </div>
-    <p class="version">Version 3.8.1 · released 29 October 2026</p>
+    <p class="version">Version 3.9 · released 29 October 2026</p>
   </section>
 
   <section id="bug" class="screen">
@@ -143,8 +143,8 @@
       <h1>Paint a bug</h1>
       <button id="paintBack" class="secondary">Map</button>
     </header>
-    <p class="sub">Paint your own design on a ladybird, a peacock spider’s fan or a painted lady’s wings. The real one stays in the game; yours joins it. Pinch or use + and − to zoom; Move drags the picture.</p>
-    <div id="paintParts" class="stages"></div>
+    <p class="sub">Pick a bug and paint anywhere on it. The real one stays in the game; yours joins it. Pinch or use + and − to zoom; Move drags the picture.</p>
+    <div id="paintParts" class="paintBugs"></div>
     <div class="paintRow">
       <div id="paintTools" class="paintTools"></div>
       <div id="paintBox">
@@ -155,12 +155,10 @@
           <button data-zoom="fit" aria-label="Show the whole bug">Fit</button>
         </div>
       </div>
-      <div class="paintPreview">
-        <p>Your design</p>
-        <canvas id="paintMine"></canvas>
-        <p>The real one</p>
-        <canvas id="paintReal"></canvas>
-      </div>
+    </div>
+    <div class="paintPreview">
+      <div><p>Your design</p><canvas id="paintMine"></canvas></div>
+      <div><p>The real one</p><canvas id="paintReal"></canvas></div>
     </div>
     <p id="paintCaption" class="unlock"></p>
     <p id="paintNote" class="sub center"></p>

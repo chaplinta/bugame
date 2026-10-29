@@ -227,7 +227,7 @@ const Game = {
     g.finds = (mission.discoveries || []).map(d => Object.assign({ found: false, angle: 0 }, d,
       { x: d.fx * World.w, y: d.fy * World.h }));
     this.g = g;
-    if (typeof Paint !== 'undefined') g.player.paint = Paint.stamp(mission.sprite || mission.id);   // a design of your own on your bug (js/paint.js)
+    if (typeof Paint !== 'undefined') g.player.paint = Paint.stamp(mission.playerSprite ? mission.playerSprite(g) : (mission.sprite || mission.id));   // a design of your own on your bug (js/paint.js)
     if (typeof SpriteCache !== 'undefined') SpriteCache.clear();
     if (typeof Tex !== 'undefined') Tex.ready();
     mission.setup(g);
@@ -580,7 +580,8 @@ const Game = {
     const px = (this.dpr || 1) * (this.zoom || 1) * (scale || 1);
     if (!(typeof SpriteCache !== 'undefined' && SpriteCache.enabled && SpriteCache.draw(ctx, name, e, this.g.t, scale || 1, px))) {
       ctx.scale(scale || 1, scale || 1);
-      Sprites[name](ctx, e, this.g.t);
+      if (e.paint && typeof Paint !== 'undefined') Paint.drawSprite(ctx, name, e, this.g.t);   // wearing a design of your own
+      else Sprites[name](ctx, e, this.g.t);
     }
     ctx.restore();
   },

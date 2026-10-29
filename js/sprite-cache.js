@@ -39,7 +39,6 @@ const SpriteCache = {
     if (o.stuck) k += 'k';
     if (o.face !== undefined) k += 'F' + (o.face < 0 ? 0 : 1);
     if (o.dive) k += 'D';
-    if (o.paint) k += 'U' + o.paint;   // a design of your own (js/paint.js)
     if (o.pose) k += 'P' + o.pose;
     if (o.water !== undefined) k += 'w' + (o.water ? 1 : 0);
     if (o.seed !== undefined) k += 'd' + o.seed;
@@ -70,7 +69,8 @@ const SpriteCache = {
   },
 
   // The look key: a 3D model's own key (its poses) when it renders in 3D, else the drawing's key as before.
-  keyOf(reg, o, t, threeD) { const k = threeD && reg.model && reg.model.key ? reg.model.key : reg.key; return k ? k(o, t) : this.defaultKey(o, t); },
+  // A design of your own (o.paint, js/paint.js) gets its own bitmaps.
+  keyOf(reg, o, t, threeD) { const k = threeD && reg.model && reg.model.key ? reg.model.key : reg.key, v = k ? k(o, t) : this.defaultKey(o, t); return v === null || !o.paint ? v : v + 'U' + o.paint; },
   // Draw name at the current transform (already translated and rotated, not scaled). Returns false if not cached.
   draw(ctx, name, e, t, scale, px) {
     const reg = this.regs[name];
@@ -131,6 +131,11 @@ const SpriteCache = {
   },
 
   render(name, reg, e, t, ang, P) {
+    const ent = this.renderPlain(name, reg, e, t, ang, P);
+    if (ent && e.paint && typeof Paint !== 'undefined') Paint.onBitmap(ent, name, e, P);   // a design of your own on the bitmap
+    return ent;
+  },
+  renderPlain(name, reg, e, t, ang, P) {
     if (reg.model && typeof Render3D !== 'undefined' && Render3D.ok && !reg.model.broken) {
       const ent = Models.render(name, reg.model, e, t, ang, P);
       if (ent) return ent;
