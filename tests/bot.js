@@ -183,6 +183,21 @@
       // Press Click near full power, then Land just before touching the mat (a kid presses at about half, and late)
       if (p.onGround) act = g.meter > (kidLike ? 0.55 : 0.93);
       else act = !p.recover && !p.landPress && p.vy > 0 && m.toLand(p) <= (kidLike ? 0.3 : 0.4);
+    } else if (id === 'cir_strong') {
+      hold = !g.cir.finished && g.restT <= 0;
+    } else if (id === 'cir_trapeze') {
+      // Jump when the other bar swings close and is still coming closer
+      if (!p.air && !p.hang) { const o = m.bar(g, 1 - p.on), b = m.bar(g, p.on), gap = Math.abs(o.x - b.x), closing = Math.cos(g.t / TRAP.period * TAU) > 0; act = closing && gap < (kidLike ? 440 : 420); }
+    } else if (id === 'cir_rope') {
+      if (g.phase === 'wind') act = Math.abs(CIR.adiff(g.wind, 0)) < (kidLike ? 0.6 : 0.3);
+      else if (g.phase === 'walk' && g.fallT <= 0) { goal = { x: World.w / 2 + ROPE.half, y: p.y }; hold = g.gust > 0 || g.warn > 0; if (hold) goal = null; }
+    } else if (id === 'cir_vanish') {
+      const lit = VANISH.patches[g.lit], at = { x: World.w / 2 + lit[1], y: CIR.ring.cy + lit[2] };
+      if (p.settled) goal = null; else if (dist(at, p) < 14) act = true; else goal = at;
+    } else if (id === 'cir_water') {
+      // Point at the nearest insect; row when roughly facing it and not already fast
+      const b = near(g.items.filter(i => i.kind === 'bug'));
+      if (b) { const want = Math.atan2(b.y - p.y, b.x - p.x), off = Math.abs(CIR.adiff(want, p.angle)); goal = b; act = off < 0.5 && Math.hypot(p.vx, p.vy) < 120; }
     }
     return { goal, act, hold };
   }

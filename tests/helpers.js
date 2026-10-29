@@ -68,6 +68,7 @@ function serve(dir) {
 }
 
 const MISSIONS = ['ant', 'queen', 'bee', 'fly', 'caterpillar', 'butterfly', 'termite', 'snail', 'spiderling', 'spider', 'nymph', 'dragonfly', 'sandhopper', 'mosquito', 'flight', 'skimmerF', 'spiderF', 'nest', 'frog',
-  'oly_jump', 'oly_sprint', 'oly_dig', 'oly_lift', 'oly_buzz', 'oly_gym'];
+  'oly_jump', 'oly_sprint', 'oly_dig', 'oly_lift', 'oly_buzz', 'oly_gym',
+  'cir_strong', 'cir_trapeze', 'cir_rope', 'cir_vanish', 'cir_water'];
 
 module.exports = { launch, launchMedia, openGame, startMission, forceWin, serve, ROOT, FILE_URL, MISSIONS };

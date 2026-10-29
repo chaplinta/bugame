@@ -23,6 +23,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - **Keep exploring**: after finishing a goal you can carry on playing.
 - **Map**: a map of Perth. Tap a bug's place to open its page.
 - **Life stages**: several bugs have more than one stage, including female stages. Finishing a stage unlocks the next. Each bug page says who you are (female, male, worker, or both).
+- **Bug Circus**: five acts under the big top at Claremont Showground, all open from the start: a horned dung beetle strongman, a jumping spider's trapeze, an orb-weaver's tightrope, a moth's disappearing act and a water strider walking on water. Each act is a thing the bug really does, dressed up as a trick; the show is pretend and every act says so. Cheers are the stars.
 - **Bug Olympics**: six short events at Perry Lakes, all open from the start. Each is a real thing a bug does, against real numbers from the sources in `docs/facts.md`: a result in body lengths or seconds, a medal (the stars) and a saved best. The end screen says what your result would be for a kid.
 - **Different views**: most levels are top-down; the sandhopper's beach is side-on with gravity and hopping, and the sugar ant's nest is a side-on cross-section you dig through; the mosquito's backyard is isometric; the painted lady's third stage is 3D flight (three.js, `vendor/three.min.js`); the garden, orb web and ant nest are building levels with a tool palette; Bug on your hand draws over the camera.
 - **Ten-minute day**: a sky dial shows the sun crossing the sky. The light warms in the last two minutes, then night falls, every bug goes to sleep and the game is over until you start a new day. The clock runs only while the game is on screen and lasts the browser session.
@@ -63,6 +64,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 | Mosquito, female (*Culex quinquefasciatus*) | Backyard barbecue, Bassendean (isometric) | bite people while they chat, fly off before they swat, lay egg rafts on still water |
 | Motorbike frog, male (*Litoria moorei*) | Lake Joondalup, at night | call in the gaps of the chorus (hold Call, or shout) to be heard and bring a female; banjo frogs, moaning frogs and squelching froglets call round you in stereo; keep still and quiet when the night heron wades past |
 | Bug on your hand (camera) | Your hand | hold your hand under the phone's camera and a pretend bug walks on it: tap to call it over, tap it to say hello, pick any bug you have finished a level with (the ladybird and snail are always there), take a photo to share or save, flip cameras; a painted hand stands in when there is no camera |
+| Bug Circus (five acts) | Claremont Showground | the Strongbug (a horned dung beetle drags a sledge of weights: 100, 500 and 1,141 times its weight), the flying trapeze (a peacock spider leaps between swinging bars, a silk line trailing; a miss means hanging on the line and climbing back), the tightrope (a golden orb-weaver sends her line across on the wind, then walks it through gusts), the disappearing act (a brown moth settles on the bark in the spotlight, lined up with the grooves, before the honeyeater looks) and walking on water (a water strider rows and glides to the insects on the pool); cheers are the stars; the show is pretend, the tricks are real |
 | Bug Olympics (six events) | Perry Lakes | long jump as a sandhopper (side-on: a power bar on the board, three jumps measured in body lengths), a dragonfly sprint through six rings with darts, a dung beetle burying race, a bull ant carry relay with heavier and heavier loads, a blue-banded bee buzz-off (shouting works), and gymnastics as a click beetle (side-on: click off your back into the air, somersault, press Land to come down on your feet; three flips scored in points); medals are the stars and best results are kept; the games are pretend, the numbers are real |
 
 ## Code
@@ -85,6 +87,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - `js/tools.js`: tool palette for building levels; `js/garden.js`, `js/web.js`, `js/dig.js`: the garden, orb web and ant nest
 - `js/frogs.js`: the frog chorus night level, with the four frog calls built from oscillators and panned to where they come from
 - `js/olympics.js`: the Bug Olympics (six timed or measured events, medals, best results)
+- `js/circus.js`: the Bug Circus (five acts, the big top from above and from the side, the horned beetle, side-on spider and water strider)
 - `js/hand.js`: Bug on your hand, the camera level (live frame, the bug's behaviour, the photo, the painted fallback)
 - `js/tree.js`: the bug family tree
 - `js/secrets.js`: Easter eggs

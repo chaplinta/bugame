@@ -300,6 +300,96 @@ test('Bug Olympics: every event is open, jumps are measured, a finish gives a me
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+test('Bug Circus: every act is open; the sledge, the trapeze line, the bridge, the hiding and the strokes work; cheers are the stars', async (b) => {
+  const p = await openGame(b);
+  await p.locator('.pin', { hasText: 'Bug Circus' }).click();
+  check(await p.locator('#stages .stageBtn:not([disabled])').count() === 5, 'not every act is open');
+  check(/pretend/.test(await p.textContent('#stageFacts')), 'the act page does not say the show is pretend');
+  // the Strongbug: the sledge moves only while pulling, slides back when let go, and the heavier rounds are slower
+  await startMission(p, 'cir_strong', {});
+  const st = await p.evaluate(() => {
+    const g = Game.g, m = g.mission, x0 = g.sledge.x;
+    m.move(g, 1, 0, 0); const idle = g.sledge.x - x0;
+    g.pulling = true; m.move(g, 1, 0, 0); const pulled = g.sledge.x - x0;
+    g.pulling = false; m.move(g, 1, 0, 0); const back = g.sledge.x - x0;
+    return { idle, pulled, back, speeds: STRONG.speeds };
+  });
+  check(st.idle === 0 && st.pulled > 60 && st.back < st.pulled && st.speeds[2] < st.speeds[0], 'the sledge: ' + JSON.stringify(st));
+  await p.evaluate(() => { const g = Game.g, m = g.mission; for (let r = 0; r < 3; r++) { g.restT = 0; g.pulling = true; let n = 0; while (g.round === r && n++ < 3000) m.move(g, 1 / 30, 0, 0); } });
+  await p.waitForSelector('#end.active', { timeout: 10000 });
+  const end1 = await p.evaluate(() => ({ stars: document.getElementById('endStars').textContent, line: document.getElementById('endUnlock').textContent, saved: Progress.stars('cir_strong') }));
+  check(end1.stars === '★★★' && /Three cheers/.test(end1.line) && end1.saved === 3, 'the Strongbug: ' + JSON.stringify(end1));
+  // the trapeze: a jump trails a line from the bar; jumping as the bars swing apart misses, hangs on the line and
+  // climbs back; jumping as they swing together catches the other bar
+  await p.click('#endMap');
+  await startMission(p, 'cir_trapeze', {});
+  const tr = await p.evaluate(() => {
+    const g = Game.g, m = g.mission, p = g.player, T = TRAP;
+    const settle = () => { let n = 0; while ((p.air || p.hang) && n++ < 6000) { g.t += 1 / 120; m.move(g, 1 / 120, 0, 0); } };
+    const jumpAt = (t0) => { g.t = t0; p.air = false; p.hang = false; m.move(g, 0, 0, 0); const before = g.catches; m.jump(g); const anchored = !!g.anchor && p.air; settle(); return { anchored, caught: g.catches > before }; };
+    const apart = jumpAt(T.period * 0.5 + 0.1), misses = g.misses, hung = g.hangLast;   // the bars swinging apart
+    let caught = null; for (let k = 0; k < 10 && !caught; k++) { const r = jumpAt(T.period * (k / 10) * 0.5 + 0.05); if (r.caught) caught = k; }
+    return { anchored: apart.anchored, missed: !apart.caught && misses === 1, caught, on: p.on, catches: g.catches };
+  });
+  check(tr.anchored && tr.missed && tr.caught !== null && tr.catches >= 1, 'the trapeze: ' + JSON.stringify(tr));
+  // the tightrope: the line sticks only when the wind blows at the far post; a gust without holding on blows her off,
+  // holding on keeps her up; the far post ends the act
+  await p.click('#menuBtn');
+  await startMission(p, 'cir_rope', {});
+  const rp = await p.evaluate(() => {
+    const g = Game.g, m = g.mission, p = g.player, I = { pressed: false, held: false };
+    g.wind = Math.PI; g.windV = 0; m.update(g, 0.016, { pressed: true, held: false }); const wrong = !!g.sail && !g.sail.ok;
+    for (let i = 0; i < 100; i++) { g.wind = Math.PI; m.update(g, 0.016, I); } const backToWind = g.phase === 'wind';
+    g.wind = 0; m.update(g, 0.016, { pressed: true, held: false }); const right = !!g.sail && g.sail.ok;
+    for (let i = 0; i < 100; i++) { g.wind = 0; m.update(g, 0.016, I); } const walking = g.phase === 'walk';
+    const x0 = p.x; m.move(g, 0.5, 1, 0); const walked = p.x - x0;
+    g.gust = 1; g.blown = false; g.held = false; g.warn = 0; m.update(g, 0.016, I); const blown = g.fallT > 0 && g.falls === 1;
+    g.fallT = 0; g.gust = 1; g.blown = false; g.held = false; m.update(g, 0.016, { pressed: false, held: true }); const held = g.fallT === 0 && g.held;
+    g.gust = 0; p.x = World.w / 2 + ROPE.half - 30; m.move(g, 0.2, 1, 0);
+    return { wrong, backToWind, right, walking, walked, blown, held, done: g.phase === 'done' && g.cir.finished };
+  });
+  check(rp.wrong && rp.backToWind && rp.right && rp.walking && rp.walked > 40 && rp.blown && rp.held && rp.done, 'the tightrope: ' + JSON.stringify(rp));
+  await p.waitForSelector('#end.active', { timeout: 10000 });
+  // the disappearing act: settled on the lit bark and lined up is hidden; the sand refuses a settle; moving is spotted
+  await p.click('#endMap');
+  await startMission(p, 'cir_vanish', {});
+  const vn = await p.evaluate(() => {
+    const g = Game.g, m = g.mission, p = g.player, lit = VANISH.patches[g.lit], cx = World.w / 2, cy = CIR.ring.cy, I = { pressed: false, held: false };
+    p.x = cx + lit[1]; p.y = cy + lit[2]; p.moving = false;
+    m.update(g, 0.016, { pressed: true, held: false }); const settling = p.settled;
+    for (let i = 0; i < 60; i++) m.update(g, 0.016, I);
+    const d = Math.abs(CIR.adiff(p.angle, lit[3])), aligned = d < 0.05 || Math.abs(d - Math.PI) < 0.05;
+    m.look(g); const hidden = g.hidden === 1 && g.round === 1;
+    const sand = VANISH.patches.find(q => q[0] === 'sand'); p.x = cx + sand[1]; p.y = cy + sand[2]; p.settled = false; p.moving = false;
+    m.update(g, 0.016, { pressed: true, held: false }); const refused = !p.settled;
+    const lit2 = VANISH.patches[g.lit]; p.x = cx + lit2[1]; p.y = cy + lit2[2]; p.moving = true; p.settled = false;
+    m.look(g); const spotted = g.hidden === 1 && g.round === 2;
+    return { settling, aligned, hidden, refused, spotted, litBark: lit[0] === 'bark' && lit2[0] === 'bark' };
+  });
+  check(vn.settling && vn.aligned && vn.hidden && vn.refused && vn.spotted && vn.litBark, 'the disappearing act: ' + JSON.stringify(vn));
+  await p.click('#menuBtn');
+  // walking on water: no stroke, no movement; a stroke pushes off and leaves dimples, then the strider glides and slows;
+  // the pool's edge keeps her in; six insects end the act with cheers
+  await startMission(p, 'cir_water', {});
+  const wt = await p.evaluate(() => {
+    const g = Game.g, m = g.mission, p = g.player, I = { pressed: false, held: false };
+    const x0 = p.x; m.move(g, 0.5, 0, 0); const still = Math.abs(p.x - x0) < 0.01;
+    p.angle = 0; m.update(g, 0.016, { pressed: true, held: false }); const pushed = p.vx > 150 && g.dimples.length === 2;
+    for (let i = 0; i < 60; i++) m.move(g, 1 / 60, 0, 0); const glided = p.x - x0 > 60 && p.vx < 150;
+    p.vx = 900; for (let i = 0; i < 120; i++) m.move(g, 1 / 60, 0, 0); const inside = Math.hypot(p.x - World.w / 2, p.y - CIR.ring.cy) <= WATER.r - 15;
+    for (const b of g.items.filter(i => i.kind === 'bug')) { p.x = b.x; p.y = b.y; m.update(g, 0.016, I); }
+    return { still, pushed, glided, inside, score: g.score, finished: g.cir.finished };
+  });
+  check(wt.still && wt.pushed && wt.glided && wt.inside && wt.score === 6 && wt.finished, 'walking on water: ' + JSON.stringify(wt));
+  await p.waitForSelector('#end.active', { timeout: 10000 });
+  check(/cheers/i.test(await p.textContent('#endUnlock')), 'no cheers on the end screen');
+  // the Bug Book counts the cheers
+  await p.click('#endMap'); await p.click('#bookBtn');
+  const book = await p.locator('.bookBug', { hasText: 'Bug Circus' }).locator('.medals').textContent();
+  check(/Cheers: \d+ of 15/.test(book), 'book cheers line: ' + book);
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('the progress ring shows while munching', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'snail', { noNet: true, noPred: true });
