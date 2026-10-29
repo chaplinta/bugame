@@ -3,8 +3,9 @@
 // Dry silk makes the frame and spokes; sticky silk catches insects. Cut threads, make a spiral,
 // and run out to wrap whatever gets stuck. Big beetles can smash through threads.
 
-// Branches you can tie silk to: polylines in world coordinates (the scene is one screen, side-on).
-const WEB_ANCHORS = [
+// Branches you can tie silk to: polylines in world coordinates (the scene is one screen, side-on, laid out for a
+// 960-wide view; a wider view gets the same scene shifted to its middle, see webOffset and setup).
+const WEB_BASE = [
   [[150, 600], [158, 420], [150, 240], [162, 60], [170, 0]],          // left tree trunk
   [[905, 600], [896, 400], [910, 200], [900, 0]],                     // right tree trunk
   [[160, 92], [330, 70], [520, 82], [700, 64], [902, 84]],           // high branch across the top
@@ -13,6 +14,8 @@ const WEB_ANCHORS = [
   [[300, 600], [360, 520], [430, 470], [500, 500]],                   // shrub stems at the bottom
   [[700, 600], [650, 510], [600, 470]],
 ];
+const WEB_ANCHORS = WEB_BASE.map(line => line.map(p => p.slice()));
+function webOffset(w) { return Math.round(((w || World.w) - 960) / 2); }
 const SILK_MAX = 150;
 
 function nearestOnSeg(px, py, ax, ay, bx, by) {
@@ -54,7 +57,7 @@ Missions.web = {
   id: 'web', bug: 'orbweaver', stage: 'Adult female', place: 'Wireless Hill bushland', view: 'build',
   sprite: 'orbSpider', bg: 'webBush', pointerOnly: true,
   action: '', radius: 14, speed: 0, scale: 2, goal: 6,
-  home: { x: 520, y: 300, r: 1, label: '' },
+  get home() { return { x: 520 + webOffset(), y: 300, r: 1, label: '' }; },
   facts: [
     'Golden orb-weavers spin huge webs of golden silk. They live all over Australia, including Perth.',
     'An orb web has a frame, spokes like a wheel, and a sticky spiral to catch insects.',
@@ -100,11 +103,15 @@ Missions.web = {
 
   noNet: true,   // no bug net: the spider stays on her web
   setup(g) {
+    // The trees and branches sit in the middle of the view, however wide it is
+    const ox = webOffset();
+    WEB_ANCHORS.length = 0;
+    for (const line of WEB_BASE) WEB_ANCHORS.push(line.map(([x, y]) => [x + ox, y]));
     g.threads = []; g.prey = []; g.drawing = null; g.silk = SILK_MAX; g.spawnT = 3; g.job = null; g.path = [];
-    const p = g.player; p.x = 520; p.y = 300; p.angle = Math.PI / 2; p.flat = true;
+    const p = g.player; p.x = 520 + ox; p.y = 300; p.angle = Math.PI / 2; p.flat = true;
     // Start with one dry bridge line across the top, like a real spider's first thread
-    this.addThread(g, { x: 330, y: 70 }, { x: 700, y: 64 }, 'dry', true);
-    p.x = 515; p.y = 68;
+    this.addThread(g, { x: 330 + ox, y: 70 }, { x: 700 + ox, y: 64 }, 'dry', true);
+    p.x = 515 + ox; p.y = 68;
     Game.later(1.5, () => Game.hint('Drag from a branch to another branch to spin silk. Make a frame, then spokes!'));
   },
   addThread(g, a, b, type, free) {
@@ -372,7 +379,7 @@ Backgrounds.webBush = function (ctx, W, H) {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   // Perth city across the Swan River, seen from Wireless Hill
   ctx.fillStyle = 'rgba(120,170,200,.55)'; ctx.fillRect(0, 392, W, 26);
-  drawPerthSkyline(ctx, 380, 396, 360, 0.75, 0.35);
+  drawPerthSkyline(ctx, 380 + webOffset(W), 396, 360, 0.75, 0.35);
   // Distant bush: rows of gum crowns, bluer and paler the further back they are, over a dark understorey
   for (let row = 0; row < 3; row++) {
     const far = 1 - row / 2, base = 418 + row * 42, col = mixHex('#4f7a3a', '#a8c4cc', far * 0.65);

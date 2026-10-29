@@ -1,7 +1,7 @@
 'use strict';
 // Shared game engine: loop, input, movement, predators, facts.
 
-const W = 960, H = 600;          // screen (view) size
+let W = 960; const H = 600;      // screen (view) size: H is fixed, W follows the screen's shape (Game.fitStage, 960 to 1320)
 const World = { w: W, h: H };    // size of the current mission's world, set in Game.start
 
 // Settings remembered between visits.
@@ -155,6 +155,23 @@ const Game = {
     this.dpr = dpr;
     if (this.g) { this.updateZoom(); this.updateCamera(); }
   },
+  // The view's shape follows the screen, set when a level starts: H is always 600, W grows from 960 to 1320 on a
+  // wide screen, so a phone on its side or a laptop sees more of the world sideways instead of empty margins.
+  // From then on CSS keeps the stage fitted to the window (letterboxed if the window changes shape mid-level).
+  fitStage() {
+    const stage = document.getElementById('stage');
+    if (!stage) return;
+    const box = stage.parentElement, app = document.getElementById('app'), cs = app && getComputedStyle(app);
+    const pad = cs ? Math.round((parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0)) : 16;   // the page's padding above and below the stage
+    const availW = (box && box.clientWidth) || window.innerWidth, availH = Math.max(200, window.innerHeight - pad);
+    const aspect = Math.max(1.6, Math.min(2.2, availW / availH));
+    W = Math.round(H * aspect);
+    const vh = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('height', '100dvh') ? '100dvh' : '100vh';
+    stage.style.aspectRatio = W + ' / ' + H;
+    stage.style.width = 'min(100%, calc((' + vh + ' - ' + pad + 'px) * ' + (W / H).toFixed(4) + '))';
+    stage.style.maxHeight = 'calc(' + vh + ' - ' + pad + 'px)';
+    this.resize();
+  },
 
   bindInput() {
     const actionKeys = [' ', 'Enter'];
@@ -213,6 +230,7 @@ const Game = {
 
   start(mission) {
     if (this.g && this.g.mission.teardown) this.g.mission.teardown(this.g);
+    this.fitStage();
     World.w = mission.world ? mission.world.w : W;
     World.h = mission.world ? mission.world.h : H;
     const home = Object.assign({}, mission.home);
@@ -323,10 +341,10 @@ const Game = {
     Sound.play('caught');
   },
 
-  // Small screens (phones) see a zoomed-in part of the world so bugs aren't tiny.
+  // Small screens (phones, held either way) see a zoomed-in part of a big world so bugs aren't tiny.
   updateZoom() {
-    const w = this.canvas.getBoundingClientRect().width;
-    this.zoom = World.w > W ? (w > 0 && w < 700 ? 1.6 : 1.3) : 1;
+    const r = this.canvas.getBoundingClientRect(), small = r.width > 0 && (r.width < 700 || r.height < 450);
+    this.zoom = World.w > W ? (small ? 1.6 : 1.3) : 1;
   },
 
   updateCamera() {

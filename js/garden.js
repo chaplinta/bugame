@@ -3,7 +3,7 @@
 // What you build decides who moves in: bees, butterflies, dragonflies, frogs, lizards and birds.
 // Your garden is saved, so it is still there next time.
 
-const GARDEN = { cell: 40, cols: 24, rows: 15, left: 3 };   // columns left of `left` sit under the tool palette
+const GARDEN = { cell: 40, cols: 24, rows: 15, left: 3 };   // columns left of `left` sit under the tool palette; cols follows the view's width (setup)
 
 // ------------------------------------------------------------------ Drawings (top-down)
 Object.assign(Sprites, {
@@ -338,8 +338,11 @@ Missions.garden = {
   noNet: true,   // no bug net in your own garden
   setup(g) {
     const p = g.player; p.x = -400; p.y = -400; p.flat = true;
+    // The grid covers the yard however wide the screen is; a garden saved on a wider screen keeps its far columns
+    GARDEN.cols = Math.ceil(World.w / GARDEN.cell);
     const saved = GardenStore.load();
-    g.cells = saved && saved.cells && saved.cells.length === GARDEN.rows ? saved.cells
+    g.cells = saved && saved.cells && saved.cells.length === GARDEN.rows
+      ? saved.cells.map(row => row.length >= GARDEN.cols ? row : row.concat(Array(GARDEN.cols - row.length).fill('dirt')))
       : Array.from({ length: GARDEN.rows }, () => Array(GARDEN.cols).fill('dirt'));
     if (saved && saved.items) for (const s of saved.items) if (GARDEN_THINGS[s.k]) this.addThing(g, s.k, s.x, s.y, 1, s.s);
     g.groundDirty = true;

@@ -781,6 +781,53 @@ test('phone layouts: messages clear the tools, the HUD stays one line, pins stay
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+test('landscape layouts: the view fills wide screens, the map and bug pages fit without scrolling', async (b) => {
+  const scroll = (p) => p.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+  const stage = (p) => p.evaluate(() => { const st = document.getElementById('stage').getBoundingClientRect(), app = document.getElementById('play').getBoundingClientRect(); return { W, zoom: Game.zoom, stageW: Math.round(st.width), appW: Math.round(app.width), stageH: Math.round(st.height), innerH: window.innerHeight, canvasW: Game.canvas.width / Game.dpr, world: World.w }; });
+  // a phone on its side: the map sits beside its header, the view is wider than 960 and fills the width, phones keep their zoom
+  let p = await openGame(b, { width: 844, height: 390 });
+  const m1 = await p.evaluate(() => { const map = document.getElementById('mapWrap').getBoundingClientRect(); return { scroll: document.documentElement.scrollHeight - window.innerHeight, pinsOut: [...document.querySelectorAll('.pin')].filter(el => { const r = el.getBoundingClientRect(); return r.left < map.left - 1 || r.right > map.right + 1 || r.top < map.top - 1 || r.bottom > map.bottom + 1; }).length, mapRight: map.right <= window.innerWidth, mapLeft: map.left > 150 }; });
+  check(m1.scroll <= 0 && m1.mapRight && m1.mapLeft, 'the map page on a phone on its side: ' + JSON.stringify(m1));
+  check(m1.pinsOut === 0, m1.pinsOut + ' pins poke outside the map');
+  await p.locator('.pin').first().click();
+  const bugScroll = await scroll(p);
+  check(bugScroll <= 100, 'the bug page scrolls by ' + bugScroll + ' px on a phone on its side');
+  await startMission(p, 'ant', { noNet: true, noPred: true });
+  const s1 = await stage(p);
+  check(s1.W >= 1200 && s1.W <= 1320 && s1.canvasW === s1.W && s1.zoom === 1.6, 'the view on a phone on its side: ' + JSON.stringify(s1));
+  check(Math.abs(s1.stageW - s1.appW) <= 2 && s1.stageH <= s1.innerH, 'the stage does not fill the width: ' + JSON.stringify(s1));
+  await p.click('#menuBtn');
+  // the one-screen scenes widen with the view: the garden's grid covers the yard, the web's trees sit in the middle
+  await startMission(p, 'garden', {});
+  check(await p.evaluate(() => World.w === W && GARDEN.cols * GARDEN.cell >= World.w && Game.g.cells.every(r => r.length === GARDEN.cols)), 'the garden grid does not cover the wide yard');
+  await p.click('#menuBtn');
+  await startMission(p, 'web', {});
+  check(await p.evaluate(() => { const ox = Math.round((World.w - 960) / 2); return World.w === W && ox > 100 && WEB_ANCHORS[0][0][0] === 150 + ox && Math.abs(Game.g.player.x - (515 + ox)) < 1 && Math.abs(Game.g.home.x - (520 + ox)) < 1; }), 'the web scene is not in the middle of the wide view');
+  await p.click('#menuBtn');
+  check(p.errors.length === 0, p.errors.join('; '));
+  await p.context().close();
+  // a laptop: no margins beside the stage, the map page fits without scrolling, the camera stays inside the world
+  p = await openGame(b, { width: 1366, height: 768 });
+  const m2 = await scroll(p);
+  check(m2 <= 0, 'the map page scrolls by ' + m2 + ' px on a laptop');
+  await startMission(p, 'bee', { noNet: true, noPred: true });
+  const s2 = await stage(p);
+  check(s2.W > 1000 && s2.W < 1100 && Math.abs(s2.stageW - s2.appW) <= 2 && s2.stageH <= s2.innerH && s2.zoom === 1.3, 'the laptop view: ' + JSON.stringify(s2));
+  await p.evaluate(() => { Game.g.player.x = World.w - 10; Game.g.player.y = World.h - 10; Game.updateCamera(); });
+  check(await p.evaluate(() => Game.g.cam.x + W / Game.zoom <= World.w + 0.01 && Game.g.cam.y + H / Game.zoom <= World.h + 0.01), 'the camera shows past the world edge');
+  check(p.errors.length === 0, p.errors.join('; '));
+  await p.context().close();
+  // a phone held upright keeps the 960-wide view, and the map pins stay put after a level widened the view
+  p = await openGame(b, { width: 360, height: 740 });
+  const pinBefore = await p.evaluate(() => document.querySelector('.pin').style.getPropertyValue('--x'));
+  await startMission(p, 'ant', { noNet: true, noPred: true });
+  check(await p.evaluate(() => W === 960 && Game.zoom === 1.6), 'a phone held upright changed its view');
+  await p.click('#menuBtn');
+  check(await p.evaluate((x) => document.querySelector('.pin').style.getPropertyValue('--x') === x, pinBefore), 'the map pins moved');
+  check(p.errors.length === 0, p.errors.join('; '));
+  await p.context().close();
+});
+
 // ------------------------------------------------------------------ microphone
 test('shout to buzz: the toggle asks for the mic, a loud room buzzes the bee, quiet does not', async () => {
   const srv = await serve(ROOT);

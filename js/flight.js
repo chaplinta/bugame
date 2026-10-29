@@ -226,7 +226,7 @@ Missions.flight = {
   id: 'flight', bug: 'butterfly', stage: 'Flying high', place: 'Above the heath, Bold Park', view: '3d',
   sprite: 'butterfly', bg: 'heath', escape: 'Fly',
   action: 'Flap', radius: 18, speed: 0, scale: 2, goal: 6,
-  home: { x: W / 2, y: H / 2, r: 1, label: '' },
+  get home() { return { x: W / 2, y: H / 2, r: 1, label: '' }; },   // the middle of the view, whatever its width
   facts: [
     'Painted ladies are strong fliers. Some fly hundreds of kilometres across Australia.',
     'Butterflies warm up in the sun before they fly. Cold wing muscles don’t work well.',

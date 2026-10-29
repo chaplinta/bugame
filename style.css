@@ -13,6 +13,7 @@ html, body { margin: 0; height: 100%; color: var(--ink);
 h1, h2 { font-family: Georgia, "Times New Roman", serif; }
 h1 { text-shadow: 0 2px 0 #fff6e0, 0 4px 8px rgba(120,60,20,.25); }
 #app { max-width: 1000px; margin: 0 auto; padding: 12px 16px; }
+body.playing #app { max-width: 1400px; }   /* the play screen may use the whole width: the view widens to match (Game.fitStage) */
 .screen { display: none; }
 .screen.active { display: block; }
 
@@ -78,7 +79,7 @@ button.secondary { background: linear-gradient(#a0906e, #8a7a5c 60%, #6e6046); }
 .toggle { font-size: 1rem; padding: 8px 16px; background: var(--accent2); }
 .toggle.off { background: #b8ab8f; }
 .sub { text-align: left; }
-#mapWrap { position: relative; width: 100%; aspect-ratio: 960 / 600; }
+#mapWrap { position: relative; width: min(100%, calc((100vh - 236px) * 1.6)); margin: 0 auto; aspect-ratio: 960 / 600; }   /* fits the window's height with the header and buttons */
 #mapCanvas { width: 100%; height: 100%; display: block; border-radius: 16px; border: 3px solid #e2d3ae; box-shadow: 0 8px 24px rgba(60,40,10,.25); }
 .pin { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center;
   left: clamp(72px, var(--x), calc(100% - 72px)); top: clamp(60px, var(--y), calc(100% - 60px));   /* --x/--y set per pin in buildMap; kept on the map */
@@ -123,10 +124,12 @@ li.unknown { color: #9a8d72; font-style: italic; }
 #placeList { display: none; }
 .rotate { display: none; }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) {
   .pin { padding: 2px; border-width: 2px; border-radius: 50%; left: clamp(22px, var(--x), calc(100% - 22px)); top: clamp(22px, var(--y), calc(100% - 22px)); }
   .pin canvas { width: 34px; height: 34px; }
   .pinName, .pinPlace, .pinStars { display: none; }
+}
+@media (max-width: 700px) {
   #placeList { display: grid; gap: 8px; margin-top: 12px; }
   #placeList button { display: flex; align-items: center; gap: 10px; text-align: left; background: var(--panel);
     color: var(--ink); border: 3px solid var(--accent); border-radius: 16px; padding: 6px 12px; font-size: 1.05rem; }
@@ -174,6 +177,7 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
 .crashNote[hidden] { display: none; }
 @supports (height: 100dvh) {
   #stage { width: min(100%, calc((100dvh - 16px) * 1.6)); max-height: calc(100dvh - 16px); }
+  #mapWrap { width: min(100%, calc((100dvh - 236px) * 1.6)); }
 }
 .viewTag { position: absolute; top: -10px; right: -10px; background: #3a6ab0; color: #fff; font-size: .7rem; font-weight: bold; border-radius: 999px; padding: 2px 7px; box-shadow: 0 2px 4px rgba(0,0,0,.25); }
 .viewTag:empty { display: none; }
@@ -227,4 +231,46 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
   #toast { left: 8px; transform: none; max-width: calc(100% - 108px); font-size: .85rem; padding: 8px 12px; }
   #stage.hasTools #toast { left: 78px; max-width: calc(100% - 178px); }
   #hud .sunClock, #hudSound { display: none; }   /* room for the goal and the hearts; both are on the map too */
+}
+/* A phone on its side: the map beside its header, the bug and end pages in two columns, the paint box fitted to the height. */
+@media (orientation: landscape) and (max-height: 520px) {
+  #map.active { display: grid; grid-template-columns: minmax(160px, 1fr) auto; column-gap: 12px; align-items: start; }
+  #map > * { grid-column: 1; min-width: 0; }
+  #mapWrap { grid-column: 2; grid-row: 1 / span 9; width: min(calc((100vh - 12px) * 1.6), 64vw); margin: 0; }
+  #map .top { flex-direction: column; align-items: flex-start; gap: 6px; }
+  #map h1 { font-size: 2rem; margin: 0; }
+  #map .toggles { justify-content: flex-start; gap: 6px; }
+  #map .toggle { font-size: .85rem; padding: 6px 10px; min-height: 36px; }
+  #map .sub { font-size: .95rem; margin: 2px 0 6px; }
+  #map .buttons { justify-content: flex-start; margin-top: 6px; gap: 8px; }
+  #map .buttons button { font-size: 1rem; padding: 8px 14px; min-height: 40px; }
+  #map .version { text-align: left; margin: 6px 0; }
+  #placeList { display: none; }
+  .viewTag { font-size: .55rem; padding: 1px 4px; top: -8px; right: -12px; }
+  .panel { max-width: 96vw; padding: 10px 18px; }
+  .panel canvas { width: 90px; height: 90px; }
+  .panel h2 { font-size: 1.4rem; margin: 2px 0; }
+  .panel h3 { margin: 6px 0 2px; }
+  #bug .panel { display: grid; grid-template-columns: 100px 1fr; column-gap: 14px; align-items: start; }
+  #bug .panel > * { grid-column: 2; }
+  #bug .panel > canvas { grid-column: 1; grid-row: 1 / span 5; width: 100px; height: 100px; margin: 0; }
+  #bug .panel h2, #bug .sci, #bug .place, #bug .sexTag { text-align: left; }
+  #bug .stages { justify-content: flex-start; margin: 4px 0; }
+  #bug .stageBtn { min-height: 34px; padding: 5px 12px; font-size: .9rem; }
+  #bug h3 { font-size: 1.05rem; margin: 4px 0 0; }
+  .facts, .how { columns: 2; column-gap: 28px; margin: 4px 0; }
+  .facts li, .how li { font-size: .9rem; line-height: 1.25; margin: 2px 0; break-inside: avoid; }
+  .buttons { margin-top: 8px; }
+  .panel .buttons button { font-size: 1rem; padding: 8px 18px; min-height: 40px; }
+  .stars { font-size: 1.8rem; }
+  #nightPic { width: 200px; height: 120px; }
+  #paintBox { width: min(512px, 92vw, calc(100vh - 100px)); }
+  .paintPreview canvas { width: min(470px, 92vw, calc(100vh - 80px)); height: min(470px, 92vw, calc(100vh - 80px)); }
+}
+@supports (height: 100dvh) {
+  @media (orientation: landscape) and (max-height: 520px) {
+    #mapWrap { width: min(calc((100dvh - 12px) * 1.6), 64vw); }
+    #paintBox { width: min(512px, 92vw, calc(100dvh - 100px)); }
+    .paintPreview canvas { width: min(470px, 92vw, calc(100dvh - 80px)); height: min(470px, 92vw, calc(100dvh - 80px)); }
+  }
 }

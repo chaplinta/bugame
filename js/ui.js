@@ -37,6 +37,7 @@ let currentBug = null, currentMission = null;
 
 function show(id) {
   for (const s of document.querySelectorAll('.screen')) s.classList.toggle('active', s.id === id);
+  document.body.classList.toggle('playing', id === 'play');   // the play screen may use the whole width (Game.fitStage)
   window.scrollTo(0, 0);
 }
 
@@ -80,13 +81,15 @@ function fillList(el, items) {
 
 // ---------------------------------------------------------------- Map
 
+const MAP_W = 960, MAP_H = 600;   // the map picture's own size (the game view can be wider than it)
+
 function drawMap() {
   const c = $('mapCanvas');
   const dpr = window.devicePixelRatio || 1;
-  c.width = W * dpr; c.height = H * dpr;
+  c.width = MAP_W * dpr; c.height = MAP_H * dpr;
   const ctx = c.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawPerthMap(ctx, W, H);
+  drawPerthMap(ctx, MAP_W, MAP_H);
 }
 
 function buildMap() {
@@ -97,8 +100,8 @@ function buildMap() {
     const b = document.createElement('button');
     b.className = 'pin';
     // The CSS clamps these, so a pin near the edge stays on the map.
-    b.style.setProperty('--x', (bug.pin.x / W * 100) + '%');
-    b.style.setProperty('--y', (bug.pin.y / H * 100) + '%');
+    b.style.setProperty('--x', (bug.pin.x / MAP_W * 100) + '%');
+    b.style.setProperty('--y', (bug.pin.y / MAP_H * 100) + '%');
     const max = bug.stages.length * 3, got = bugStars(bug);
     b.innerHTML = '<span class="viewTag"></span><canvas></canvas><span class="pinName"></span><span class="pinPlace"></span><span class="pinStars"></span>';
     const vt = viewTag(Missions[bug.stages[0]]);
@@ -339,7 +342,7 @@ function paradeMarchers() {
 function bugParade() {
   const c = $('parade');
   const dpr = window.devicePixelRatio || 1;
-  c.width = W * dpr; c.height = H * dpr;
+  c.width = MAP_W * dpr; c.height = MAP_H * dpr;
   c.hidden = false;
   const ctx = c.getContext('2d');
   const marchers = paradeMarchers();
@@ -348,7 +351,7 @@ function bugParade() {
   const step = (now) => {
     const t = (now - start) / 1000;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
+    ctx.clearRect(0, 0, MAP_W, MAP_H);
     for (const m of marchers) {
       const x = m.x + t * 180, y = m.y + Math.sin(t * 8 + m.x) * 6, k = 1.6 * (ICON_SCALE[m.sprite] || 1);
       const o = Object.assign({ load: 0 }, m.paint ? Paint.optsOf(m.sprite) : {}, { moving: true, paint: m.paint });
@@ -359,7 +362,7 @@ function bugParade() {
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#c8501e'; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center';
-    if (t < 3) ctx.fillText('Bug parade!', W / 2, 120);
+    if (t < 3) ctx.fillText('Bug parade!', MAP_W / 2, 120);
     if (t < 9) requestAnimationFrame(step); else c.hidden = true;
   };
   requestAnimationFrame(step);

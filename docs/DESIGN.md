@@ -78,7 +78,7 @@ Each bug gets 2–3 short stages (2–4 min each). Verbs stay to two at most: **
 
 ## Technical requirements
 - Plain HTML5 Canvas + vanilla JS, no build step. Runs from `index.html` or GitHub Pages. Classic `<script>` tags so `file://` works.
-- Fixed 960×600 logical canvas scaled to fit, DPR-aware, works in portrait with letterboxing.
+- A 600-tall logical canvas whose width follows the screen's shape (960 to 1320, set when a level starts), scaled to fit and DPR-aware; a phone held upright letterboxes the 960-wide view. Big worlds show more sideways on a wide screen; the one-screen scenes (garden, web, hand) widen with it. The map keeps its own 960×600 picture.
 - Art: everything is drawn in code, no image files. The look is field-guide realism: correct anatomy, real colours, natural light from the top-left of the screen. How it is done:
   - `ell()` in `art.js` is the unit of shading: radial gradient, a material tile multiplied over it (chitin, hair, leaf, scales), a rim of light on the lit edge and shadow on the far edge, a specular glint on shiny materials.
   - `textures.js` makes seamless 128 px tiles from seeded value noise and Worley cells once per page. Tiles are pure black or white with alpha, so a plain overlay gives the same result as multiply or screen and is cheaper.
