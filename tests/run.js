@@ -827,17 +827,44 @@ test('paint a bug: strokes save, the drawing and the model wear the design, the 
   await p.click('#paintBtn');
   check(await p.isVisible('#paint.active'), 'the paint screen did not open');
   check(await p.locator('#paintParts .stageBtn').count() === 3 && await p.locator('#paintTools .swatch').count() === 10, 'parts or colours missing');
-  // a white spot stamped with a tap, then a black brush stroke, both in the ladybird's own units (cx + S·x, cy + S·y)
+  // the view shows the whole bug fitted to the box: the black head sits outside the wing cases
   const box = await p.locator('#paintCanvas').boundingBox();
-  const at = (x, y) => [box.x + box.width * (292 + 36 * x) / 512, box.y + box.height * (256 + 36 * y) / 512];
+  const viewPx = (x, y) => p.evaluate(([x, y]) => { const v = PaintUI.viewAt(x, y); return [...document.getElementById('paintCanvas').getContext('2d').getImageData(Math.round(v.x), Math.round(v.y), 1, 1).data].slice(0, 3); }, [x, y]);
+  const head = await viewPx(6.6, 0), wing = await viewPx(-1, 2.5);   // (the seam runs along y = 0)
+  check(head[0] < 60 && head[1] < 60 && wing[0] > 180 && wing[1] < 90, 'the view does not show the whole bug: ' + JSON.stringify({ head, wing }));
+  // a white spot stamped with a tap, then a black brush stroke, placed through the view in the ladybird's own units
+  const at = async (x, y) => { const v = await p.evaluate(([x, y]) => PaintUI.viewAt(x, y), [x, y]); return [box.x + box.width * v.x / 512, box.y + box.height * v.y / 512]; };
   await p.locator('#paintTools [data-tool="c#f4f4f0"]').click();
   await p.locator('#paintTools [data-tool="spot"]').click();
-  await p.mouse.click(...at(3, 3));
+  await p.mouse.click(...await at(3, 3));
   await p.locator('#paintTools [data-tool="c#111111"]').click();
   await p.locator('#paintTools [data-tool="s18"]').click();
-  await p.mouse.move(...at(-4, -3)); await p.mouse.down(); await p.mouse.move(...at(-2, -3), { steps: 4 }); await p.mouse.up();
+  await p.mouse.move(...await at(-4, -3)); await p.mouse.down(); await p.mouse.move(...await at(-2, -3), { steps: 4 }); await p.mouse.up();
   const px = await p.evaluate(() => { const d = Paint.image('ladybird').getContext('2d'); const q = (x, y) => [...d.getImageData(x, y, 1, 1).data].slice(0, 3); return { spot: q(400, 364), stroke: q(184, 148), plain: q(184, 364) }; });
   check(px.spot[0] > 230 && px.spot[1] > 230 && px.stroke[0] < 40 && px.plain[0] > 180 && px.plain[1] < 90, 'the strokes did not land: ' + JSON.stringify(px));
+  // zoom: the buttons, the wheel and Fit; a stroke still lands where the bug is under the finger when zoomed in
+  await p.locator('#paintBox [data-zoom="in"]').click();
+  check(await p.evaluate(() => PaintUI.view.z === 1.5), 'the + button did not zoom');
+  await p.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5); await p.mouse.wheel(0, -120);
+  check(await p.evaluate(() => PaintUI.view.z > 1.5), 'the wheel did not zoom');
+  await p.mouse.move(...await at(3, -3)); await p.mouse.down(); await p.mouse.move(...await at(4, -3), { steps: 3 }); await p.mouse.up();
+  check(await p.evaluate(() => { const d = Paint.image('ladybird').getContext('2d'); return d.getImageData(292 + 36 * 3.5, 256 - 36 * 3, 1, 1).data[0] < 40; }), 'a stroke while zoomed in missed');
+  await p.locator('#paintBox [data-zoom="fit"]').click();
+  check(await p.evaluate(() => PaintUI.view.z === 1 && PaintUI.view.px === 0), 'Fit did not reset the view');
+  // the Move tool drags the picture, and picking a colour goes back to painting
+  await p.locator('#paintTools [data-tool="move"]').click();
+  await p.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5); await p.mouse.down(); await p.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5, { steps: 3 }); await p.mouse.up();
+  check(await p.evaluate(() => PaintUI.view.px > 20 && PaintUI.tool === 'move'), 'Move did not drag the picture');
+  await p.locator('#paintTools [data-tool="c#111111"]').click();
+  check(await p.evaluate(() => PaintUI.tool === 'brush'), 'a colour did not leave the Move tool');
+  await p.locator('#paintBox [data-zoom="fit"]').click();
+  // the butterfly is painted on both sides (a stroke on the left wing lands on the stored right side), and
+  // switching parts keeps the unsaved ladybird
+  await p.evaluate(() => PaintUI.pick('butterfly'));
+  await p.mouse.move(...await at(9, -15)); await p.mouse.down(); await p.mouse.move(...await at(11, -15), { steps: 3 }); await p.mouse.up();
+  check(await p.evaluate(() => Paint.image('butterfly').getContext('2d').getImageData(256 + 14 * 10, 60 + 14 * 15, 1, 1).data[0] < 40), 'a stroke on the left wing was not mirrored');
+  await p.evaluate(() => PaintUI.pick('ladybird'));
+  check(await p.evaluate(() => Paint.image('ladybird').getContext('2d').getImageData(184, 148, 1, 1).data[0] < 40), 'switching parts lost the unsaved strokes');
   await p.click('#paintSave');
   const saved = await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('bugame.paint')); return { img: !!(d.img && d.img.ladybird), use: d.use.ladybird, stamp: Paint.stamp('ladybird'), secret: Progress.hasSecret('s_paint'), note: document.getElementById('paintNote').textContent }; });
   check(saved.img && saved.use && saved.stamp === 1 && saved.secret && /Saved!/.test(saved.note), 'save: ' + JSON.stringify(saved));
@@ -893,6 +920,34 @@ test('paint a bug: strokes save, the drawing and the model wear the design, the 
   });
   check(r3.stamp === 1 && r3.same && r3.diff > 20 && r3.texel[0] > 230 && r3.under[0] < 40 && r3.keys === 1, '3D: ' + JSON.stringify(r3));
   check(p3.errors.length === 0, p3.errors.join('; '));
+});
+
+test('paint a bug: a pinch zooms and drags the picture without painting, one finger still paints', async (b) => {
+  const ctx = await b.newContext({ viewport: { width: 1000, height: 720 }, hasTouch: true });
+  const p = await ctx.newPage();
+  p.errors = [];
+  p.on('pageerror', (e) => p.errors.push(e.message));
+  p.on('console', (m) => { if (m.type() === 'error') p.errors.push(m.text()); });
+  await p.goto(FILE_URL);
+  await p.click('#paintBtn'); await p.waitForTimeout(200);
+  const cdp = await ctx.newCDPSession(p);
+  const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
+  const box = await p.locator('#paintCanvas').boundingBox(), cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  const a = (dx, dy) => ({ x: cx + dx, y: cy + dy, id: 1 }), s = (dx, dy) => ({ x: cx + dx, y: cy + dy, id: 2 });
+  await touch('touchStart', [a(-40, 0)]);
+  await touch('touchStart', [a(-40, 0), s(40, 0)]);
+  for (let k = 1; k <= 6; k++) await touch('touchMove', [a(-40 - k * 15, 0), s(40 + k * 15, 0)]);   // fingers spread: zoom in about the middle
+  const z1 = await p.evaluate(() => ({ z: PaintUI.view.z, px: Math.round(PaintUI.view.px), dirty: PaintUI.dirty }));
+  check(z1.z > 2 && z1.z <= 4 && z1.px === 0 && !z1.dirty, 'the pinch did not zoom cleanly: ' + JSON.stringify(z1));
+  for (let k = 1; k <= 5; k++) await touch('touchMove', [a(-130 + k * 20, k * 10), s(130 + k * 20, k * 10)]);   // both fingers move: drag
+  const z2 = await p.evaluate(() => ({ z: PaintUI.view.z, px: Math.round(PaintUI.view.px), py: Math.round(PaintUI.view.py) }));
+  check(Math.abs(z2.z - z1.z) < 0.01 && z2.px === 100 && z2.py === 50, 'the two-finger drag did not move the picture: ' + JSON.stringify(z2));
+  await touch('touchEnd', [s(230, 50)]); await touch('touchEnd', []);
+  check(await p.evaluate(() => PaintUI.pointers.size === 0 && !PaintUI.pinch && !PaintUI.dirty), 'the pinch left a stroke or a finger behind');
+  await touch('touchStart', [a(0, 0)]); await touch('touchMove', [a(30, 0)]); await touch('touchEnd', []);
+  check(await p.evaluate(() => PaintUI.dirty), 'one finger did not paint after the pinch');
+  check(p.errors.length === 0, p.errors.join('; '));
+  await ctx.close();
 });
 
 // ------------------------------------------------------------------ camera
