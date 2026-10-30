@@ -45,9 +45,10 @@
       <button id="bookBtn">Bug Book</button>
       <button id="treeBtn">Family tree</button>
       <button id="paintBtn">Paint a bug</button>
+      <button id="quizBtn">Bug quiz</button>
       <button id="installBtn" class="secondary" hidden>Install app</button>
     </div>
-    <p class="version">Version 3.12.1 · released 30 October 2026</p>
+    <p class="version">Version 3.13 · released 30 October 2026</p>
   </section>
 
   <section id="bug" class="screen">
@@ -64,6 +65,7 @@
       <div class="buttons">
         <button id="bugBack" class="secondary">Map</button>
         <button id="readBtn" class="secondary">Read to me</button>
+        <button id="sizeBtn" class="secondary">Real size</button>
         <button id="bugTree" class="secondary">Family tree</button>
         <button id="bugStart">Start</button>
       </div>
@@ -138,6 +140,48 @@
     <div id="bookList"></div>
   </section>
 
+  <section id="size" class="screen">
+    <header class="top">
+      <h1>Real size</h1>
+      <button id="sizeBack" class="secondary">Back</button>
+    </header>
+    <h2 id="sizeName" class="center"></h2>
+    <p id="sizeLine" class="sub center sizeLine"></p>
+    <div class="sizeBox"><canvas id="sizeCanvas" aria-label="The bug at real size"></canvas></div>
+    <div class="sizeBox ruler"><canvas id="sizeRuler" aria-label="A 5 centimetre ruler"></canvas></div>
+    <p id="sizeCompare" class="unlock"></p>
+    <div class="buttons">
+      <button id="sizeSpeak" class="secondary">Read to me</button>
+    </div>
+    <div class="panel coinCheck">
+      <h3>Is it really real size?</h3>
+      <p class="center">Put a 20 cent coin on the circle. Slide until the circle is just as big as the coin.</p>
+      <canvas id="coinCanvas" aria-label="A circle the size of a 20 cent coin"></canvas>
+      <input type="range" id="coinSlider" min="-40" max="40" value="0" aria-label="Make the circle bigger or smaller">
+      <p id="sizeNote" class="center sizeNote"></p>
+      <div class="buttons"><button id="coinReset" class="secondary">Start again</button></div>
+    </div>
+  </section>
+
+  <section id="quiz" class="screen">
+    <header class="top">
+      <h1>Bug quiz</h1>
+      <button id="quizBack" class="secondary">Map</button>
+    </header>
+    <div class="panel quizPanel">
+      <p id="quizCount" class="quizCount"></p>
+      <p id="quizStars" class="quizStars" aria-label="Your score so far"></p>
+      <p id="quizQ" class="quizQ"></p>
+      <div id="quizPic" class="quizPic" hidden><canvas></canvas></div>
+      <div id="quizA" class="quizAnswers"></div>
+      <p id="quizWhy" class="quizWhy"></p>
+      <div class="buttons">
+        <button id="quizSpeak" class="secondary">Read it to me</button>
+        <button id="quizNext">Next</button>
+      </div>
+    </div>
+  </section>
+
   <section id="paint" class="screen">
     <header class="top">
       <h1>Paint a bug</h1>
@@ -202,6 +246,8 @@
 <script src="js/models-props.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/paint.js"></script>
+<script src="js/size.js"></script>
+<script src="js/quiz.js"></script>
 <script src="js/night.js"></script>
 <script src="js/tree.js"></script>
 </body>

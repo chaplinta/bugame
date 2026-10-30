@@ -65,6 +65,7 @@ function portrait(canvas, sprite, size, o) {
 // Every portrait on the page again (the 3D renderer came up, the 3D setting changed, a design was painted).
 function redrawPortraits() {
   for (const el of document.querySelectorAll('canvas[data-sprite]')) portrait(el, el.dataset.sprite, +el.dataset.size || 56, el.dataset.o ? JSON.parse(el.dataset.o) : undefined);
+  if (typeof Size !== 'undefined') { Size.extents = {}; Size.redraw(); }   // the life-size picture follows the 3D setting too
 }
 // Redraw the map pins once the 3D renderer is up (the map is built before three.js has loaded).
 if (typeof Render3D !== 'undefined') Render3D.whenReady(redrawPortraits);
@@ -167,6 +168,7 @@ function selectStage(id) {
   $('stageSex').textContent = m.sex || '';
   fillList($('stageFacts'), m.facts);
   fillList($('stageHow'), m.gentle ? m.how.concat('You can\u2019t lose this one. If you get caught you just go home.') : m.how);
+  $('sizeBtn').hidden = !(typeof Size !== 'undefined' && Size.of(m));   // Real size (js/size.js), for the stages that are a real bug
 }
 
 function readStage() {

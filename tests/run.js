@@ -475,6 +475,131 @@ test('reach: an action is ready beside its target, a press that can’t act says
   await ctx.close();
 });
 
+test('real size: the bug is drawn life-size with a ruler, the coin match is saved, phones use their own scale', async (b) => {
+  const p = await openGame(b);
+  // the ant's page has the button; the screen draws the ant 20 mm long at 96 dpi (3.78 px per mm), with the ruler and a line to read
+  await p.locator('.pin').first().click();
+  check(await p.isVisible('#sizeBtn'), 'no Real size button on the ant page');
+  await p.click('#sizeBtn');
+  check(await p.isVisible('#size.active'), 'the Real size screen did not open');
+  const ant = await p.evaluate(() => { const c = document.getElementById('sizeCanvas'), r = c.getBoundingClientRect(); return { w: r.width, h: r.height, want: 20 * Size.pxPerMm(), px: Size.pxPerMm(), line: document.getElementById('sizeLine').textContent, cmp: document.getElementById('sizeCompare').textContent, ruler: document.getElementById('sizeRuler').getBoundingClientRect().width, note: document.getElementById('sizeNote').textContent }; });
+  check(Math.abs(ant.w - ant.want) <= 2 && Math.abs(ant.px - 96 / 25.4) < 1e-6 && ant.h > 10 && ant.h < ant.w, 'the ant is not 20 mm long: ' + JSON.stringify(ant));
+  check(/about 20 mm long/.test(ant.line) && /Put your finger/.test(ant.line) && /5 cent coin/.test(ant.cmp) && Math.abs(ant.ruler - 50 * ant.px - 2) <= 2 && /About real size/.test(ant.note), 'the lines or the ruler: ' + JSON.stringify(ant));
+  // the coin match: the slider rescales everything, is saved, survives a reload, and Start again clears it
+  await p.evaluate(() => { const s = document.getElementById('coinSlider'); s.value = 20; s.dispatchEvent(new Event('input')); });
+  const after = await p.evaluate(() => ({ saved: +localStorage.getItem('bugame.mm'), w: document.getElementById('sizeCanvas').getBoundingClientRect().width, note: document.getElementById('sizeNote').textContent, coin: document.getElementById('coinCanvas').getBoundingClientRect().width }));
+  check(Math.abs(after.saved - 1.2 * 96 / 25.4) < 1e-6 && Math.abs(after.w - 20 * after.saved) <= 2 && /Matched/.test(after.note) && after.coin > 28.65 * after.saved, 'the coin match: ' + JSON.stringify(after));
+  await p.reload();
+  check(await p.evaluate((px) => Math.abs(Size.pxPerMm() - px) < 1e-6, after.saved), 'the coin match was not kept');
+  await p.evaluate(() => { openBug(Bugs.find(b => b.id === 'ant'), 'ant'); });
+  await p.click('#sizeBtn');
+  await p.click('#coinReset');
+  check(await p.evaluate(() => Math.abs(Size.pxPerMm() - 96 / 25.4) < 1e-6 && !localStorage.getItem('bugame.mm')), 'Start again did not clear the match');
+  // the butterfly is measured across its wings: the canvas is 50 mm tall; Back returns to the bug page
+  await p.click('#sizeBack');
+  check(await p.isVisible('#bug.active'), 'Back did not return to the bug page');
+  await p.evaluate(() => { openBug(Bugs.find(b => b.id === 'butterfly'), 'butterfly'); });
+  await p.click('#sizeBtn');
+  const bf = await p.evaluate(() => { const r = document.getElementById('sizeCanvas').getBoundingClientRect(); return { h: r.height, want: 50 * Size.pxPerMm() }; });
+  check(Math.abs(bf.h - bf.want) <= 2, 'the butterfly is not 50 mm across: ' + JSON.stringify(bf));
+  // every stage that is a real bug has a size, the garden and hand pages hide the button, the trapeze is the peacock spider
+  const cover = await p.evaluate(() => {
+    const need = Object.keys(PAINT_BUGS).concat(['queenAnt', 'babyHopper', 'plCaterpillar', 'chrysalis', 'nymph', 'spiderling', 'femaleSpider', 'clickBeetle', 'hornBeetle', 'moth', 'waterStrider', 'queenSugar']);
+    return { missing: need.filter(n => !SIZES[n]), noSize: Object.values(Missions).filter(m => !Size.of(m)).map(m => m.id), trapeze: Size.sprite(Missions.cir_trapeze), badText: Object.values(SIZES).filter(S => !/\d+(\.\d+)? mm/.test(S.what)).length };
+  });
+  check(cover.missing.length === 0 && cover.noSize.join() === 'garden,hand' && cover.trapeze === 'spider' && cover.badText === 0, 'sizes: ' + JSON.stringify(cover));
+  await p.evaluate(() => { openBug(Bugs.find(b => b.id === 'garden')); });
+  check(!(await p.isVisible('#sizeBtn')), 'the garden page shows Real size');
+  await p.evaluate(() => { openBug(Bugs.find(b => b.id === 'olympics'), 'oly_gym'); });
+  check(await p.isVisible('#sizeBtn'), 'the gymnastics page hides Real size');
+  // every size comes out at its figure along its axis (the snail is measured on its shell, so the crawling snail is longer), from the flat drawings here
+  const sizes = (pg, mode) => pg.evaluate((mode) => { const bad = []; for (const name of Object.keys(SIZES)) { Size.current = name; const r = Size.drawBug(document.getElementById('sizeCanvas'), name), S = SIZES[name], got = S.axis === 'y' ? r.h : r.w, want = S.mm * Size.pxPerMm(); const ok = S.measure ? got > want && got < 2 * want : Math.abs(got - want) <= 2; if (!ok || r.w < 2 || r.h < 2) bad.push(name + ' ' + mode + ' ' + JSON.stringify(r)); } return bad; }, mode);
+  await p.click('#sizeBtn');
+  const bad2 = await sizes(p, '2d');
+  check(bad2.length === 0 && await p.evaluate(() => !SpriteCache.is3D('ant')), bad2.join('; '));
+  check(p.errors.length === 0, p.errors.join('; '));
+  await p.context().close();
+  // and from the 3D models: the extent is measured on the model's own bitmap, so the sizes still come out right
+  const p3 = await openGame(b, null, FILE_URL + '?3d=force');
+  await p3.waitForFunction(() => typeof Render3D !== 'undefined' && (Render3D.ok || Render3D.failed), null, { timeout: 60000 });
+  check(await p3.evaluate(() => Render3D.ok && SpriteCache.is3D('ant')), 'Render3D did not start');
+  await p3.evaluate(() => { openBug(Bugs.find(b => b.id === 'ant'), 'ant'); });
+  await p3.click('#sizeBtn');
+  const ant3 = await p3.evaluate(() => { const r = document.getElementById('sizeCanvas').getBoundingClientRect(); return { w: r.width, h: r.height, want: 20 * Size.pxPerMm(), e2: Size.extent('ant', Size.opts('ant', SIZES.ant, true), 0.4) }; });
+  check(Math.abs(ant3.w - ant3.want) <= 2 && ant3.h > 10, 'the 3D ant is not 20 mm long: ' + JSON.stringify(ant3));
+  const bad3 = await sizes(p3, '3d');
+  check(bad3.length === 0, bad3.join('; '));
+  check(p3.errors.length === 0, p3.errors.join('; '));
+  await p3.context().close();
+  // a touch screen starts from 160 dpi: the ant is 126 px long; a phone held upright has no sideways scroll
+  const ctx = await b.newContext({ viewport: { width: 360, height: 740 }, hasTouch: true });
+  const q = await ctx.newPage(); q.errors = []; q.on('pageerror', (e) => q.errors.push(e.message));
+  await q.goto(FILE_URL);
+  await q.evaluate(() => { openBug(Bugs.find(b => b.id === 'ant'), 'ant'); });
+  await q.click('#sizeBtn');
+  const ph = await q.evaluate(() => ({ px: Size.pxPerMm(), w: document.getElementById('sizeCanvas').getBoundingClientRect().width, scrollX: document.documentElement.scrollWidth - window.innerWidth }));
+  check(Math.abs(ph.px - 160 / 25.4) < 1e-6 && Math.abs(ph.w - 20 * ph.px) <= 2 && ph.scrollX <= 0, 'the phone scale: ' + JSON.stringify(ph));
+  check(q.errors.length === 0, q.errors.join('; '));
+  await ctx.close();
+});
+
+test('bug quiz: eight picture questions a round, right and wrong answers explained, the best is saved, a perfect round is a secret', async (b) => {
+  const p = await openGame(b);
+  await p.click('#quizBtn');
+  check(await p.isVisible('#quiz.active'), 'the quiz did not open');
+  // readable for a seven-year-old: short questions, three different bugs, one right, every picture and name exists
+  const read = await p.evaluate(() => {
+    const bad = [];
+    for (const q of QUESTIONS) {
+      if (q.q.split(' ').length > 8 || q.q.length > 48) bad.push('long: ' + q.q);
+      const all = [q.a].concat(q.wrong); if (all.length !== 3 || new Set(all).size !== 3) bad.push('not three bugs: ' + q.q);
+      for (const n of all) if (!Sprites[n] || !BUG_NAMES[n]) bad.push('unknown bug ' + n);
+      if (q.why.length > 90) bad.push('long why: ' + q.q);
+    }
+    for (const w of WHAT_IS) { const all = [w.pic].concat(w.wrong); if (new Set(all).size !== 3) bad.push('not three names: ' + w.pic); for (const n of all) if (!Sprites[n] || !BUG_NAMES[n]) bad.push('unknown bug ' + n); }
+    return { bad, n: QUESTIONS.length, what: WHAT_IS.length, round: Quiz.round.length, kinds: Quiz.round.map(q => q.kind).sort().join(''), pics: new Set(Quiz.round.filter(q => q.kind === 'what').map(q => q.a)).size };
+  });
+  check(read.bad.length === 0 && read.n >= 30 && read.what >= 10 && read.round === 8 && read.kinds === 'whatwhatwhatwhowhowhowhowho' && read.pics === 3, 'the questions: ' + JSON.stringify(read));
+  const first = await p.evaluate(() => { const q = Quiz.current(); return { kind: q.kind, buttons: document.querySelectorAll('.quizA').length, canvases: document.querySelectorAll('#quizA canvas').length, pic: !document.getElementById('quizPic').hidden, text: document.getElementById('quizQ').textContent === q.q, nextOff: document.getElementById('quizNext').disabled, size: document.querySelector('.quizA').getBoundingClientRect().height }; });
+  check(first.buttons === 3 && first.text && first.nextOff && first.size >= 44 && (first.kind === 'who' ? first.canvases === 3 && !first.pic : first.canvases === 0 && first.pic), 'the first question: ' + JSON.stringify(first));
+  // a round: seven right, the fourth wrong; each answer lights the right bug and explains
+  const seen = [];
+  for (let i = 0; i < 8; i++) {
+    seen.push(await p.evaluate((wrongOne) => {
+      const q = Quiz.current(), idx = wrongOne ? q.choices.findIndex(n => n !== q.a) : q.choices.indexOf(q.a);
+      document.querySelectorAll('.quizA')[idx].click();
+      const why = document.getElementById('quizWhy');
+      return { ok: (wrongOne ? /^Not that one\. / : /^Yes! /).test(why.textContent) && why.textContent.includes(q.why) && why.classList.contains(wrongOne ? 'no' : 'yes'),
+        lit: document.querySelector('.quizA.right').dataset.name === q.a && document.querySelectorAll('.quizA.wrong').length === (wrongOne ? 1 : 0), locked: [...document.querySelectorAll('.quizA')].every(b => b.disabled), next: document.getElementById('quizNext').textContent };
+    }, i === 3));
+    await p.click('#quizNext');
+  }
+  check(seen.every(s => s.ok && s.lit && s.locked) && seen[7].next === 'See my score', 'answers: ' + JSON.stringify(seen));
+  const end = await p.evaluate(() => ({ q: document.getElementById('quizQ').textContent, best: Progress.best('quiz'), saved: JSON.parse(localStorage.getItem('bugame.progress')).best.quiz, secret: Progress.hasSecret('s_quiz'), next: document.getElementById('quizNext').textContent, stars: document.getElementById('quizStars').textContent }));
+  check(end.q === 'You got 7 out of 8!' && end.best === 7 && end.saved === 7 && !end.secret && end.next === 'Play again' && end.stars === '★★★★★★★☆', 'the end of the round: ' + JSON.stringify(end));
+  // a perfect round: the best goes up and the Bug expert secret is found; the Book counts it
+  await p.click('#quizNext');
+  for (let i = 0; i < 8; i++) { await p.evaluate(() => { const q = Quiz.current(); document.querySelectorAll('.quizA')[q.choices.indexOf(q.a)].click(); }); await p.click('#quizNext'); }
+  check(await p.evaluate(() => Progress.best('quiz') === 8 && Progress.hasSecret('s_quiz') && /Bug expert/.test(document.getElementById('quizWhy').textContent)), 'a perfect round');
+  // the speaker reads the question and the three names
+  await p.evaluate(() => { window.spoken = []; window.speechSynthesis.speak = (u) => window.spoken.push(u.text); });
+  await p.click('#quizNext');
+  await p.click('#quizSpeak');
+  check(await p.evaluate(() => { const q = Quiz.current(); return window.spoken.length === 1 && window.spoken[0].startsWith(q.q) && q.choices.every(n => window.spoken[0].includes(BUG_NAMES[n])); }), 'the speaker did not read the question and the names');
+  await p.click('#quizBack');
+  check(await p.isVisible('#map.active'), 'Map did not go back to the map');
+  await p.click('#bookBtn');
+  check(/Bug expert/.test(await p.textContent('.secrets')), 'the Book does not list the quiz secret');
+  check(p.errors.length === 0, p.errors.join('; '));
+  await p.context().close();
+  // a phone held upright: three answers across, no sideways scroll, buttons at least 44 px
+  const q = await openGame(b, { width: 360, height: 740 });
+  await q.click('#quizBtn');
+  const ph = await q.evaluate(() => ({ scrollX: document.documentElement.scrollWidth - window.innerWidth, h: Math.min(...[...document.querySelectorAll('.quizA')].map(b => b.getBoundingClientRect().height)), rows: new Set([...document.querySelectorAll('.quizA')].map(b => Math.round(b.getBoundingClientRect().top))).size }));
+  check(ph.scrollX <= 0 && ph.h >= 44 && ph.rows === 1, 'the quiz on a phone: ' + JSON.stringify(ph));
+  check(q.errors.length === 0, q.errors.join('; '));
+});
+
 test('the progress ring shows while munching', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'snail', { noNet: true, noPred: true });

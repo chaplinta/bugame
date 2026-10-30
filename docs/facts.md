@@ -283,6 +283,31 @@ A paint screen for every bug you can be (18 of them). The design is a see-throug
 - The other 15 captions each repeat one line from that bug's own level, sourced in its section above: the ant, bee, fly, caterpillar, termite, snail and spiderling body-plan lines; the nymph's wing pads; the blue skimmer's sexes; the sandhopper as a crustacean; female mosquitoes biting; the sugar ant's nests; the golden orb-weaver's webs; the dung beetle burying dung; the frog's backbone.
 - Simplification: a painted design is a game of make-believe, labelled as such; real bugs cannot change their patterns.
 
+## Real size
+A screen that draws the bug at life size. The drawing's whole extent (antennae and legs included, or the open wings where the figure is a wingspan) is scaled to the figure, so bodies come out a little under; every line says "about". Pixels per millimetre start from a guess for the kind of screen (a CSS pixel is 1/96 inch on a mouse-driven screen, about 1/160 inch on Android phones and 1/132 inch on an iPad) and are corrected by matching a circle to a 20 cent coin, 28.65 mm across (Royal Australian Mint, 20c specifications). Comparisons: a long grain of rice about 6 mm, a 5 cent coin 19.41 mm (Royal Australian Mint), a payment card 85.60 × 53.98 mm (ISO/IEC 7810 ID-1), a child's little fingernail about 10 mm (typical).
+- Bull ant workers 8–40 mm, the common Perth species around 20 mm; queens a little larger (25 mm). AM (Bull ants, *Myrmecia*).
+- Sugar ant (*Camponotus*) workers 5–15 mm (shown at 10 mm); queens larger (16 mm). AM (Sugar ants).
+- Blue-banded bee 10–12 mm (shown at 11 mm). AM (Blue-banded bees); Museums Victoria.
+- Bush fly 5–6 mm, smaller than a house fly (6–7 mm). CSIRO; Museums Victoria.
+- Painted lady wingspan 45–50 mm (shown at 50 mm); grown caterpillar about 30 mm; chrysalis about 25 mm. Butterfly House (Coffs Harbour) painted lady pages; Braby 2000.
+- *Coptotermes* workers about 5 mm (soldiers 5–6.5 mm). DPIRD WA (termite identification); CSIRO.
+- *Bothriembryon* shells 10–30 mm by species (shown at 20 mm, measured on the sealed shell). WAM; Whisson & Breure 2016 (Bothriembryon review).
+- Coastal peacock spider about 5 mm (see its section); spiderlings about 1.5 mm when they leave the sac (typical for *Maratus*). Otto & Hill.
+- Blue skimmer: adult body about 45 mm, wingspan about 70 mm (shown across the wings); final-instar larvae 23–30 mm (shown at 25 mm). Theischinger & Hawking, *The Complete Field Guide to Dragonflies of Australia*.
+- Coastal sandhoppers (Talitridae) 9–14 mm (shown at 12 mm); young about 4 mm when they leave the brood pouch. Australian Faunal Directory; Lowry & Springthorpe (Talitridae).
+- Southern house mosquito body 3.96–4.25 mm (shown at 4 mm). Morphometric studies of *Culex quinquefasciatus* (e.g. Vinogradova 2000; Rueda 2004).
+- Golden orb-weaver females 20–40 mm body, legs spanning over 100 mm (shown at 100 mm leg tip to leg tip, body about 30 mm). AM; Museums Victoria.
+- Motorbike frog up to 7.5 cm (shown at 75 mm). WAM (Frogs of WA).
+- Horned dung beetle (*Onthophagus taurus*) 8–10 mm (shown at 9 mm). Moczek & Emlen 2000; Knell & Simmons 2010.
+- Ladybirds 3.8–6.7 mm for the common Australian species (shown at 6 mm, "about"). AM (Ladybird beetles).
+- Click beetle: 15 mm is typical of Perth elaterids, said as "like this one"; no species figure. AM (Click beetles, family Elateridae).
+- Moth: 20 mm is typical of a bark-resting noctuid, said as "like this one". AM (Moths).
+- Water strider (*Limnogonus*) body 8–12 mm (shown at 10 mm). Andersen & Weir 2004, *Australian Water Bugs*.
+- Simplification: the whole drawing is scaled to the body length, so antennae and legs take some of it; the real body is a little longer than the drawn one. Phones and tablets differ in pixel size, so the screen says "about real size" until a coin has been matched.
+
+## Bug quiz
+Eight questions a round, answered by tapping a picture. Every question asks only what the game already says, so each one is backed by the section named: 8 legs (coastal peacock spider; Paint captions), 2 wings (bush fly), snail not an insect (native land snail), golden web (golden orb-weaver), the fan dance (coastal peacock spider), nests under the ground and out at night (sugar ant), blood and only females (southern house mosquito), buzz pollination and the male sleeping on a stem (blue-banded bee), caterpillar first, wing scales and the curled tongue (painted lady), nymphs under water, no wings yet and the hinged jaw (blue skimmer nymph stage), the tail flick and crustacean (coastal sandhopper), the frog's backbone and the call (motorbike frog), burying pats (Bug Olympics, dung burying), the click flip (Bug Olympics, gymnastics), walking on water, bark camouflage, the silk line, the front eyes and the 1,141× pull (Bug Circus), cockroach cousins (termite), a queen and hunting alone by sight (bull ant), sitting on cows and eggs in pats (bush fly), the fastest flier (Bug Olympics, sprint), daisy leaves (painted lady caterpillar), sealing the shell (native land snail). "What is this?" questions show one of the game's own bugs and its name.
+
 ## Native garden (build your own)
 - Native plants support native wildlife (nectar, seed, shelter); Perth councils and the Water Corporation promote waterwise native gardens. Water Corporation; City of Melville/Bayswater wildlife-garden guides.
 - Earthworms break down organic matter and improve soil. CSIRO.
@@ -365,3 +390,4 @@ A paint screen for every bug you can be (18 of them). The design is a see-throug
 - The orb web: threads must attach to branches or threads, but there is no tension physics; the spiral is laid automatically.
 - The ant nest: one ant digs the whole nest; really thousands of workers share the work. Floods wash you out rather than drowning you.
 - The family tree is simplified: only the bugs in the game are shown, and springtails and other branches are left out.
+- Real size scales the whole drawing (antennae, legs or open wings) to the published body length or wingspan, and the screen's scale is a guess until a coin is matched.
