@@ -24,7 +24,7 @@ const WHAT = {
   butterfly: 'Australian painted lady (Vanessa kershawi)', egg: 'Painted lady egg', termiteWorker: 'Termite worker (Coptotermes)', snail: 'Native land snail (Bothriembryon)',
   spiderling: 'Coastal peacock spider, spiderling (Maratus speciosus)', spider: 'Coastal peacock spider, male (Maratus speciosus)', femaleSpider: 'Coastal peacock spider, female (Maratus speciosus)',
   nymph: 'Blue skimmer nymph (Orthetrum caledonicum)', emerge: 'Blue skimmer emerging from the nymph skin', dragonfly: 'Blue skimmer, adult (Orthetrum caledonicum)',
-  mosquito: 'Southern house mosquito, female (Culex quinquefasciatus)', sandhopper: 'Coastal sandhopper, female (Talitridae)', babyHopper: 'Coastal sandhopper, baby', clickBeetle: 'Click beetle (Elateridae)', hornBeetle: 'Horned dung beetle, male (Onthophagus taurus)', spiderSide: 'Coastal peacock spider, male, from the side', waterStrider: 'Water strider (Gerridae)', sledge: 'The Strongbug’s sledge', post: 'A tightrope post',
+  mosquito: 'Southern house mosquito, female (Culex quinquefasciatus)', sandhopper: 'Coastal sandhopper, female (Talitridae)', babyHopper: 'Coastal sandhopper, baby', clickBeetle: 'Click beetle (Elateridae)', hornBeetle: 'Horned dung beetle, male (Onthophagus taurus)', spiderSide: 'Coastal peacock spider, male, from the side', waterStrider: 'Water strider (Gerridae)', post: 'A tightrope post',
   sugarAnt: 'Banded sugar ant worker (Camponotus consobrinus)', queenSugar: 'Banded sugar ant queen', antEgg: 'Sugar ant egg', orbSpider: 'Golden orb-weaver, female (Trichonephila edulis)',
   termite: 'Termite (prey)', caterpillar: 'Green looper caterpillar', deadBeetle: 'Dead beetle', deadMoth: 'Dead moth', fly: 'Small fly', springtail: 'Springtail', smallAnt: 'Small black ant',
   wriggler: 'Mosquito larva (wriggler)', tadpole: 'Tadpole', woodChip: 'Wood chip', mud: 'Mud ball', log: 'Fallen log', fungus: 'Fungus', lichen: 'Lichen', deadLeaf: 'Dead gum leaf',
@@ -92,11 +92,11 @@ L('babyHopper', 'coastal-sandhopper-baby', { face: 1, angle: 0 });
 L('clickBeetle', 'click-beetle', { face: 1, angle: 0 });
 L('clickBeetle', 'click-beetle-on-its-back', { face: 1, angle: 0, spin: Math.PI }, { state: 'on its back, about to click' });
 L('hornBeetle', 'horned-dung-beetle-male');
+L('hornBeetle', 'horned-dung-beetle-champion', { big: true }, { state: 'the longest horns' });
 L('spiderSide', 'peacock-spider-side-on', { face: 1, angle: 0 });
 L('spiderSide', 'peacock-spider-side-on-jumping', { face: 1, angle: 0, air: true }, { state: 'in the air' });
 L('waterStrider', 'water-strider');
 L('waterStrider', 'water-strider-rowing', { stroke: 0.5 }, { state: 'mid-stroke' });
-L('sledge', 'circus-sledge-of-weights', { load: 3 });
 L('post', 'tightrope-post');
 L('sugarAnt', 'banded-sugar-ant-worker');
 L('sugarAnt', 'banded-sugar-ant-worker-carrying-honeydew', { honey: true }, { state: 'full of honeydew' });

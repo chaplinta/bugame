@@ -371,7 +371,7 @@ Missions.garden = {
     if (type === 'up') { if (g.changed) { GardenStore.save(g); g.changed = false; } g.lastPlace = null; return; }
     // Tapping a visitor tells you about it
     if (type === 'down') {
-      const v = nearest(g.visitors, { x, y }, 26);
+      const v = nearest(g.visitors, { x, y }, Math.max(26, Game.fingerR()));
       if (v) { g.toasts.unshift({ text: v.def.name + ': ' + v.def.fact, kind: 'fact' }); g.toastT = 0; Speech.say(v.def.name + '. ' + v.def.fact); Sound.play('tap'); return; }
     }
     this.use(g, g.tool, x, y, type);
@@ -390,7 +390,7 @@ Missions.garden = {
       return;
     }
     if (tool === 'erase') {
-      const it = nearest(g.items, { x, y }, 30);
+      const it = nearest(g.items, { x, y }, Math.max(30, Game.fingerR()));
       if (it) { g.items.splice(g.items.indexOf(it), 1); Game.burst(it.x, it.y, '#a88a64', 10); Sound.play('tap'); }
       else if (g.cells[cell.r][cell.c] !== 'dirt') { g.cells[cell.r][cell.c] = 'dirt'; g.groundDirty = true; }
       g.changed = true;

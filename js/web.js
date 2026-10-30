@@ -133,7 +133,7 @@ Missions.web = {
   // Snap to the nearest branch or thread
   snap(g, x, y, maxD) {
     let best = null;
-    const tryPt = (q) => { if (q.d < (best ? best.d : (maxD || 24))) best = q; };
+    const tryPt = (q) => { if (q.d < (best ? best.d : (maxD || Math.max(24, Game.fingerR())))) best = q; };
     for (const line of WEB_ANCHORS) for (let i = 1; i < line.length; i++) tryPt(nearestOnSeg(x, y, line[i - 1][0], line[i - 1][1], line[i][0], line[i][1]));
     for (const th of g.threads) tryPt(nearestOnSeg(x, y, th.a.x, th.a.y, th.b.x, th.b.y));
     return best;
@@ -147,14 +147,14 @@ Missions.web = {
   },
   onPointer(g, type, x, y) {
     if (type === 'down') {
-      const pt = { x, y };
+      const pt = { x, y }, R = Math.max(30, Game.fingerR());   // a fingertip's worth on a phone
       // Set free tool: let a caught insect go
-      const caught = nearest(g.prey.filter(q => q.stuck || q.wrapped), pt, 30);
-      if (g.tool === 'free') { if (caught) this.goJob(g, caught, 'free'); return; }
+      const caught = nearest(g.prey.filter(q => q.stuck || q.wrapped), pt, R);
+      if (g.tool === 'free') { if (caught) this.goJob(g, caught, 'free'); else Game.hint('Tap a stuck insect to let it go.'); return; }
       // Tap a bundle to eat it, or a stuck insect to wrap it (stinging bees get cut loose instead)
-      const bundle = nearest(g.prey.filter(q => q.wrapped), pt, 30);
+      const bundle = nearest(g.prey.filter(q => q.wrapped), pt, R);
       if (bundle) { this.goJob(g, bundle, 'eat'); return; }
-      const q = nearest(g.prey.filter(q => q.stuck && !q.wrapped), pt, 30);
+      const q = nearest(g.prey.filter(q => q.stuck && !q.wrapped), pt, R);
       if (q) {
         if (q.sting) {
           g.toasts.unshift({ text: 'Careful, that’s a bee! It could sting. She cuts it loose instead.', kind: 'hint' }); g.toastT = 0;
@@ -168,9 +168,10 @@ Missions.web = {
   use(g, tool, x, y, type) {
     if (tool === 'cut') {
       if (type === 'up') return;
-      let hit = null, bd = 14;
+      let hit = null, bd = Math.max(14, 0.8 * Game.fingerR());
       for (const th of g.threads) { const n = nearestOnSeg(x, y, th.a.x, th.a.y, th.b.x, th.b.y); if (n.d < bd) { bd = n.d; hit = th; } }
       if (hit) { g.threads.splice(g.threads.indexOf(hit), 1); Game.burst(x, y, '#fff6c0', 8); Sound.play('tap'); this.dropLoose(g); }
+      else if (type === 'down') Game.hint('Tap right on a thread to cut it.');
       return;
     }
     if (tool === 'spiral') { if (type === 'down') this.spiral(g, x, y); return; }

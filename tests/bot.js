@@ -184,10 +184,15 @@
       if (p.onGround) act = g.meter > (kidLike ? 0.55 : 0.93);
       else act = !p.recover && !p.landPress && p.vy > 0 && m.toLand(p) <= (kidLike ? 0.3 : 0.4);
     } else if (id === 'cir_strong') {
-      hold = !g.cir.finished && g.restT <= 0;
+      // Tap and hold: the perfect bot taps every tick (the act counts at most ten a second), a kid a couple of times a second
+      hold = !g.cir.finished && g.restT <= 0; act = hold;
     } else if (id === 'cir_trapeze') {
-      // Jump when the other bar swings close and is still coming closer
-      if (!p.air && !p.hang) { const o = m.bar(g, 1 - p.on), b = m.bar(g, p.on), gap = Math.abs(o.x - b.x), closing = Math.cos(g.t / TRAP.period * TAU) > 0; act = closing && gap < (kidLike ? 440 : 420); }
+      // Jump when a jump would catch (the moment the helper ring shows). Once the ring is gone a kid judges by eye:
+      // the other bar close and still coming; the perfect bot has the timing down
+      if (!p.air && !p.hang) {
+        const o = m.bar(g, 1 - p.on), b = m.bar(g, p.on), gap = Math.abs(o.x - b.x), closing = Math.cos(g.t / TRAP.period * TAU) > 0;
+        act = kidLike && !m.cued(g) ? closing && gap < 440 : !!g.catchNow;
+      }
     } else if (id === 'cir_rope') {
       if (g.phase === 'wind') act = Math.abs(CIR.adiff(g.wind, 0)) < (kidLike ? 0.6 : 0.3);
       else if (g.phase === 'walk' && g.fallT <= 0) { goal = { x: World.w / 2 + ROPE.half, y: p.y }; hold = g.gust > 0 || g.warn > 0; if (hold) goal = null; }

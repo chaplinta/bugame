@@ -189,7 +189,7 @@ const Missions = {
         }
       }
       if (!p.carry) {
-        const it = g.items.find(i => touching(p, i));
+        const it = g.items.find(i => touching(p, i, 8));
         if (it) {
           if (it.kind !== 'caterpillar' || it.stunned) {
             p.carry = it.sprite;
@@ -312,7 +312,7 @@ const Missions = {
       } else {
         setAction('Sting', false);
         if (!p.carry) {
-          const it = g.items.find(i => touching(p, i));
+          const it = g.items.find(i => touching(p, i, 8));
           if (it) {
             p.carry = 'termite';
             g.items.splice(g.items.indexOf(it), 1);
@@ -428,7 +428,9 @@ const Missions = {
       for (const f of g.items) {
         if (!f.pollen && f.kind !== 'paw') { f.regrow -= dt; if (f.regrow <= 0) f.pollen = true; }
       }
-      const f = g.items.find(i => touching(p, i, -8));
+      // The nearest flower with pollen you are touching; flowers grow in patches, so an empty neighbour must never
+      // grey out the button while a full one is underfoot
+      const f = nearest(g.items.filter(i => i.pollen && touching(p, i, 0)), p, 1e9) || g.items.find(i => touching(p, i, 0));
       if (f !== p.flower) { p.flower = f; p.buzzT = 0; }
       setAction('Buzz', f && f.pollen && p.load < 3);
       if (f) {
@@ -663,7 +665,7 @@ const Missions = {
       if (p.waitRelease && !input.held) p.waitRelease = false;
       const quiet = p.waitRelease;   // no nagging while still holding from the last sip or lay
       const cow = g.items.find(c => c.kind === 'cow' && dist(this.head(c), p) < 45);
-      const pat = g.pats.find(pt => dist(pt, p) < 30 * pt.size + 6);
+      const pat = g.pats.find(pt => dist(pt, p) < Math.max(40, 30 * pt.size + 6));
       const mount = !cow && !pat ? g.items.find(a => (a.kind === 'cow' || a.kind === 'roo') && dist(this.back(a), p) < 40) : null;
       if (dist(p, g.home) > 300) Game.fact('wind');
       // Once full of protein, make sure there's a fresh pat not too far away.
@@ -826,7 +828,7 @@ const Missions = {
         return;
       }
 
-      const under = g.items.filter(i => dist(i, p) < 30);
+      const under = g.items.filter(i => dist(i, p) < 40);
       const pl = under.find(i => i.kind !== 'grevillea' && i.leaf > 0.05) || under[0];
       const host = pl && pl.kind !== 'grevillea';
       setAction('Munch', host && pl.leaf > 0.05);
@@ -936,7 +938,7 @@ const Missions = {
       // After a sip or a lay, no hints until the button is let go (holding through is fine, nagging isn't).
       if (p.waitRelease && !input.held) p.waitRelease = false;
       const quiet = p.waitRelease;
-      const under = g.items.filter(i => i.sprite !== 'egg' && dist(i, p) < 30);
+      const under = g.items.filter(i => i.sprite !== 'egg' && dist(i, p) < 40);
       const f = under.find(i => p.energy >= 1 ? i.kind !== 'grevillea' : i.nectar) || under[0];
       if (!f) { setAction(p.energy >= 1 ? 'Lay' : 'Sip', false); p.layT = 0; return; }
       if (f !== p.layOn) { p.layOn = f; p.layT = 0; }
@@ -1045,7 +1047,7 @@ const Missions = {
     update(g, dt, input) {
       const p = g.player;
       if (p.carry) {
-        setAction(p.carry === 'mud' ? 'Dig' : 'Chew', false);
+        setAction('To the mound', false);
         if (Game.inHome()) {
           if (p.carry === 'mud') { g.mud++; Game.fact('mud'); if (g.mud === 3) Game.fact('soldier'); }
           else { g.wood++; Game.fact('wood'); if (g.wood === 2) Game.fact('recycle'); if (g.wood === 4) Game.fact('queen'); }
@@ -1058,7 +1060,10 @@ const Missions = {
         return;
       }
       p.speed = 120;
-      const it = g.items.find(i => dist(i, p) < 26);
+      // The nearest chip or mud patch within reach; the one you started on is kept while you stay near it, so two
+      // things close together never flicker and reset your chewing
+      const keep = p.workOn && g.items.includes(p.workOn) && dist(p.workOn, p) < 56;
+      const it = keep ? p.workOn : nearest(g.items, p, 44);
       const verb = it && it.kind === 'mud' ? 'Dig' : 'Chew';
       setAction(verb, !!it);
       if (it !== p.workOn) { p.workOn = it; p.workT = 0; }
@@ -1070,6 +1075,7 @@ const Missions = {
           p.workT = 0;
           p.carry = it.kind === 'mud' ? 'mud' : 'wood';
           g.items.splice(g.items.indexOf(it), 1);
+          p.workOn = null;
           Sound.play('pick');
           Game.later(3, () => this.addThing(it.kind));
         }
@@ -1155,7 +1161,7 @@ const Missions = {
       g.trail = g.trail.filter(q => g.t - q.t < 12);
 
       const inSun = g.sun.some(s => dist(s, p) < s.r);
-      const food = g.items.find(i => i.amount > 0.05 && dist(i, p) < 32);
+      const food = g.items.find(i => i.amount > 0.05 && dist(i, p) < 42);
       p.sealed = false;
       if (food) {
         setAction('Graze', true);

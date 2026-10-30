@@ -49,15 +49,8 @@ Object.assign(Sprites, {
   // from the head like a bull's
   hornBeetle(ctx, o, t) {
     Sprites.dungBeetle(ctx, o, t);
-    for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(10, s * 3.2); ctx.quadraticCurveTo(17, s * 8, 9, s * 12.5); ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.stroke(); }
-  },
-  // A wooden sledge of weights (o.load 1 to 3: more and bigger weights), pulled along +x
-  sledge(ctx, o) {
-    for (const s of [-1, 1]) plainLine(ctx, [-16, s * 9, 16, s * 9], '#7a5a3a', 3);
-    ctx.fillStyle = '#a07a50'; ctx.fillRect(-14, -8, 28, 16);
-    for (let k = 0; k < 4; k++) plainLine(ctx, [-14 + k * 8, -8, -14 + k * 8, 8], 'rgba(60,40,20,.4)', 1);
-    const n = [3, 6, 10][Math.min(2, (o.load || 1) - 1)];
-    for (let i = 0; i < n; i++) { const x = -9 + (i % 4) * 6, y = -5 + Math.floor(i / 4) * 5; ell(ctx, x, y, 3.6, 2.8, i % 2 ? '#8a8a90' : '#6a6a72', 0, 'none'); plainEll(ctx, x - 0.8, y - 0.8, 1.2, 0.8, 'rgba(255,255,255,.35)'); }
+    const k = o.big ? 1.4 : 1;   // the champion's horns are longer
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(10, s * 3.2); ctx.quadraticCurveTo(10 + 7 * k, s * 8 * k, 9 - (k - 1) * 4, s * 12.5 * k); ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1.8 * k; ctx.lineCap = 'round'; ctx.stroke(); }
   },
   // A jumping spider seen from the side (the peacock spider on the trapeze): a round head with two huge front
   // eyes, a short abdomen, four legs each side. o.air: legs out in the jump; o.hang: hanging from the line.
@@ -103,10 +96,11 @@ Object.assign(Sprites, {
 // ------------------------------------------------------------------ models
 if (typeof Models !== 'undefined') {
   Models.define('hornBeetle', {
-    key(o, t) { return (o.moving ? 'm' + SpriteCache.phase(t, 10, 8) : 'x'); },
-    build(M) {
-      const g = Models.defs.dungBeetle.build(M), mat = M.chitin('#1a1a1a', { coat: 0.9, rough: 0.3 });
-      for (const s of [-1, 1]) { M.seg(g, [10, s * 2.6, 4], [14.5, s * 6.5, 6.2], 0.8, mat, { full: true }); M.seg(g, [14.5, s * 6.5, 6.2], [9, s * 11, 8], 0.6, mat, { cone: 0.15 }); }
+    variant(o) { return o.big ? 'B' : ''; },
+    key(o, t) { return (o.big ? 'B' : '') + (o.moving ? 'm' + SpriteCache.phase(t, 10, 8) : 'x'); },
+    build(M, o) {
+      const g = Models.defs.dungBeetle.build(M), mat = M.chitin('#1a1a1a', { coat: 0.9, rough: 0.3 }), k = o.big ? 1.4 : 1;   // the champion's horns are longer
+      for (const s of [-1, 1]) { M.seg(g, [10, s * 2.6, 4], [10 + 4.5 * k, s * 6.5 * k, 4 + 2.2 * k], 0.8 * k, mat, { full: true }); M.seg(g, [10 + 4.5 * k, s * 6.5 * k, 4 + 2.2 * k], [10 - 1 * k, s * 11 * k, 4 + 4 * k], 0.6 * k, mat, { cone: 0.15 }); }
       return g;
     },
     pose(root, o, t) { root.userData.legs.pose(o.moving ? Math.sin((SpriteCache.phase(t, 10, 8) + 0.5) / 8 * TAU) : 0); },
@@ -194,79 +188,134 @@ Backgrounds.circusSide = function (ctx, W, H) {
 };
 
 // ------------------------------------------------------------------ 1. The Strongbug (top-down)
-// A horned dung beetle pulls a sledge of weights across the ring: a hundred times its weight, then five hundred,
-// then 1,141 times, the record a real one pulled. Hold Pull; let go and the sledge slides back.
-const STRONG = { rounds: [[100, 'a hundred'], [500, 'five hundred'], [1141, '1,141']], speeds: [68, 42, 27], slide: 16, start: -150, line: 170, show: 80 };
+// Two horned males meet horn to horn in a tunnel across the ring, the way big Onthophagus taurus males really
+// fight: tap Push as fast as you can (holding pushes a little too), the rival pushes back and now and then winds up
+// for a heave. Shove him over his line to win the round. Three rivals, each bigger; the cheers are the rivals beaten.
+const STRONG = {
+  rivals: [{ name: 'a small male', push: 22, heave: 25, scale: 1.3 }, { name: 'a bigger male', push: 40, heave: 35, scale: 1.6 }, { name: 'the champion', push: 58, heave: 45, scale: 1.9, big: true }],
+  tap: 14, hold: 24, taps: 10, line: 170, gap: 18, windUp: 0.6, heaveT: 0.45, heaveEvery: [3, 5], tries: 2,
+  rally: 0.4, rallyAt: 10,   // the crowd gets behind you: every tap shoves harder the longer a round goes (px per tap per second, up to double)
+};
 
 Missions.cir_strong = {
   id: 'cir_strong', bug: 'circus', stage: 'Strongbug', place: CIR.place,
   get world() { return { w: W, h: H }; }, sprite: 'hornBeetle', bg: 'circusRing',
-  action: 'Pull', radius: 14, speed: 0, scale: 1.6, noNet: true, gentle: true,
-  get home() { return { x: Math.round(W / 2) + STRONG.start, y: CIR.ring.cy, r: 1, label: '' }; },
+  action: 'Push', radius: 14, speed: 0, scale: 1.6, noNet: true, gentle: true,
+  get home() { return { x: Math.round(W / 2) - STRONG.gap, y: CIR.ring.cy, r: 1, label: '' }; },
   facts: [
     'Welcome to the Bug Circus! The show is pretend, but every trick is something a real bug does.',
-    'You’re a horned dung beetle, the strongest insect for its size. Scientists have measured a male pulling 1,141 times his own weight.',
-    'These beetles were brought to Australia to bury cow pats. Now they are the commonest dung beetle around Perth.',
+    'You’re a horned dung beetle. Big males fight horn to horn in their tunnels and shove each other out.',
+    'They are the strongest insects for their size: a male in a lab test pulled 1,141 times his own weight.',
   ],
   how: [
-    'Hold or tap Pull to drag the sledge to the line. Let go and it slides back!',
-    'Three rounds: a hundred times your weight, then five hundred, then 1,141 times.',
-    'Get all three across before the show clock runs out for three cheers.',
+    'Horn to horn in the tunnel! Tap Push as fast as you can. Holding pushes a little too, and the longer you keep tapping, the harder you shove.',
+    'Shove the rival over his line to win the round. Watch him wind up: then he heaves!',
+    'Three rivals, each bigger than the last. Every rival you beat is a cheer.',
   ],
   factText: {
-    start: 'The Strongbug! Hold Pull and drag the sledge to the line. The circus is pretend; the strength is real.',
-    horns: 'Only the males have horns. They use them to shove rival males out of the tunnels where the females are.',
+    start: 'The Strongbug! Tap Push as fast as you can and shove him out of the tunnel. The circus is pretend; the shoving is real.',
+    horns: 'Big male dung beetles grow horns and fight with them in the tunnels to the females. Little hornless males sneak past instead.',
     perth: 'Onthophagus taurus was brought to Australia in the 1970s to bury cow pats. Around Perth it is now the commonest dung beetle of all.',
-    pull: 'Scientists tied threads to dung beetles and loaded them up. A male Onthophagus taurus pulled 1,141 times his own weight.',
+    pull: 'A beetle like you pulled 1,141 times his own weight in a lab test: the strongest insect for its size.',
     win: '1,141 times your weight is like a kid pulling twenty cars. Three cheers for the Strongbug!',
   },
 
   setup(g) {
-    const p = g.player; p.x = Math.round(World.w / 2) + STRONG.start; p.y = CIR.ring.cy; p.angle = 0; p.flat = true;
-    g.cir = CIR.clock(); g.round = 0; g.restT = 0;
-    g.sledge = { sprite: 'sledge', kind: 'sledge', x: p.x - 50, y: p.y, r: 16, scale: 1.4, angle: 0, flat: true, load: 1 };
-    g.items.push(g.sledge);
-    Game.later(2, () => Game.hint('Hold Pull to drag the sledge!'));
+    const p = g.player; p.y = CIR.ring.cy; p.angle = 0; p.flat = true;
+    g.cir = CIR.clock(); g.round = 0; g.tries = 0; g.beaten = 0; g.restT = 0; g.pos = 0; g.tapPush = 0; g.tapBudget = STRONG.taps; g.holding = false; g.roundT = 0; g.tapsRound = 0;
+    this.newRival(g);
+    Game.later(2, () => Game.hint('Tap Push as fast as you can!'));
   },
+  newRival(g) {
+    const R = STRONG.rivals[g.round];
+    g.rival = { sprite: 'hornBeetle', kind: 'rival', x: 0, y: CIR.ring.cy, r: 14, scale: R.scale, angle: Math.PI, flat: true, big: !!R.big, moving: true };
+    g.items = [g.rival];
+    g.pos = 0; g.heaveIn = STRONG.heaveEvery[0] + Math.random() * (STRONG.heaveEvery[1] - STRONG.heaveEvery[0]); g.windT = 0; g.heaveT = 0; g.roundT = 0; g.tapsRound = 0; g.rallied = false;
+    this.place(g);
+  },
+  // The pair sits horn to horn, g.pos from the middle of the tunnel (positive toward the rival's line); the rival
+  // leans back while he winds up
+  place(g) { const cx = Math.round(World.w / 2), p = g.player; p.x = cx - STRONG.gap + g.pos; g.rival.x = cx + STRONG.gap + g.pos + (g.windT > 0 ? 10 : 0); },
   locked() { return true; },
   move(g, dt) {
-    const p = g.player, o = g.cir, cx = Math.round(World.w / 2);
+    const p = g.player, o = g.cir, S = STRONG, R = S.rivals[g.round];
     if (o.finished || g.restT > 0) { p.moving = false; return; }
-    if (g.pulling) { p.x += STRONG.speeds[g.round] * dt; p.moving = true; }
-    else p.x = Math.max(cx + STRONG.start, p.x - STRONG.slide * dt);
-    g.sledge.x = p.x - 50;
-    if (g.sledge.x - 16 >= cx + STRONG.line) this.across(g);
+    // the rival pushes back steadily and harder in a heave; you push with taps (at most ten a second count) and a hold
+    const v = -R.push - (g.heaveT > 0 ? R.heave / S.heaveT : 0) + (g.holding ? S.hold : 0);
+    g.pos = clamp(g.pos + v * dt + g.tapPush, -S.line - 20, S.line + 20); g.tapPush = 0;
+    p.moving = true; p.angle = Math.sin(g.t * 30) * 0.06; g.rival.angle = Math.PI + Math.sin(g.t * 30 + 1) * 0.06;   // straining
+    this.place(g);
+    if (g.pos >= S.line) this.shoved(g);
+    else if (g.pos <= -S.line) this.lost(g);
   },
   update(g, dt, input) {
-    const p = g.player, o = g.cir;
+    const p = g.player, o = g.cir, S = STRONG;
     CIR.tick(g, dt, input);
     if (g.restT > 0) { g.restT -= dt; if (g.restT <= 0) this.lineUp(g); }
-    g.pulling = !o.finished && g.restT <= 0 && working(input);
-    setAction('Pull', !o.finished && g.restT <= 0);
-    if (g.pulling && g.round === 2) Game.fact('pull');
-    if (!g.pulling && !o.finished && g.restT <= 0 && p.stillT > 5 && !g.nudged) { g.nudged = true; Game.hint('Hold Pull! The sledge slides back when you let go.'); }
-    if (o.started && !o.finished && o.time >= STRONG.show) CIR.finish(g, Math.max(1, g.round), 'The show clock ran out after ' + g.round + (g.round === 1 ? ' round.' : ' rounds.'));
+    const live = !o.finished && g.restT <= 0;
+    g.holding = live && !!input.held;
+    setAction('Push', live);
+    g.tapBudget = Math.min(S.taps, g.tapBudget + dt * S.taps);
+    if (live) g.roundT += dt;
+    if (live && input.pressed && g.tapBudget >= 1) {
+      g.tapBudget -= 1; g.tapPush += this.tapPush(g); g.tapsRound++;
+      Sound.play('tap'); Game.burst(p.x + 10, p.y + 8, '#d8c090', 3);
+    }
+    if (live) {
+      // the rival's heave: a wind-up you can see, then the shove
+      if (g.heaveT > 0) g.heaveT -= dt;
+      else if (g.windT > 0) { g.windT -= dt; if (g.windT <= 0) { g.heaveT = S.heaveT; Sound.play('caught'); Game.burst(g.rival.x - 10, g.rival.y + 8, '#d8c090', 6); } }
+      else { g.heaveIn -= dt; if (g.heaveIn <= 0) { g.windT = S.windUp; g.heaveIn = S.heaveEvery[0] + Math.random() * (S.heaveEvery[1] - S.heaveEvery[0]); Game.pop(g.rival.x, g.rival.y - 30, 'He’s winding up!', '#ffd23f'); } }
+      if (p.stillT > 5 && !g.nudged) { g.nudged = true; Game.hint('Tap Push as fast as you can!'); }
+      if (g.roundT > S.rallyAt && !g.rallied) { g.rallied = true; Game.pop(p.x, p.y - 50, 'The crowd’s behind you! Keep tapping!', '#ffd23f'); }
+      if (g.round === 2 && !g.toldPull) { g.toldPull = true; Game.fact('pull'); }
+    }
   },
-  across(g) {
-    const [times] = STRONG.rounds[g.round];
-    g.round++; Sound.play('score'); Game.burst(g.sledge.x, g.sledge.y, '#ffd23f', 10);
-    Game.pop(g.sledge.x, g.sledge.y - 30, times + ' times your weight!', '#ffd23f');
-    if (g.round === 1) Game.fact('horns');
-    if (g.round === 2) Game.fact('perth');
-    if (g.round >= STRONG.rounds.length) CIR.finish(g, 3, 'All three loads across in ' + g.cir.time.toFixed(0) + ' seconds.');
-    else g.restT = 2;
+  // What one tap shoves: more the longer the round has gone, up to double
+  tapPush(g) { const S = STRONG; return S.tap + Math.min(S.tap, S.rally * g.roundT); },
+  shoved(g) {
+    g.beaten++; g.round++; g.tries = 0; Sound.play('score'); Game.burst(g.rival.x, g.rival.y, '#ffd23f', 12);
+    Game.pop(g.rival.x, g.rival.y - 30, 'Shoved out!', '#ffd23f');
+    if (g.beaten === 1) Game.fact('horns');
+    if (g.beaten === 2) Game.fact('perth');
+    this.next(g);
   },
-  lineUp(g) { const p = g.player, cx = Math.round(World.w / 2); p.x = cx + STRONG.start; g.sledge.x = p.x - 50; g.sledge.load = g.round + 1; g.nudged = false; p.stillT = 0; Game.pop(p.x, p.y - 30, 'Round ' + (g.round + 1) + ': ' + STRONG.rounds[g.round][0] + ' times your weight', '#fff'); },
+  lost(g) {
+    g.tries++; Sound.play('caught'); Game.pop(g.player.x, g.player.y - 30, 'He pushed you out!', '#fff');
+    if (g.tapsRound < 12) Game.hint('Tap Push, fast! Tapping shoves much harder than holding.');   // a holder, not a tapper
+    else if (g.tries >= STRONG.tries) Game.hint('Too strong this time! Here comes the next one.');
+    if (g.tries >= STRONG.tries) { g.round++; g.tries = 0; }
+    this.next(g);
+  },
+  next(g) {
+    const n = g.beaten;
+    if (g.round >= STRONG.rivals.length) CIR.finish(g, Math.max(1, n), n === 3 ? 'All three rivals shoved out of the tunnel!' : n + (n === 1 ? ' rival' : ' rivals') + ' shoved out of three.');
+    else g.restT = 2.2;
+  },
+  lineUp(g) {
+    const p = g.player;
+    if (g.tries === 0) this.newRival(g); else { g.pos = 0; g.windT = 0; g.heaveT = 0; g.heaveIn = 3; g.roundT = 0; g.tapsRound = 0; g.rallied = false; this.place(g); }
+    g.nudged = false; p.stillT = 0;
+    Game.pop(p.x + STRONG.gap, p.y - 34, 'Round ' + (g.round + 1) + ': ' + STRONG.rivals[g.round].name, '#fff');
+  },
   drawBuild(ctx, g) {
-    const cx = Math.round(World.w / 2), cy = CIR.ring.cy, lx = cx + STRONG.line;
-    plainLine(ctx, [lx, cy - 70, lx, cy + 70], 'rgba(255,255,255,.85)', 4);
-    ctx.fillStyle = '#e8c030'; ctx.beginPath(); ctx.moveTo(lx, cy - 70); ctx.lineTo(lx + 22, cy - 62); ctx.lineTo(lx, cy - 54); ctx.closePath(); ctx.fill();
-    plainLine(ctx, [g.player.x - 12, g.player.y, g.sledge.x + 16, g.sledge.y], 'rgba(240,230,200,.9)', 1.5);   // the harness thread
-    ctx.fillStyle = 'rgba(43,33,24,.8)'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(STRONG.rounds[Math.min(g.round, 2)][0] + '×', g.sledge.x, g.sledge.y + 34);
+    const cx = Math.round(World.w / 2), cy = CIR.ring.cy, S = STRONG, w2 = S.line + 60;
+    // the tunnel: a trench across the ring with a line at each end
+    ctx.fillStyle = 'rgba(70,45,25,.45)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(cx - w2, cy - 34, w2 * 2, 68, 30) : ctx.rect(cx - w2, cy - 34, w2 * 2, 68); ctx.fill();
+    ctx.fillStyle = 'rgba(40,25,12,.35)'; ctx.fillRect(cx - w2 + 20, cy - 34, w2 * 2 - 40, 6);
+    for (const s of [-1, 1]) plainLine(ctx, [cx + s * S.line, cy - 36, cx + s * S.line, cy + 36], s > 0 ? 'rgba(255,255,255,.9)' : 'rgba(255,210,63,.9)', 4);
+    ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('HIS LINE', cx + S.line, cy - 42); ctx.fillText('YOUR LINE', cx - S.line, cy - 42);
+    // the shove meter: where the pair is between the lines
+    const w = 200, x = cx - w / 2, y = cy + 120, k = clamp((g.pos + S.line) / (2 * S.line), 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillRect(x - 2, y - 2, w + 4, 14);
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0); grad.addColorStop(0, '#e85a3a'); grad.addColorStop(0.5, '#f0c030'); grad.addColorStop(1, '#3fd06a');
+    ctx.fillStyle = grad; ctx.fillRect(x, y, w * k, 10);
+    ctx.fillStyle = '#fff'; ctx.fillRect(x + w * k - 1.5, y - 3, 3, 16);
+    if (g.windT > 0) { ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 15px sans-serif'; ctx.fillText('Winding up…', g.rival.x, g.rival.y - 44); }
   },
   goalPoint() { return null; },
-  hud(g) { const o = g.cir; setHud('Round ' + Math.min(3, g.round + (o.finished ? 0 : 1)) + ' of 3', o.started ? 'Show clock ' + Math.max(0, STRONG.show - o.time).toFixed(0) + ' s' : ''); },
+  hud(g) { const o = g.cir; setHud('Round ' + Math.min(3, g.round + (o.finished ? 0 : 1)) + ' of 3', g.beaten ? 'Rivals beaten: ' + g.beaten : o.finished ? '' : 'Tap Push!'); },
   stars(g) { return CIR.stars(g); },
   endLine(g) { return CIR.endLine(g); },
   won(g) { return CIR.won(g); },
@@ -274,8 +323,10 @@ Missions.cir_strong = {
 
 // ------------------------------------------------------------------ 2. The flying trapeze (side-on)
 // A peacock spider, a jumping spider, leaps between two swinging trapezes. Every jump trails a silk line from the
-// bar she left; a miss leaves her hanging on it, and she climbs back up. Five catches finish the act.
-const TRAP = { sep: 230, top: 60, rope: 230, swing: 0.62, period: 3, floor: 540, net: 440, catches: 5, g: 900, jump: [430, -230], reach: 42 };
+// bar she left; a miss leaves her hanging on it, and she climbs back up. Seven catches finish the act; the bars drift
+// apart a little with every catch, and the helper ring on the far bar goes after the first two.
+const TRAP = { sep: 230, sepGrow: 10, sepMax: 280, top: 60, rope: 230, swing: 0.62, period: 3, floor: 540, net: 440, catches: 7, g: 900, jump: [430, -230], reach: 36, cued: 2,
+  h: 1 / 120, late: 0.1 };   // the flight's fixed step; the ring shows only while a jump up to 0.1 s late would still catch
 
 Missions.cir_trapeze = {
   id: 'cir_trapeze', bug: 'circus', stage: 'Trapeze', place: CIR.place, view: 'side',
@@ -289,27 +340,48 @@ Missions.cir_trapeze = {
   ],
   how: [
     'This act is side-on. You stand on a swinging trapeze. The other one swings toward you.',
-    'Press Jump when the other bar is close. Your silk line trails behind you.',
-    'Miss, and you hang on the line and climb back up. Catch the bar five times to finish. No misses: three cheers!',
+    'Press Jump as the bars swing up toward each other. For the first two catches a ring shows the moment. Your silk line trails behind you.',
+    'Miss, and you hang on the line and climb back up. Catch the bar seven times to finish. The bars drift apart as you go, and after two catches the ring that showed the moment is gone. No misses: three cheers!',
   ],
   factText: {
-    start: 'The flying trapeze! Press Jump when the other bar swings close. The circus is pretend; the silk line is real.',
+    start: 'The flying trapeze! Press Jump as the bars swing up toward each other. The circus is pretend; the silk line is real.',
     line: 'Before every jump, a jumping spider glues a silk line to where it stands. The line trails behind it in the air.',
     steer: 'The silk isn’t just a safety line. Jumping spiders pull on it in mid-air to straighten up and land on their feet.',
     eyes: 'Peacock spiders are jumping spiders. Their two big front eyes judge the distance before each jump.',
     miss: 'Missed! Hang on the line and climb back up. A real jumping spider that misses does just that.',
-    win: 'Five catches! A jumping spider jumps many times its own length, and the silk line makes the landing safe.',
+    win: 'Seven catches! A jumping spider jumps many times its own length, and the silk line makes the landing safe.',
   },
 
-  closing(g) { return Math.cos(g.t / TRAP.period * TAU) > 0; },   // the bars swing toward each other: the time to jump
-  bar(g, i) { const T = TRAP, a = (i ? -1 : 1) * T.swing * Math.sin(g.t / T.period * TAU), x0 = Math.round(World.w / 2) + (i ? 1 : -1) * T.sep; return { x: x0 + Math.sin(a) * T.rope, y: T.top + Math.cos(a) * T.rope, a, x0 }; },
+  sep(g) { return Math.min(TRAP.sepMax, TRAP.sep + TRAP.sepGrow * (g.catches || 0)); },   // the bars drift apart with every catch
+  cued(g) { return (g.catches || 0) < TRAP.cued; },   // the helper ring and the green button, for the first catches only
+  bar(g, i) { return this.barAt(g.t, i, this.sep(g)); },
+  barAt(t, i, sep) { const T = TRAP, a = (i ? -1 : 1) * T.swing * Math.sin(t / T.period * TAU), x0 = Math.round(World.w / 2) + (i ? 1 : -1) * sep; return { x: x0 + Math.sin(a) * T.rope, y: T.top + Math.cos(a) * T.rope, a, x0 }; },
   setup(g) {
     const p = g.player; p.on = 0; p.face = 1; p.angle = 0; p.flat = true; p.vx = 0; p.vy = 0; p.air = false; p.hang = false;
-    g.cir = CIR.clock(); g.catches = 0; g.misses = 0; g.anchor = null; g.climbT = 0;
+    g.cir = CIR.clock(); g.catches = 0; g.misses = 0; g.anchor = null; g.climbT = 0; g.acc = 0; g.fl = null;
     const b = this.bar(g, 0); p.x = b.x; p.y = b.y - 4;
-    Game.later(2, () => Game.hint('Press Jump when the other bar swings close!'));
+    Game.later(2, () => Game.hint('Press Jump as the bars swing up toward each other!'));
   },
   locked() { return true; },
+  // The flight is stepped at a fixed 1/120 s, so it lands the same at any frame rate and the forecast behind the
+  // helper ring (canCatch) can run the very same steps ahead of time. A flight f = { x, y, vx, vy, t, on, sep }.
+  jumpVel(t, on, sep) {
+    const T = TRAP, b = this.barAt(t, on, sep), dir = on ? -1 : 1;
+    const va = T.swing * TAU / T.period * Math.cos(t / T.period * TAU) * (on ? -1 : 1);   // the bar's own swing speed
+    return { vx: Math.cos(b.a) * va * T.rope + dir * T.jump[0], vy: -Math.sin(b.a) * va * T.rope + T.jump[1] };
+  },
+  flight(t, on, sep) { const b = this.barAt(t, on, sep), v = this.jumpVel(t, on, sep); return { x: b.x, y: b.y - 4, vx: v.vx, vy: v.vy, t, on, sep }; },
+  flyStep(f) {
+    const T = TRAP, h = T.h;
+    f.t += h; f.vy += T.g * h; f.x += f.vx * h; f.y += f.vy * h;
+    const b = this.barAt(f.t, 1 - f.on, f.sep);
+    if (Math.hypot(b.x - f.x, b.y - 4 - f.y) < T.reach && f.vy > -160) return 'catch';
+    if (f.y > T.net - 20 || Math.abs(f.x - Math.round(World.w / 2)) > f.sep + 200) return 'miss';
+    return null;
+  },
+  wouldCatch(t, on, sep) { const f = this.flight(t, on, sep); for (let i = 0; i < 240; i++) { const r = this.flyStep(f); if (r) return r === 'catch'; } return false; },
+  // Would a jump now catch the other bar, and still catch a moment later? The ring and the green button show these moments
+  canCatch(g) { const p = g.player, sep = this.sep(g); return this.wouldCatch(g.t, p.on, sep) && this.wouldCatch(g.t + TRAP.late, p.on, sep); },
   move(g, dt) {
     const p = g.player, T = TRAP;
     if (p.hang) {   // hanging on the line below the anchor, then climbing back to the bar
@@ -320,10 +392,12 @@ Missions.cir_trapeze = {
       p.moving = true; return;
     }
     if (p.air) {
-      p.vy += T.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
-      const b = this.bar(g, 1 - p.on);
-      if (Math.hypot(b.x - p.x, b.y - 4 - p.y) < T.reach && p.vy > -160) this.catchBar(g, 1 - p.on);
-      else if (p.y > T.net - 20 || Math.abs(p.x - Math.round(World.w / 2)) > T.sep + 200) this.miss(g);
+      g.acc += dt;
+      while (g.acc >= T.h && p.air) {
+        g.acc -= T.h;
+        const r = this.flyStep(g.fl); p.x = g.fl.x; p.y = g.fl.y; p.vy = g.fl.vy;
+        if (r === 'catch') this.catchBar(g, 1 - p.on); else if (r === 'miss') this.miss(g);
+      }
       p.moving = true; return;
     }
     const b = this.bar(g, p.on); p.x = b.x; p.y = b.y - 4; p.face = p.on ? -1 : 1; p.moving = false;
@@ -331,16 +405,16 @@ Missions.cir_trapeze = {
   update(g, dt, input) {
     const p = g.player, o = g.cir;
     CIR.tick(g, dt, input);
-    const other = this.bar(g, 1 - p.on), near = !p.air && !p.hang && !o.finished && this.closing(g) && Math.abs(other.x - p.x) < 400;
-    setAction('Jump', near);
+    const onBar = !p.air && !p.hang && !o.finished;
+    g.catchNow = onBar && this.canCatch(g);
+    setAction('Jump', this.cued(g) ? g.catchNow : onBar);
     if (input.pressed && !p.air && !p.hang && !o.finished) this.jump(g);
-    if (!p.air && !p.hang && !o.finished && p.stillT > 7 && !g.nudged) { g.nudged = true; Game.hint('Press Jump when the other bar swings close!'); }
+    if (!p.air && !p.hang && !o.finished && p.stillT > 7 && !g.nudged) { g.nudged = true; Game.hint('Press Jump as the bars swing up toward each other!'); }
   },
   jump(g) {
-    const p = g.player, T = TRAP, b = this.bar(g, p.on), dir = p.on ? -1 : 1;
-    const va = T.swing * TAU / T.period * Math.cos(g.t / T.period * TAU) * (p.on ? -1 : 1);   // the bar's own swing speed
-    p.vx = Math.cos(b.a) * va * T.rope + dir * T.jump[0]; p.vy = -Math.sin(b.a) * va * T.rope + T.jump[1];
-    p.air = true; g.anchor = { x: b.x, y: b.y }; p.stillT = 0;
+    const p = g.player, f = this.flight(g.t, p.on, this.sep(g));
+    g.fl = f; g.acc = 0; p.x = f.x; p.y = f.y; p.vx = f.vx; p.vy = f.vy;
+    p.air = true; g.anchor = { x: f.x, y: f.y + 4 }; p.stillT = 0;
     Sound.play('jump'); Game.fact('line');
   },
   catchBar(g, i) {
@@ -348,7 +422,8 @@ Missions.cir_trapeze = {
     Sound.play('score'); Game.pop(p.x, p.y - 30, 'Caught!', '#3fd06a');
     if (g.catches === 1) Game.fact('steer');
     if (g.catches === 2) Game.fact('eyes');
-    if (g.catches >= TRAP.catches) CIR.finish(g, g.misses === 0 ? 3 : g.misses <= 2 ? 2 : 1, g.misses ? g.misses + (g.misses === 1 ? ' miss, saved by the silk line.' : ' misses, saved by the silk line every time.') : 'Five catches without a miss!');
+    if (g.catches === TRAP.cued) Game.later(0.8, () => Game.pop(p.x, p.y - 50, 'Now without the ring!', '#ffd23f'));
+    if (g.catches >= TRAP.catches) CIR.finish(g, g.misses === 0 ? 3 : g.misses === 1 ? 2 : 1, g.misses ? g.misses + (g.misses === 1 ? ' miss, saved by the silk line.' : ' misses, saved by the silk line every time.') : 'Seven catches without a miss!');
   },
   miss(g) {
     const p = g.player; p.air = false; p.hang = true; g.misses++; g.climbT = 2.5; g.hangL = Math.min(200, Math.max(80, Math.hypot(p.x - g.anchor.x, p.y - g.anchor.y)));
@@ -363,7 +438,7 @@ Missions.cir_trapeze = {
       plainEll(ctx, b.x0, T.top, 5, 5, '#5a3a2a');
     }
     if ((p.air || p.hang) && g.anchor) plainLine(ctx, [g.anchor.x, g.anchor.y, p.x, p.y - (p.hang ? 8 : 2)], 'rgba(250,245,225,.9)', 1.2);   // the dragline
-    if (!p.air && !p.hang && !g.cir.finished) { const o = this.bar(g, 1 - p.on); if (this.closing(g) && Math.abs(o.x - p.x) < 400) { ctx.beginPath(); ctx.arc(o.x, o.y, 22 + Math.sin(g.t * 6) * 3, 0, TAU); ctx.strokeStyle = 'rgba(255,210,63,.8)'; ctx.lineWidth = 3; ctx.stroke(); } }
+    if (g.catchNow && this.cued(g)) { const o = this.bar(g, 1 - p.on); ctx.beginPath(); ctx.arc(o.x, o.y, 22 + Math.sin(g.t * 6) * 3, 0, TAU); ctx.strokeStyle = 'rgba(255,210,63,.8)'; ctx.lineWidth = 3; ctx.stroke(); }
   },
   goalPoint() { return null; },
   hud(g) { setHud('Catches: ' + g.catches + ' / ' + TRAP.catches, g.misses ? 'Misses: ' + g.misses : ''); },

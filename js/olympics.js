@@ -461,7 +461,7 @@ Missions.oly_buzz = {
     const p = g.player, o = g.oly;
     OLY.tick(g, dt, input);
     p.buzz = false;
-    const f = o.finished ? null : g.items.find(i => i.pollen && touching(p, i, -8));
+    const f = o.finished ? null : g.items.find(i => i.pollen && touching(p, i, 0));
     if (f !== p.flower) { p.flower = f; p.buzzT = 0; }
     setAction('Buzz', !!f);
     if (f) {
@@ -667,6 +667,10 @@ Missions.oly_gym = {
 
 Missions.oly_jump.sex = 'You are a female sandhopper.';
 Missions.oly_gym.sex = 'You are a click beetle. Males and females both click.';
+// What the button says when it is pressed with nothing in reach (js/engine.js)
+Missions.oly_dig.notReady = () => 'Walk to a cow pat first.';
+Missions.oly_lift.notReady = (g) => g.player.carry ? 'Carry it into the nest circle.' : 'Walk to the pile first.';
+Missions.oly_buzz.notReady = () => 'Land on a flower with pollen first.';
 Missions.oly_sprint.sex = 'You are a male blue skimmer.';
 Missions.oly_dig.sex = 'You are a dung beetle. Males and females both dig.';
 Missions.oly_lift.sex = 'You are a female worker bull ant.';

@@ -369,4 +369,6 @@ Backgrounds.nestSoil = function (ctx, W, H) {
   for (let i = 0; i < 14; i++) { const a = r() * TAU, d = r() * 50; ell(ctx, px + Math.cos(a) * d, NEST.surf - 100 + Math.sin(a) * d * 0.6, 22, 14, i % 2 ? '#5a8a44' : '#4a7a3a'); }
 };
 
+// What the button says when it is pressed with nothing to do (js/engine.js)
+Missions.nest.notReady = (g) => g.player.crumbs > 0 ? 'Face an open space and press Build. Make room needs a big open space.' : 'Dig some soil first: walk into the soil to carry crumbs.';
 finishMissions();

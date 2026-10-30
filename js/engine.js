@@ -301,7 +301,7 @@ const Game = {
   // Short how-to-play reminder, rate limited.
   hint(text) {
     const g = this.g;
-    if (g.hintT > 0) return;
+    if (!text || g.hintT > 0) return;
     g.hintT = 7;
     g.toasts = g.toasts.filter(t => t.kind !== 'hint');   // only the latest hint matters
     g.toasts.push({ text, kind: 'hint' });
@@ -339,6 +339,14 @@ const Game = {
     g.toasts.unshift({ text: 'Look out! ' + (/^[aeiou]/i.test(cfg.name) ? 'An ' : 'A ') + cfg.name + ' is coming past. Keep clear, or hide at home.', kind: 'hint' });
     g.toastT = 0;
     Sound.play('caught');
+  },
+
+  // The world distance of a fingertip (22 CSS px) at the current stage size and zoom: tap targets in the building
+  // levels grow to this on phones, where a world pixel is small on the screen.
+  fingerR() {
+    const r = this.canvas.getBoundingClientRect();
+    if (!r.width) return 22;
+    return clamp(22 * W / r.width / (this.zoom || 1), 1, 48);
   },
 
   // Small screens (phones, held either way) see a zoomed-in part of a big world so bugs aren't tiny.
@@ -419,6 +427,9 @@ const Game = {
     p.progress = 0;   // missions set this while an action is under way (drawn as a ring)
     if (typeof Mic !== 'undefined') Mic.tick(dt);   // shouting counts as holding the button in levels that allow it
     m.update(g, dt, Input);
+    // A press that can't do anything here: the level says why (levels whose button always does something have no notReady)
+    if (Input.pressed && m.notReady && !m.pointerOnly && !g.done && !g.frozen && !((g.oly && g.oly.finished) || (g.cir && g.cir.finished)) &&
+      !document.getElementById('actionBtn').classList.contains('ready')) this.hint(m.notReady(g));
     this.updateCamera();
     this.updateFinds();
     if (this.checkSecret) this.checkSecret(dt);

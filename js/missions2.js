@@ -720,7 +720,7 @@ Object.assign(Missions, {
       const water = full ? g.items.find(i => i.kind === 'water' && Math.hypot(i.x - p.x, i.y + i.wy - p.y) < 40) : null;
       // Bite a person when hungry
       let spot = null;
-      if (!full) for (const pp of this.people(g)) for (const s of this.spots(pp)) if (dist(s, p) < 28) spot = s;
+      if (!full) for (const pp of this.people(g)) for (const s of this.spots(pp)) if (dist(s, p) < 40) spot = s;
       setAction(full ? 'Lay' : 'Bite', full ? !!water : !!spot);
       if (water && working(input)) {
         p.layT += work(input, dt); p.progress = p.layT / 1.2;
@@ -883,7 +883,7 @@ Object.assign(Missions, {
           g.toasts.unshift({ text: 'Full of energy! Fly to the glowing ripples and press Dip to lay eggs.', kind: 'hint' }); g.toastT = 0;
         }
       }
-      const spot = p.energy >= 8 ? g.spots.find(s => !s.done && dist(s, p) < 34) : null;
+      const spot = p.energy >= 8 ? g.spots.find(s => !s.done && dist(s, p) < 42) : null;
       if (spot) {
         setAction('Dip', true);
         if (input.pressed) {
@@ -1060,4 +1060,19 @@ const SEX = {
   sandhopper: 'You are a female.', mosquito: 'You are a female. Only females bite.',
 };
 for (const id in SEX) if (Missions[id]) Missions[id].sex = SEX[id];
+
+// What a level says when its button is pressed with nothing in reach (js/engine.js shows it as a hint). Only the
+// levels whose button does nothing when it is grey: the others act on every press and say their own piece.
+const NOT_READY = {
+  ant: (g) => g.player.carry ? 'Take it to the nest first.' : 'Get close to a caterpillar first.',
+  queen: (g) => g.phase === 'fly' ? 'Fly to a bare patch of sand, then press Land.' : g.phase === 'dig' ? 'Go to your patch and hold Dig.' : 'Walk into a termite to pick it up, then carry it home.',
+  bee: (g) => g.player.load >= 3 ? 'Your legs are full of pollen. Fly home to the burrow!' : 'Land on a flower with pollen first.',
+  fly: (g) => g.player.protein >= 1 ? 'Find a fresh, shiny cow pat to lay on.' : 'Land on a cow’s nose to sip first.',
+  caterpillar: () => 'Crawl onto a daisy leaf first.',
+  butterfly: (g) => g.player.energy >= 1 ? 'Land on a daisy plant to lay your egg.' : 'Land on a flower with nectar to sip.',
+  termite: (g) => g.player.carry ? 'Take it to the mound first! Then chew more wood.' : 'Walk right up to a wood chip or a mud patch, then press Chew.',
+  snail: () => 'Crawl onto a leaf to graze. Seal is for a sunny patch.',
+  mosquito: (g) => g.player.blood >= 1 ? 'Find the water to lay your eggs.' : 'Fly to an arm or a leg first.',
+};
+for (const id in NOT_READY) if (Missions[id]) Missions[id].notReady = NOT_READY[id];
 finishMissions();

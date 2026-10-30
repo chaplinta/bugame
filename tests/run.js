@@ -300,38 +300,51 @@ test('Bug Olympics: every event is open, jumps are measured, a finish gives a me
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
-test('Bug Circus: every act is open; the sledge, the trapeze line, the bridge, the hiding and the strokes work; cheers are the stars', async (b) => {
+test('Bug Circus: every act is open; the shoving match, the trapeze line, the bridge, the hiding and the strokes work; cheers are the stars', async (b) => {
   const p = await openGame(b);
   await p.locator('.pin', { hasText: 'Bug Circus' }).click();
   check(await p.locator('#stages .stageBtn:not([disabled])').count() === 5, 'not every act is open');
   check(/pretend/.test(await p.textContent('#stageFacts')), 'the act page does not say the show is pretend');
-  // the Strongbug: the sledge moves only while pulling, slides back when let go, and the heavier rounds are slower
+  // the Strongbug: the rival pushes the pair back on his own, holding pushes against him, taps shove hard (at most ten
+  // a second count), a wind-up is followed by a heave, over his line wins the round and three wins give three cheers
   await startMission(p, 'cir_strong', {});
   const st = await p.evaluate(() => {
-    const g = Game.g, m = g.mission, x0 = g.sledge.x;
-    m.move(g, 1, 0, 0); const idle = g.sledge.x - x0;
-    g.pulling = true; m.move(g, 1, 0, 0); const pulled = g.sledge.x - x0;
-    g.pulling = false; m.move(g, 1, 0, 0); const back = g.sledge.x - x0;
-    return { idle, pulled, back, speeds: STRONG.speeds };
+    const g = Game.g, m = g.mission, I = { pressed: false, held: false };
+    const step = (n, input) => { for (let i = 0; i < n; i++) { m.update(g, 1 / 60, input); m.move(g, 1 / 60, 0, 0); } };
+    g.heaveIn = 99;
+    step(60, I); const idle = g.pos;
+    g.pos = 0; step(60, { pressed: false, held: true }); const held = g.pos;
+    g.pos = 0; step(10, { pressed: true, held: true }); const tapped = g.pos;   // ten taps in ten frames, under the cap
+    g.pos = 0; g.heaveIn = 0; step(1, I); const windUp = g.windT > 0; step(Math.round(STRONG.windUp * 60) + 2, I); const heaving = g.heaveT > 0; step(30, I); const heaved = g.pos;
+    return { idle, held, tapped, windUp, heaving, heaved, pushes: STRONG.rivals.map(r => r.push), rival: g.items[0] && g.items[0].sprite };
   });
-  check(st.idle === 0 && st.pulled > 60 && st.back < st.pulled && st.speeds[2] < st.speeds[0], 'the sledge: ' + JSON.stringify(st));
-  await p.evaluate(() => { const g = Game.g, m = g.mission; for (let r = 0; r < 3; r++) { g.restT = 0; g.pulling = true; let n = 0; while (g.round === r && n++ < 3000) m.move(g, 1 / 30, 0, 0); } });
+  check(st.idle < -15 && st.held > st.idle && st.tapped >= 120 && st.tapped < 170 && st.windUp && st.heaving && st.heaved < -30 && st.pushes[2] > st.pushes[0] && st.rival === 'hornBeetle', 'the shoving match: ' + JSON.stringify(st));
+  await p.evaluate(() => { const g = Game.g, m = g.mission; for (let r = 0; r < 3; r++) { g.restT = 1 / 120; let n = 0; while (g.round === r && n++ < 3000) { m.update(g, 1 / 60, { pressed: true, held: true }); m.move(g, 1 / 60, 0, 0); } } });
   await p.waitForSelector('#end.active', { timeout: 10000 });
-  const end1 = await p.evaluate(() => ({ stars: document.getElementById('endStars').textContent, line: document.getElementById('endUnlock').textContent, saved: Progress.stars('cir_strong') }));
-  check(end1.stars === '★★★' && /Three cheers/.test(end1.line) && end1.saved === 3, 'the Strongbug: ' + JSON.stringify(end1));
+  const end1 = await p.evaluate(() => ({ stars: document.getElementById('endStars').textContent, line: document.getElementById('endUnlock').textContent, saved: Progress.stars('cir_strong'), beaten: Game.g.beaten }));
+  check(end1.stars === '★★★' && /Three cheers/.test(end1.line) && end1.saved === 3 && end1.beaten === 3, 'the Strongbug: ' + JSON.stringify(end1));
   // the trapeze: a jump trails a line from the bar; jumping as the bars swing apart misses, hangs on the line and
-  // climbs back; jumping as they swing together catches the other bar
+  // climbs back; jumping as they swing together catches the other bar, and canCatch (the helper ring) foresees both;
+  // the gap grows with each catch, the ring goes after two, and a catch is still possible at the widest gap
   await p.click('#endMap');
   await startMission(p, 'cir_trapeze', {});
   const tr = await p.evaluate(() => {
     const g = Game.g, m = g.mission, p = g.player, T = TRAP;
     const settle = () => { let n = 0; while ((p.air || p.hang) && n++ < 6000) { g.t += 1 / 120; m.move(g, 1 / 120, 0, 0); } };
     const jumpAt = (t0) => { g.t = t0; p.air = false; p.hang = false; m.move(g, 0, 0, 0); const before = g.catches; m.jump(g); const anchored = !!g.anchor && p.air; settle(); return { anchored, caught: g.catches > before }; };
-    const apart = jumpAt(T.period * 0.5 + 0.1), misses = g.misses, hung = g.hangLast;   // the bars swinging apart
-    let caught = null; for (let k = 0; k < 10 && !caught; k++) { const r = jumpAt(T.period * (k / 10) * 0.5 + 0.05); if (r.caught) caught = k; }
-    return { anchored: apart.anchored, missed: !apart.caught && misses === 1, caught, on: p.on, catches: g.catches };
+    g.t = T.period * 0.5 + 0.1; p.air = false; p.hang = false; m.move(g, 0, 0, 0); const noCatchApart = !m.canCatch(g);
+    const apart = jumpAt(T.period * 0.5 + 0.1), misses = g.misses;   // the bars swinging apart
+    let caught = null, foresaw = false; for (let k = 0; k < 10 && caught === null; k++) { const t0 = T.period * (k / 10) * 0.5 + 0.05; g.t = t0; p.air = false; p.hang = false; m.move(g, 0, 0, 0); const can = m.canCatch(g); const r = jumpAt(t0); if (r.caught) { caught = k; foresaw = can; } }
+    const sepGrew = m.sep(g) > T.sep, cued = m.cued(g);
+    // after two catches the helper ring and the green moment are gone: the button is simply ready on the bar
+    g.catches = T.cued; g.t = T.period * 0.75; m.move(g, 0, 0, 0); m.update(g, 0.016, { pressed: false, held: false });
+    const cueGone = !m.cued(g), readyAnyway = document.getElementById('actionBtn').classList.contains('ready');
+    // at the widest gap a catch is still possible at some moment of the swing
+    g.catches = T.catches - 2; const sepMax = m.sep(g);
+    let caughtWide = null; for (let k = 0; k < 20 && caughtWide === null; k++) { const r = jumpAt(T.period * (k / 20) * 0.5 + 0.02); if (r.caught) caughtWide = k; }
+    return { anchored: apart.anchored, noCatchApart, missed: !apart.caught && misses === 1, caught, foresaw, sepGrew, cued, cueGone, readyAnyway, sepMax, caughtWide, catches: g.catches, finished: g.cir.finished, seven: T.catches === 7 };
   });
-  check(tr.anchored && tr.missed && tr.caught !== null && tr.catches >= 1, 'the trapeze: ' + JSON.stringify(tr));
+  check(tr.anchored && tr.noCatchApart && tr.missed && tr.caught !== null && tr.foresaw && tr.sepGrew && tr.cued && tr.cueGone && tr.readyAnyway && tr.sepMax === 280 && tr.caughtWide !== null && !tr.finished && tr.seven, 'the trapeze: ' + JSON.stringify(tr));
   // the tightrope: the line sticks only when the wind blows at the far post; a gust without holding on blows her off,
   // holding on keeps her up; the far post ends the act
   await p.click('#menuBtn');
@@ -388,6 +401,78 @@ test('Bug Circus: every act is open; the sledge, the trapeze line, the bridge, t
   const book = await p.locator('.bookBug', { hasText: 'Bug Circus' }).locator('.medals').textContent();
   check(/Cheers: \d+ of 15/.test(book), 'book cheers line: ' + book);
   check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('reach: an action is ready beside its target, a press that can’t act says why, and taps fit a finger', async (b) => {
+  const p = await openGame(b);
+  // an empty hint never burns the rate limit
+  await startMission(p, 'ant', { noNet: true, noPred: true });
+  check(await p.evaluate(() => { const g = Game.g; g.hintT = 0; Game.hint(''); return g.hintT === 0 && !g.toasts.some(t => t.kind === 'hint'); }), 'an empty hint was shown');
+  await p.click('#menuBtn');
+  // the item and spot levels: the button is ready 32 px from the thing, and a press far from anything says why
+  const bad = [];
+  for (const id of ['ant', 'bee', 'fly', 'caterpillar', 'butterfly', 'termite', 'snail', 'mosquito', 'oly_dig', 'oly_lift', 'oly_buzz']) {
+    await startMission(p, id, { noNet: true, noPred: true });
+    const r = await p.evaluate((id) => {
+      const g = Game.g, m = g.mission, p = g.player;
+      const target = {
+        ant: () => g.items.find(i => i.kind === 'caterpillar' && !i.stunned),
+        bee: () => g.items.find(i => i.pollen && i.kind !== 'paw'),
+        fly: () => m.head(g.items.find(i => i.kind === 'cow')),
+        caterpillar: () => g.items.find(i => (i.kind === 'everlasting' || i.kind === 'capeweed') && i.leaf > 0.05),
+        butterfly: () => g.items.find(i => i.nectar),
+        termite: () => g.items.find(i => i.kind === 'woodChip'),
+        snail: () => g.items.find(i => i.amount > 0.05),
+        mosquito: () => { for (const pp of m.people(g)) for (const s of m.spots(pp)) return s; return null; },
+        oly_dig: () => g.items.find(i => i.kind === 'pat'),
+        oly_lift: () => g.items[0],
+        oly_buzz: () => g.items.find(i => i.pollen),
+      }[id]();
+      if (!target) return { error: 'no target' };
+      p.x = target.x + 32; p.y = target.y; p.carry = null;
+      m.update(g, 0.016, { pressed: false, held: false });
+      const ready = document.getElementById('actionBtn').classList.contains('ready'), label = document.getElementById('actionBtn').textContent;
+      // a press far from everything: the level's own reason, as a hint
+      for (const i of g.items) i.x += 5000;
+      for (const q of g.pats || []) q.x += 5000;
+      p.x = 40; p.y = 40; g.hintT = 0; g.toasts = []; g.toastT = 0; Game.showToast(null);
+      const want = m.notReady(g);
+      Input.pressed = true; Game.update(1 / 60); Input.pressed = false;
+      const el = document.getElementById('toast'), hint = el.classList.contains('hint') ? el.textContent : (g.toasts.find(t => t.kind === 'hint') || {}).text;
+      for (const i of g.items) i.x -= 5000;
+      for (const q of g.pats || []) q.x -= 5000;
+      return { ready, label, hint, want };
+    }, id);
+    if (!(r.ready && r.hint && r.hint === r.want)) bad.push(id + ': ' + JSON.stringify(r));
+    await p.click('#menuBtn');
+  }
+  check(bad.length === 0, bad.join(' | '));
+  check(p.errors.length === 0, p.errors.join('; '));
+  // taps fit a finger on a phone: Set free 20 CSS px off a stuck insect frees it, Cut 12 px off a thread cuts it
+  const ctx = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true });
+  const q = await ctx.newPage();
+  q.errors = []; q.on('pageerror', (e) => q.errors.push(e.message)); q.on('console', (m) => { if (m.type() === 'error') q.errors.push(m.text()); });
+  await q.goto(FILE_URL);
+  await startMission(q, 'web', {});
+  const box = await q.locator('#game').boundingBox(), Wn = await q.evaluate(() => W);
+  const toScreen = (x, y) => [box.x + x / Wn * box.width, box.y + y / 600 * box.height];
+  const fly = await q.evaluate(() => { const g = Game.g, t = g.threads[0], x = (t.a.x + t.b.x) / 2, y = (t.a.y + t.b.y) / 2; g.prey.push({ sprite: 'fly', x, y, vx: 90, vy: 0, ph: 0, r: 8, scale: 1.7, angle: 0, flat: true, stuck: t, tag: 'freeMe' }); return [x, y, Game.fingerR()]; });
+  check(fly[2] > 30 && fly[2] <= 48, 'a fingertip on a phone is ' + fly[2] + ' world px');
+  await q.locator('#tools .tool', { hasText: 'Set free' }).click();
+  const [sx, sy] = toScreen(fly[0], fly[1]);
+  await q.touchscreen.tap(sx + 20, sy);
+  await q.waitForFunction(() => { const q = Game.g.prey.find(q => q.tag === 'freeMe'); return !q || (!q.stuck && q.freeT > 0); }, null, { timeout: 5000 });
+  // a tap on empty sawdust with Set free says what to tap
+  await q.evaluate(() => { const g = Game.g; g.hintT = 0; g.toasts = []; g.toastT = 0; Game.showToast(null); });
+  await q.touchscreen.tap(sx, sy + 120);
+  check(await q.waitForFunction(() => Game.g.toasts.some(t => t.kind === 'hint' && /stuck insect/.test(t.text)) || /stuck insect/.test(document.getElementById('toast').textContent), null, { timeout: 2000 }).then(() => true, () => false), 'no hint for a Set free tap on nothing');
+  const th = await q.evaluate(() => { const t = Game.g.threads[0]; return [(t.a.x + t.b.x) / 2, (t.a.y + t.b.y) / 2, Game.g.threads.length]; });
+  await q.locator('#tools .tool', { hasText: 'Cut' }).click();
+  const [cx, cy] = toScreen(th[0], th[1]);
+  await q.touchscreen.tap(cx, cy + 12);
+  check(await q.evaluate((n) => Game.g.threads.length < n, th[2]), 'a tap 12 px off the thread did not cut it');
+  check(q.errors.length === 0, q.errors.join('; '));
+  await ctx.close();
 });
 
 test('the progress ring shows while munching', async (b) => {
