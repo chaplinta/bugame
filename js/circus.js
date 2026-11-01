@@ -764,4 +764,6 @@ Missions.cir_trapeze.sex = 'You are a male peacock spider.';
 Missions.cir_rope.sex = 'You are a female golden orb-weaver.';
 Missions.cir_vanish.sex = 'Males and females both rest on bark by day.';
 Missions.cir_water.sex = 'Males and females both skate.';
+// A finished act has nothing left to do: no Keep exploring
+for (const id of Bugs.find(b => b.id === 'circus').stages) Missions[id].explore = false;
 finishMissions();

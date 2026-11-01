@@ -251,6 +251,7 @@ Missions.flight = {
   },
 
   noNet: true,   // no bug net up in the air
+  explore(g) { return !g.noGL && !!g.fl3d; },   // without the 3D flight the butterfly flies off on its own: nothing to explore
   setup(g) {
     const p = g.player;
     p.flat = true;

@@ -126,7 +126,7 @@ const Game = {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       requestAnimationFrame(loop);   // first, so one bad frame can never stop the game for good
-      if (this.running) {
+      if (this.running && !(typeof Orient !== 'undefined' && Orient.covered)) {   // held upright: the game waits (js/orient.js)
         try {
           // Tests can fast-forward (timeScale) and drive a bot every tick (testHook). Normal play: one tick.
           const n = this.timeScale || 1;

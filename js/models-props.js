@@ -342,10 +342,16 @@ Models.define('antEgg', {
   build(M, o) { const g = new THREE.Group(), k = Math.round((o.grow || 0) * 3) / 3; M.ellipsoid(g, 3.4 + k * 2, 2.2 + k * 1.4, 2 + k * 1.2, M.matte(k > 0.6 ? '#f0e8d0' : '#fffaf0', { rough: 0.4 }), [0, 0, 2 + k * 1.2]); return g; },
 });
 Models.define('eggSac', {
-  // The spider's silk egg sac: a papery ball tethered by threads.
-  build(M) {
-    const g = new THREE.Group(), silk = M.matte('#f4f2ea', { rough: 0.6 });
-    M.ellipsoid(g, 11, 10, 9, silk, [0, 0, 8]);
+  // The spider's silk egg sac: a papery ball tethered by threads; torn open once the spiderlings have left.
+  variant(o) { return o.state === 'open' ? 'o' : ''; },
+  key(o) { return o.state === 'open' ? 'o' : 'x'; },
+  build(M, o) {
+    const g = new THREE.Group(), silk = M.matte('#f4f2ea', { rough: 0.6 }), open = o && o.state === 'open';
+    M.ellipsoid(g, 11, 10, open ? 7 : 9, silk, [0, 0, open ? 6.5 : 8]);
+    if (open) {
+      M.ellipsoid(g, 4.6, 4, 1, M.matte('#3a3024', { rough: 0.9 }), [1.5, -1.5, 13.2]);
+      M.hairs(g, 14, M.cone(0.14, 0.04, 3.5), M.hair('#ffffff'), (k, d) => { const a = k / 14 * TAU; d.position.set(1.5 + Math.cos(a) * 4.8, -1.5 + Math.sin(a) * 4.2, 13); d.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(Math.cos(a), Math.sin(a), 0.8).normalize()); });
+    }
     M.hairs(g, 40, M.cone(0.12, 0.05, 9), M.hair('#ffffff'), (k, d) => { const a = k * 0.9, z = 2 + (k % 8) * 1.6; d.position.set(Math.cos(a) * 10.2, Math.sin(a) * 9.3, z + 4); d.rotation.set(0, 0, a + 1.2); d.rotation.x = 1.3; });
     for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; M.seg(g, [Math.cos(a) * 10, Math.sin(a) * 9, 6], [Math.cos(a) * 18, Math.sin(a) * 16, 0.3], 0.18, M.hair('#ffffff'), { full: true }); }
     return g;

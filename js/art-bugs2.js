@@ -6,11 +6,18 @@
 // a: direction of the femur; bend: how far the tibia turns (positive = toward the body's rear).
 // Fan colourings for the peacock spider (o.col): the real coastal peacock spider first, then two suitors a little
 // bluer and greener, all within the species' blue-green fan with red-orange bands (Otto & Hill). g: gradient stops.
+// Fan colourings, all in the species' blue-green and orange scheme: 0-2 as before (0 is the one the player, the hand,
+// Paint, the quiz and Real size show), 3-4 the most vivid (a standout suitor), 5-7 duller.
 const SPIDER_COLS = [
   { g: ['#48e0d0', '#2a78d8', '#3ac8a0', '#2a60c0'], band: '#ff5a1a', fringe: '#ff9a2a' },
   { g: ['#58d0f0', '#2a58d0', '#48b0e0', '#2050c8'], band: '#ff6a2a', fringe: '#ffa83a' },
   { g: ['#48e0a8', '#2a9880', '#60d890', '#208870'], band: '#f04820', fringe: '#ff8a2a' },
-];
+  { g: ['#6af0e0', '#2a8af0', '#50e8c0', '#2a70e0'], band: '#ff4010', fringe: '#ffb030', bw: 0.55 },
+  { g: ['#70d8ff', '#2050f0', '#58c0ff', '#1840e0'], band: '#ff3a10', fringe: '#ffc040', bw: 0.55 },
+  { g: ['#4aa898', '#2a5a80', '#3a9080', '#2a4a70'], band: '#b8603a', fringe: '#b88a50', bw: 1.25 },
+  { g: ['#58a878', '#2a6858', '#50a070', '#2a5a50'], band: '#a85a3a', fringe: '#b07a48', bw: 1.15 },
+  { g: ['#90d0e0', '#4a78b0', '#80c0d0', '#4a6aa8'], band: '#d88a5a', fringe: '#e0b080', bw: 0.8 },
+];   // bw: how wide the red bands are (1 if missing): a vivid fan shows more of its colour
 
 function ileg(ctx, x, y, a, L, col, w, bend, t2) {
   const fem = L * 0.42, tib = L * 0.38, tar = L * 0.3;
@@ -239,7 +246,7 @@ Object.assign(Sprites, {
     const gr = ctx.createLinearGradient(-16, -ay, 0, ay);
     gr.addColorStop(0, C.g[0]); gr.addColorStop(0.35, C.g[1]); gr.addColorStop(0.7, C.g[2]); gr.addColorStop(1, C.g[3]);
     ctx.fillStyle = gr; ctx.fillRect(-17, -ay, 18, ay * 2);
-    for (let k = -2; k <= 2; k++) { ctx.fillStyle = C.band; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36, ax, 0.9 + (fanUp ? 0.7 : 0), 0, 0, TAU); ctx.fill(); ctx.fillStyle = 'rgba(255,230,120,.6)'; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36 - 0.7, ax * 0.9, 0.3, 0, 0, TAU); ctx.fill(); }
+    for (let k = -2; k <= 2; k++) { ctx.fillStyle = C.band; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36, ax, (0.9 + (fanUp ? 0.7 : 0)) * (C.bw || 1), 0, 0, TAU); ctx.fill(); ctx.fillStyle = 'rgba(255,230,120,.6)'; ctx.beginPath(); ctx.ellipse(-8, k * ay * 0.36 - 0.7, ax * 0.9, 0.3, 0, 0, TAU); ctx.fill(); }
     if (Shade.rich) Tex.fillPath(ctx, 'chitinHi', 1.5, 0.35, 'screen');
     ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.ellipse(-10, -ay * 0.45, ax * 0.5, ay * 0.16, -0.3, 0, TAU); ctx.fill();
     ctx.restore();

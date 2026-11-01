@@ -79,6 +79,11 @@ L('spider', 'peacock-spider-male-legs-waving', { wave: 1 }, { state: 'third legs
 L('spider', 'peacock-spider-male-drumming', { bob: 1 }, { state: 'abdomen shaking, drumming' });
 L('spider', 'peacock-spider-male-fan-bluer', { dance: 1, col: 1 }, { state: 'a suitor with a bluer fan' });
 L('spider', 'peacock-spider-male-fan-greener', { dance: 1, col: 2 }, { state: 'a suitor with a greener fan' });
+L('spider', 'peacock-spider-male-fan-vivid-turquoise', { dance: 1, col: 3 }, { state: 'a standout suitor, vivid turquoise fan' });
+L('spider', 'peacock-spider-male-fan-vivid-blue', { dance: 1, col: 4 }, { state: 'a standout suitor, vivid deep blue fan' });
+L('spider', 'peacock-spider-male-fan-dull-teal', { dance: 1, col: 5 }, { state: 'a suitor with a dull teal fan' });
+L('spider', 'peacock-spider-male-fan-dull-green', { dance: 1, col: 6 }, { state: 'a suitor with a dull green fan' });
+L('spider', 'peacock-spider-male-fan-pale-blue', { dance: 1, col: 7 }, { state: 'a suitor with a pale blue fan' });
 L('femaleSpider', 'peacock-spider-female');
 L('nymph', 'blue-skimmer-nymph');
 L('emerge', 'blue-skimmer-emerging', { k: 0.5 }, { state: 'halfway out of the nymph skin' });
@@ -118,7 +123,7 @@ L('pat', 'cow-pat-fresh-with-fly-eggs', { size: 1, fresh: 1, eggs: 1 }, { state:
 L('pat', 'cow-pat-drying-with-maggots', { size: 1, fresh: 0.25, maggots: 1, t: 0.3 }, { state: 'drying, with maggots' });
 L('dungBeetle', 'dung-beetle');
 L('wrack', 'seaweed-wrack', { amount: 1, seed: 3, angle: 0 });
-L('eggRaft', 'mosquito-egg-raft'); L('eggSac', 'spider-egg-sac');
+L('eggRaft', 'mosquito-egg-raft'); L('eggSac', 'spider-egg-sac'); L('eggSac', 'spider-egg-sac-hatched', { state: 'open' }, { state: 'torn open, the spiderlings gone' });
 L('antEgg', 'sugar-ant-egg', { grow: 0 }); L('antEgg', 'sugar-ant-egg-about-to-hatch', { grow: 1 }, { state: 'about to hatch' });
 L('honeydew', 'honeydew-drop'); L('lerpBug', 'lerp-psyllid');
 L('moth', 'brown-moth'); L('moth', 'brown-moth-caught-in-web', { stuck: true }, { state: 'caught in the web' });
@@ -214,7 +219,7 @@ const BIRD = { beeEater: 'rainbow-bee-eater', hobby: 'australian-hobby', magpie:
 const SHELL_COL = { '#f2efe4': 'white-italian-snail', '#5a5040': 'freshwater-snail', '#8a6a44': 'garden-snail' };
 const FEATHER_COL = { '#1c1c1c|#f2f2f2': 'black-cockatoo', '#1c1c1c|#c8303a': 'red-tailed-black-cockatoo', '#d8d8d8|#7a7a7a': 'silver-gull', '#1a1a1a|': 'black-swan' };
 const PAINTED = {
-  beeBands: 'blue-banded-bee-abdomen-bands', ladybirdDome: 'transverse-ladybird-wing-cases', snailShell: 'native-land-snail-shell', maratusFan0: 'peacock-spider-fan', maratusFan0D: 'peacock-spider-fan-raised', maratusFan1: 'peacock-spider-fan-bluer', maratusFan1D: 'peacock-spider-fan-bluer-raised', maratusFan2: 'peacock-spider-fan-greener', maratusFan2D: 'peacock-spider-fan-greener-raised',
+  beeBands: 'blue-banded-bee-abdomen-bands', ladybirdDome: 'transverse-ladybird-wing-cases', snailShell: 'native-land-snail-shell', maratusFan0: 'peacock-spider-fan', maratusFan3: 'peacock-spider-fan-vivid-turquoise', maratusFan3D: 'peacock-spider-fan-vivid-turquoise-raised', maratusFan4: 'peacock-spider-fan-vivid-blue', maratusFan4D: 'peacock-spider-fan-vivid-blue-raised', maratusFan5: 'peacock-spider-fan-dull-teal', maratusFan5D: 'peacock-spider-fan-dull-teal-raised', maratusFan6: 'peacock-spider-fan-dull-green', maratusFan6D: 'peacock-spider-fan-dull-green-raised', maratusFan7: 'peacock-spider-fan-pale-blue', maratusFan7D: 'peacock-spider-fan-pale-blue-raised', maratusFan0D: 'peacock-spider-fan-raised', maratusFan1: 'peacock-spider-fan-bluer', maratusFan1D: 'peacock-spider-fan-bluer-raised', maratusFan2: 'peacock-spider-fan-greener', maratusFan2D: 'peacock-spider-fan-greener-raised',
   femaleSpiderMottle: 'peacock-spider-female-mottle', nymphMottle: 'blue-skimmer-nymph-mottle', chrysalisBands: 'painted-lady-chrysalis-bands', bushFlyThorax: 'bush-fly-thorax-stripes', bushFlyAbd: 'bush-fly-abdomen',
   sugarGaster: 'banded-sugar-ant-gaster', sugarGasterH: 'banded-sugar-ant-gaster-full-of-honeydew', orbAbd: 'golden-orb-weaver-abdomen', geckoSkin: 'marbled-gecko-skin', dungElytra: 'dung-beetle-wing-cases',
   divingBeetleBack: 'diving-beetle-wing-cases', lilyPad: 'lily-pad-veins', cowHide: 'friesian-cow-hide', endGrain: 'log-end-grain', heart: 'heart', zLabel: 'stunned-z', isoQ: 'question-mark', isoTalk: 'speech-bubble',

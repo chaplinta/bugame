@@ -87,10 +87,13 @@
       if (p.energy < 8) goal = near(g.items.filter(i => i.kind === 'mosquito'));
       else { const s = near(g.spots.filter(q => !q.done)); goal = s; if (s && dist(s, p) < 30) act = true; }
     } else if (id === 'spiderF') {
-      if (g.phase === 'watch') { const mm = near(g.males); if (mm) { goal = mm; if (dist(mm, p) < 60) act = true; } }
-      else if (g.phase === 'sac') { if (Game.inHome()) { hold = true; goal = null; } else goal = g.home; }
-      else if (g.ant && !g.ant.flee) { if (dist(g.ant, p) < 150) act = true; else goal = g.ant; }
-      else goal = g.sac;
+      // the perfect bot waits for the standout; a kid picks whoever is dancing nearby
+      if (g.phase === 'watch') {
+        const here = g.males.filter(mm => mm.state === 'dance' || mm.state === 'leave');
+        const pick = kidLike ? near(here) : here.find(mm => mm.standout);
+        if (pick) { if (dist(pick, p) < 55) act = true; else goal = pick; } else goal = dist(p, g.home) > 120 ? g.home : null;
+      } else if (g.phase === 'sac') { if (Game.inHome()) { hold = true; goal = null; } else goal = g.home; }
+      else if (g.phase === 'guard') { const a = g.ant; if (a && !a.flee) { if (dist(a, p) < 150) act = true; else goal = a; } else goal = dist(g.sac, p) > 50 ? g.sac : null; }
     } else if (id === 'nest') {
       const N = NEST.cell, S = NEST.surf, ec = Math.floor(960 / N);
       const cellPt = (r, c) => ({ x: c * N + N / 2, y: S + r * N + N / 2 });
@@ -219,7 +222,7 @@
       const pop = Game.pop.bind(Game);
       Game.pop = (x, y, text, color) => { mx.rewards.push(Game.g.t); return pop(x, y, text, color); };
       const hint = Game.hint.bind(Game);
-      Game.hint = (text) => { if (Game.g.hintT <= 0) mx.hints[text] = (mx.hints[text] || 0) + 1; return hint(text); };
+      Game.hint = (text) => { if (text && Game.g.hintT <= 0) mx.hints[text] = (mx.hints[text] || 0) + 1; return hint(text); };
       const caught = Game.caught.bind(Game);
       Game.caught = (pr) => { mx.caught++; return caught(pr); };
       const fact = Game.fact.bind(Game);

@@ -675,4 +675,6 @@ Missions.oly_sprint.sex = 'You are a male blue skimmer.';
 Missions.oly_dig.sex = 'You are a dung beetle. Males and females both dig.';
 Missions.oly_lift.sex = 'You are a female worker bull ant.';
 Missions.oly_buzz.sex = 'You are a female blue-banded bee.';
+// A finished event has nothing left to do: no Keep exploring
+for (const id of Bugs.find(b => b.id === 'olympics').stages) Missions[id].explore = false;
 finishMissions();

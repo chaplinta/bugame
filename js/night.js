@@ -26,7 +26,7 @@ const Night = {
   addFact(text) { if (!this.facts.includes(text)) { this.facts.push(text); this.save(); } },
 
   tick(dt) {
-    if (this.fallen || document.hidden) return;
+    if (this.fallen || document.hidden || (typeof Orient !== 'undefined' && Orient.covered)) return;   // the clock waits while the phone is upright
     this.elapsed += dt;
     if (Math.floor(this.elapsed) % 5 === 0) this.save();
     const g = Game.running && Game.g;

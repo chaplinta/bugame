@@ -219,9 +219,11 @@ Game.onEnd = (won, g) => {
   $('endUnlock').textContent = won && m.endLine ? m.endLine(g) : won && wasLocked ? 'New stage unlocked: ' + Missions[next].stage + '!' : '';
   fillList($('endFacts'), g.learned);
   $('endNext').style.display = won && next ? '' : 'none';
-  $('endExplore').style.display = won ? '' : 'none';
+  // Keep exploring only where the bug can still do something (not a chrysalis, a finished act or event)
+  const explore = won && (typeof m.explore === 'function' ? m.explore(g) : m.explore !== false);
+  $('endExplore').style.display = explore ? '' : 'none';
   $('endExplore').classList.toggle('secondary', !!next);
-  $('endAgain').classList.toggle('secondary', !!won);
+  $('endAgain').classList.toggle('secondary', !!won && (!!next || explore));   // otherwise Play again is the main button
   show('end');
   if (won) Speech.say($('endTitle').textContent + ' ' + m.factText.win);
 };

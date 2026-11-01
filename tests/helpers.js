@@ -47,6 +47,9 @@ async function forceWin(page) {
     const g = Game.g;
     g.score = 99; g.wood = g.mud = 9;
     g.danced = g.moulted = g.emerged = g.pupated = true;
+    g.met = g.homeSafe = true;   // the frog's mate, the sandhopper home safe
+    for (const o of [g.oly, g.cir]) if (o) { o.finished = true; o.doneT = 9; }   // an Olympics event or a circus act, over
+    if (g.rooms) { g.mound = g.food = 99; g.rooms.push({ type: 'nursery', cells: [] }, { type: 'food', cells: [] }); }   // the sugar ant nest's four jobs
   });
   await page.waitForSelector('#end.active', { timeout: 5000 });
 }

@@ -760,6 +760,7 @@ const Missions = {
     id: 'caterpillar', bug: 'butterfly', stage: 'Caterpillar', place: 'Wildflower heath, Bold Park', world: BIG,
     sprite: 'plCaterpillar', bg: 'heath', escape: 'Crawl',
     action: 'Munch', radius: 16, speed: 75, scale: 2.2, goal: 12,
+    explore: false,   // a chrysalis has nothing left to explore
     home: { x: 240, y: 960, r: 44, label: 'Silk shelter' },
     facts: [
       'The Australian painted lady is a butterfly found all over Australia, including Perth.',
@@ -806,13 +807,15 @@ const Missions = {
       const p = g.player;
       p.munch = false;
       for (const pl of g.items) if (pl.leaf < 1) { pl.regrow = (pl.regrow || 0) + dt; if (pl.regrow > 20) { pl.leaf = 1; pl.regrow = 0; pl.toldEmpty = false; } }
-      if (g.moultT > 0) { g.moultT -= dt; return; }
+      if (g.moultT > 0) { g.moultT -= dt; setAction('Munch', false); return; }
+      // The button says what is happening, never a green button that does nothing
       if (g.pupating > 0) {
         g.pupating -= dt;
-        if (g.pupating <= 0) { g.pupated = true; g.frozen = false; Sound.play('win'); Game.fact('pupate'); }
+        setAction('Pupating…', false);
+        if (g.pupating <= 0) { g.pupated = true; g.frozen = false; setAction('Chrysalis', false); Sound.play('win'); Game.fact('pupate'); }
         return;
       }
-      if (g.pupated) return;
+      if (g.pupated) { setAction('Chrysalis', false); return; }
 
       if (g.score >= this.goal) {
         // Fully grown caterpillars wander off and pupate on whatever they find: a stem, a twig, a rock.
@@ -820,6 +823,7 @@ const Missions = {
         setAction('Pupate', true);
         if (input.pressed || (input.held && g.grownT > 0.8)) {
           g.pupating = 2; g.frozen = true;
+          setAction('Pupating…', false);
           p.angle = -Math.PI / 2;
           Sound.play('score');
           Game.pop(p.x, p.y - 30, 'Pupating…', '#ffd23f');

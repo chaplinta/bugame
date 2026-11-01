@@ -208,6 +208,11 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Fan colours arise from structurally coloured scales. Stavenga, Otto & Wilts 2016; Hsiung et al. 2017.
 - Female jumping spiders lay eggs in a silk sac inside a retreat and guard them. AM; Jackson (salticid biology).
 - Ants are predators of spider eggs and spiderlings. General.
+- Females are choosy: in a lab study of *M. volans*, 16 of 64 courtships of virgin females ended in mating (about 1 in 4). Girard, Elias & Kasumovic 2015, "Female preference for multi-modal courtship: multiple signals are important for male mating success in peacock spiders", Proc R Soc B 282: 20152222.
+- The courtship parts the suitors show (raised fan, waving third legs, drumming, and the fan with the leg wave together) are the ones described for *M. volans*. Girard, Kasumovic & Elias 2011, PLOS ONE 6: e25390, with its supplementary videos.
+- Mated females almost never mate again: in Girard's *M. volans* trials none of the mated females re-mated, and mated females were more aggressive to later suitors and paid them less attention. Girard & Endler 2014, "Peacock spiders", Current Biology 24: R588–R590 (unpublished data reported there); Girard in The Conversation, December 2015. The game's second mate is therefore labelled pretend.
+- About 5 to 13 eggs in a silken sac attached to leaves or twigs; about two weeks to develop, then the young stay in the sac about two more weeks, moult there under the mother's guard and leave; the mother goes about four weeks without food. Jürgen Otto's notes on an undescribed *Maratus* species (his Flickr album "Maratus sp. 4, development"); Otto & Hill, Peckhamia, on second-instar *M. personatus* spiderlings leaving the nest.
+- Spiderlings hunt from hatching; each is already a small jumping spider. See the spiderling stage above.
 
 ## Bug family tree
 - Molluscs and arthropods are separate animal phyla. General zoology.
@@ -383,9 +388,9 @@ Eight questions a round, answered by tapping a picture. Every question asks only
 - The sandhopper's beach is shown at dusk; the 2D gull dives and the plover gives up after a few seconds.
 - Mosquito bite spots are marked; people swat only when looking around, so there is a fair chance to fly away.
 - The 3D butterfly flies at a steady speed and lands automatically on a flower's ring.
-- The female peacock spider sees three males in quick succession; any choice is fine in the game.
+- The female peacock spider: five or six males a round, at most three at once; each dances for 10 to 20 seconds, gives up and walks off, and comes back later. Any choice is fine in the game. Eggs hatch 18 seconds after the sac is spun (really about two weeks, and the spiderlings stay about two more), and an ant that reaches the sac takes one egg. **A new mate for each brood is pretend**: real mated females almost never mate again (see the section above), and the game says so.
 - The male's courtship is ten beats in twelve seconds with the moves in a fixed order; real displays go on for minutes and vary. The drumming is drawn as rings on the sand. She steps closer or away to show how it is going; really she simply stays, walks off or attacks.
-- The three suitors differ in fan hue (bluer, greener) and in how well they keep the beat; all are *M. speciosus*.
+- The suitors differ in size, fan colour (eight shades of the species' blue-green and orange), tempo and dance more than real males of one species do, so a child can tell them apart; all are *M. speciosus*. Each round has one standout with a vivid fan, a steady quick beat and the complete display (fan, leg wave and drumming together). He is not bigger than the others: no study shows females prefer bigger males.
 - The garden: animals arrive within seconds of the right plants going in; really it takes seasons. Visitors' needs are simplified rules.
 - The orb web: threads must attach to branches or threads, but there is no tension physics; the spiral is laid automatically.
 - The ant nest: one ant digs the whole nest; really thousands of workers share the work. Floods wash you out rather than drowning you.

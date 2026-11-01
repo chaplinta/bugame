@@ -122,7 +122,6 @@ button.secondary { background: linear-gradient(#a0906e, #8a7a5c 60%, #6e6046); }
 li.unknown { color: #9a8d72; font-style: italic; }
 
 #placeList { display: none; }
-.rotate { display: none; }
 
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) {
   .pin { padding: 2px; border-width: 2px; border-radius: 50%; left: clamp(22px, var(--x), calc(100% - 22px)); top: clamp(22px, var(--y), calc(100% - 22px)); }
@@ -135,9 +134,6 @@ li.unknown { color: #9a8d72; font-style: italic; }
     color: var(--ink); border: 3px solid var(--accent); border-radius: 16px; padding: 6px 12px; font-size: 1.05rem; }
   #placeList canvas { width: 44px; height: 44px; flex: none; }
   #placeList small { display: block; font-weight: normal; }
-}
-@media (max-width: 700px) and (orientation: portrait) {
-  .rotate { display: block; text-align: center; margin: 10px 0; font-weight: bold; color: var(--accent2); }
 }
 
 @media (max-width: 600px) {
@@ -321,3 +317,15 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
   .quizWhy { font-size: 1.05rem; margin-top: 6px; }
   #size .sizeBox { padding: 8px; }
 }
+
+/* Always landscape (js/orient.js): a phone or tablet held upright is asked to turn sideways */
+#turn { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  background: radial-gradient(ellipse at 30% 0%, #fbf3dc 0%, var(--bg) 55%, #e8d8b0 100%); text-align: center; padding: 20px; }
+#turn[hidden] { display: none; }
+#turn svg { width: min(60vw, 260px); height: auto; }
+#turn p { margin: 0; font-size: 1.6rem; font-weight: bold; color: var(--accent); font-family: Georgia, "Times New Roman", serif; }
+.turnPhone { fill: #2b2118; transform-origin: 100px 95px; animation: turnPhone 2.4s ease-in-out infinite; }
+.turnScreen { fill: #7fc24a; }
+.turnArrow { fill: none; stroke: var(--accent2); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes turnPhone { 0%, 20% { transform: rotate(0deg); } 55%, 85% { transform: rotate(90deg); } 100% { transform: rotate(0deg); } }
+html.turn body { overflow: hidden; }

@@ -788,11 +788,18 @@ finishMissions();
 
 // ------------------------------------------------------------------ More female bugs
 Object.assign(Sprites, {
+  // The spider's silk egg sac; o.state 'open' once the spiderlings have left (torn open, a little flatter)
   eggSac(ctx, o, t) {
-    ell(ctx, 0, 0, 11, 10, '#f4f2ea');
+    const open = o.state === 'open';
+    ell(ctx, 0, 0, 11, open ? 9 : 10, '#f4f2ea');
     ctx.strokeStyle = 'rgba(200,195,180,.8)'; ctx.lineWidth = 0.6;
     for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.arc(0, 0, 3 + i * 1.1, i, i + 2.4); ctx.stroke(); }
     for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; plainLine(ctx, [Math.cos(a) * 10, Math.sin(a) * 9, Math.cos(a) * 18, Math.sin(a) * 16], 'rgba(255,255,255,.6)', 0.6); }
+    if (open) {
+      ell(ctx, 1.5, -1.5, 5, 4, '#6a5a44', 0, 'none');
+      plainEll(ctx, 1.5, -1.5, 3.4, 2.6, '#3a3024');
+      for (let i = 0; i < 7; i++) { const a = i / 7 * TAU + 0.3; plainLine(ctx, [1.5 + Math.cos(a) * 4.6, -1.5 + Math.sin(a) * 3.6, 1.5 + Math.cos(a) * 7.5, -1.5 + Math.sin(a) * 6], 'rgba(255,255,255,.85)', 0.7); }
+    }
   },
   ripple(ctx, o, t) {
     for (let i = 0; i < 3; i++) {
@@ -803,6 +810,16 @@ Object.assign(Sprites, {
     if (!o.done) { ctx.beginPath(); ctx.arc(0, 0, 4, 0, TAU); ctx.fillStyle = 'rgba(255,230,120,.8)'; ctx.fill(); }
   },
 });
+
+// The female peacock spider's suitors (one standout a round) and her broods. Times in seconds, distances in world px.
+const SUITORS = { n: [5, 6], present: 3, first: 1.5, every: [3, 5], back: [4, 8], from: [300, 360], walk: 60, stand: 95, danceAt: 130,
+  walkMax: 12, leave: 70, gone: 460, reach: 70, stay: [10, 16], stayStar: [16, 20], scale: [1.25, 1.75], scaleStar: [1.5, 1.75],
+  beat: [1.0, 1.5], beatStar: [0.8, 0.9], skill: [0.35, 0.75], moves: ['fan', 'wave', 'bob'], star: ['fan', 'wave', 'full', 'bob', 'full'],
+  vivid: [0, 3, 4], plain: [1, 2, 5, 6, 7] };   // palettes in SPIDER_COLS (js/art-bugs2.js)
+const BROOD = { eggs: [8, 12], hatch: 18, scatter: 3, antFirst: 2, antEvery: [2.5, 4], antFrom: [280, 340] };
+const sRange = (r) => r[0] + Math.random() * (r[1] - r[0]);
+const sInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+function sShuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 Object.assign(Missions, {
   // Blue skimmer, adult female: eat, then lay eggs by dipping her tail into open water while a male guards her.
@@ -907,11 +924,12 @@ Object.assign(Missions, {
     won(g) { return g.score >= this.goal; },
   },
 
-  // Peacock spider, adult female: watch the males dance, choose one, spin an egg sac and guard it.
+  // Peacock spider, adult female: males come and go, dancing for her; she chooses one, spins an egg sac, keeps the
+  // ants off it until the spiderlings hatch, then chooses again (the second mate is pretend: see factText.pretend).
   spiderF: {
     id: 'spiderF', bug: 'spider', stage: 'Adult female', place: 'Coastal dunes, Cottesloe', world: BIG,
     sprite: 'femaleSpider', bg: 'spider', escape: 'Jump',
-    action: 'Choose', radius: 15, speed: 105, scale: 1.8, goal: 3,
+    action: 'Choose', radius: 15, speed: 105, scale: 1.8, goal: 2,
     home: { x: 260, y: 1000, r: 44, label: 'Silk retreat' },
     facts: [
       'Female peacock spiders are brown, so they’re hard to spot on the sand.',
@@ -919,10 +937,11 @@ Object.assign(Missions, {
       'A mother peacock spider guards her egg sac until the babies hatch.',
     ],
     how: [
-      'Males will come and dance for you. Watch them: the best dancer keeps the beat and shows his fan!',
+      'Males come and dance for you. If you don’t choose them they give up and leave, and come back later. One of them is the best dancer!',
       'Walk up to the one you like best and press Choose.',
-      'Go back to your silk retreat and hold Spin to make an egg sac.',
-      'Then guard it! When an ant comes near, press Jump to chase it away. Chase off 3 ants.',
+      'Go home and hold Spin to make an egg sac. Then jump at ants so they can’t steal your eggs before they hatch.',
+      'Then choose a new mate and do it all again. Raise 2 broods of spiderlings.',
+      'Pretend part: a real mother almost never mates twice.',
     ],
     discoveries: [
       { key: 'd_snail', sprite: 'shell', color: '#f2efe4', fx: 0.65, fy: 0.25 },
@@ -931,92 +950,196 @@ Object.assign(Missions, {
     factText: {
       start: 'Female peacock spiders can see colour well, so they can judge the males’ bright fans.',
       dance: 'Each male raises his colourful fan and waves his legs. He also drums on the ground with his body.',
+      fussy: 'Females are fussy. In one study, only about 1 male in 4 that danced for a female was accepted.',
       choose: 'Scientists think females pick males with the brightest colours and best dances.',
       judge: 'Good eye! Scientists found that females prefer the males that dance best and show their colours.',
       scales: 'The fan’s colours come from tiny scales that bend light, like a soap bubble.',
       sac: 'She wraps her eggs in a soft silk sac inside her retreat.',
       ant: 'Ants will steal spider eggs if they get the chance.',
       guard: 'Jumping spiders are brave mothers. She’ll chase off insects much bigger than she is.',
+      hungry: 'A mother peacock spider guards her eggs for about four weeks, and eats nothing the whole time.',
+      hatch: 'Hatched! Real eggs take about two weeks. The babies moult in the sac, then leave about two weeks later.',
+      pretend: 'Pretend part: a real mother almost never mates again. In the game she does, so you can choose again.',
       d_snail: 'A white snail shell. In summer these snails climb plants to keep off the hot sand.',
       d_gull: 'A silver gull feather. Gulls eat almost anything they find along the beach.',
-      win: 'In a few weeks, tiny spiderlings will hatch and leave the egg sac. Each one can already jump!',
+      win: 'Two broods of spiderlings! Each one is a tiny jumping spider, ready to hunt on its own.',
     },
     setup(g) {
-      const p = g.player;
-      p.jcd = 0; g.phase = 'watch'; g.males = []; g.spinT = 0; g.chased = 0; g.antT = 3;
-      // Three suitors: each with his own fan colouring (col) and dancing skill, in a random order
-      const skills = [0.45, 0.75, 1].sort(() => Math.random() - 0.5);
-      for (let i = 0; i < 3; i++) {
-        Game.later(2 + i * 3, () => {
-          if (g.phase !== 'watch') return;
-          const s = Game.spawnPoint(60, p, 220);
-          const m = { sprite: 'spider', kind: 'male', x: s.x, y: s.y, r: 14, scale: 1.6, angle: 0, n: i, col: i, skill: skills[i], beatT: Math.random(), step: i, fan: 0, wave: 0, bob: 0, flat: false };
-          g.males.push(m); g.items.push(m);
-          Sound.play('pick');
-          Game.fact('dance');
-          if (i === 0) { g.toasts.unshift({ text: 'A male is dancing for you! Walk up to the one you like and press Choose.', kind: 'hint' }); g.toastT = 0; Game.fact('scales'); }
-        });
+      g.player.jcd = 0;
+      g.broods = 0; g.raised = 0; g.chased = 0; g.gaveUp = 0; g.round = -1; g.lastStar = -1;
+      g.males = []; g.young = []; g.queue = []; g.ant = null; g.sac = null;
+      this.newRound(g);
+    },
+    // A new set of males, with one standout, every round and every play
+    newRound(g) {
+      g.round++;
+      for (const m of g.males) { const i = g.items.indexOf(m); if (i >= 0) g.items.splice(i, 1); }
+      this.makeSuitors(g);
+      g.males = []; g.arrivals = []; g.arriveT = SUITORS.first; g.chosen = null; g.phase = 'watch'; g.spinT = 0; g.watchT = 0; g.roundArrivals = 0;
+      if (g.round >= 1) {
+        Game.fact('pretend');
+        g.toasts.unshift({ text: 'New males are coming to dance for you! Choose a new mate.', kind: 'hint' }); g.toastT = 0;
       }
     },
-    update(g, dt, input) {
-      const p = g.player;
-      // Males face you and dance, each to his own beat: fan up, legs waving, drumming. The better dancer hits more beats.
+    makeSuitors(g) {
+      const S = SUITORS, n = sInt(S.n[0], S.n[1]), k = n - 1, plain = sShuffle(S.plain);
+      const vivid = S.vivid.filter(c => c !== g.lastStar), starCol = vivid[Math.floor(Math.random() * vivid.length)];
+      g.lastStar = starCol;
+      // sizes spread across the range, so the males look different from each other
+      const sizes = sShuffle(Array.from({ length: k }, (_, i) => S.scale[0] + (S.scale[1] - S.scale[0]) * (k === 1 ? 0.5 : i / (k - 1)) + (Math.random() - 0.5) * 0.06));
+      const used = [];
+      const routine = () => {
+        let r;
+        do { const len = sInt(3, 5); r = []; while (r.length < len) { const mv = S.moves[Math.floor(Math.random() * S.moves.length)]; if (mv !== r[r.length - 1]) r.push(mv); } } while (used.includes(r.join()));
+        used.push(r.join()); return r;
+      };
+      const make = (i, o) => Object.assign({ sprite: 'spider', kind: 'male', n: i, x: 0, y: 0, angle: 0, flat: false, moving: false,
+        fan: 0, wave: 0, bob: 0, dance: 0, step: -1, beatT: 0, state: 'wait', backT: 0, visits: 0 }, o, { r: 14 * o.scale / 1.6, beatNow: o.beat });
+      const others = [];
+      for (let i = 0; i < k; i++) others.push(make(i, { col: plain[i], scale: sizes[i], standout: false, beat: sRange(S.beat), skill: sRange(S.skill), routine: routine() }));
+      // the standout: the most vivid fan, a steady quick beat, every move and the all-at-once display; never first to arrive
+      const star = make(k, { col: starCol, scale: sRange(S.scaleStar), standout: true, beat: sRange(S.beatStar), skill: 1, routine: sShuffle(S.star) });
+      g.suitors = others.concat([star]);
+      g.queue = sShuffle(others);
+      g.queue.splice(1 + Math.floor(Math.random() * 2), 0, star);
+    },
+    arrive(g, m) {
+      const p = g.player, S = SUITORS;
+      g.queue.splice(g.queue.indexOf(m), 1);
+      let x = p.x, y = p.y;
+      for (let k = 0; k < 8; k++) {
+        const a = Math.random() * TAU, d = sRange(S.from);
+        x = clamp(p.x + Math.cos(a) * d, 30, World.w - 30); y = clamp(p.y + Math.sin(a) * d, 30, World.h - 30);
+        if (Math.hypot(x - p.x, y - p.y) >= 220) break;
+      }
+      Object.assign(m, { x, y, state: 'walkIn', walkT: 0, beatT: Math.random() * m.beat, step: -1, fan: 0, wave: 0, bob: 0, dance: 0 });
+      m.visits++; g.roundArrivals++;
+      g.arrivals.push(m.n); g.males.push(m); g.items.push(m);
+      Sound.play('pick');
+      if (!g.toldMales) { g.toldMales = true; g.toasts.unshift({ text: 'Males are coming to dance for you! Walk up to the one you like best and press Choose.', kind: 'hint' }); g.toastT = 0; Game.fact('scales'); }
+      if (g.roundArrivals === 2) Game.fact('fussy');
+    },
+    giveUp(g, m) {
+      m.state = 'leave'; g.gaveUp++;
+      Game.pop(m.x, m.y - 30, 'He gave up!', '#e0e0e0'); Sound.play('tap');
+    },
+    // Each male dances his own routine to his own beat. A sloppy dancer's beat drifts and he misses moves.
+    dance(m, dt) {
+      m.beatT += dt;
+      if (m.beatT < m.beatNow) return;
+      m.beatT -= m.beatNow;
+      m.beatNow = m.beat * (1 + (1 - m.skill) * 0.5 * (Math.random() * 2 - 1));
+      m.step = (m.step + 1) % m.routine.length;
+      if (Math.random() < m.skill) {
+        const hold = m.beat * (m.standout ? 0.9 : 0.55), mv = m.routine[m.step];
+        if (mv === 'full') { m.dance = hold; m.bob = hold; } else m[mv] = hold;   // full: fan, legs and drumming together
+      }
+    },
+    updateMales(g, dt) {
+      const p = g.player, S = SUITORS;
       for (const m of g.males) {
-        m.angle = Math.atan2(p.y - m.y, p.x - m.x);
-        for (const k of ['fan', 'wave', 'bob']) m[k] = Math.max(0, m[k] - dt);
-        m.beatT += dt;
-        if (m.beatT >= 1.2) { m.beatT -= 1.2; m.step = (m.step + 1) % 3; if (Math.random() < m.skill) m[['fan', 'wave', 'bob'][m.step]] = 0.95; }
-        if (dist(m, p) > 90) { m.x += Math.cos(m.angle) * 40 * dt; m.y += Math.sin(m.angle) * 40 * dt; }
-        if (m.leave) { m.x -= Math.cos(m.angle) * 160 * dt; m.y -= Math.sin(m.angle) * 160 * dt; }
-      }
-      g.males = g.males.filter(m => { if (m.leave && dist(m, p) > 500) { g.items.splice(g.items.indexOf(m), 1); return false; } return true; });
-      if (g.phase === 'watch') {
-        const m = nearest(g.males, p, 70);
-        setAction('Choose', !!m);
-        if (m && input.pressed) {
-          g.phase = 'sac'; g.chosen = m;
-          Sound.play('win'); Game.pop(m.x, m.y - 30, '♥', '#e8506a'); Game.fact('choose');
-          if (m.skill === 1) { Game.pop(m.x, m.y - 54, 'Good eye!', '#ffd23f'); Game.fact('judge'); }   // the best dancer
-          for (const o of g.males) if (o !== m) o.leave = true;
-          Game.later(2.5, () => { m.leave = true; });
-          g.toasts.unshift({ text: 'Good choice! Now go back to your silk retreat and hold Spin.', kind: 'hint' }); g.toastT = 0;
+        for (const k of ['fan', 'wave', 'bob', 'dance']) m[k] = Math.max(0, m[k] - dt);
+        const toHer = Math.atan2(p.y - m.y, p.x - m.x), d = dist(m, p);
+        m.moving = false;
+        if (m.state === 'walkIn') {
+          m.walkT += dt; m.angle = toHer;
+          if (d > S.stand) { m.x += Math.cos(toHer) * S.walk * dt; m.y += Math.sin(toHer) * S.walk * dt; m.moving = true; }
+          if (d < S.danceAt) { m.state = 'dance'; m.stay = sRange(m.standout ? S.stayStar : S.stay); Game.pop(m.x, m.y - 30, '♪', '#fff'); Game.fact('dance'); }
+          else if (m.walkT > S.walkMax && g.phase === 'watch') this.giveUp(g, m);
+        } else if (m.state === 'dance') {
+          m.angle = toHer;
+          if (d > S.stand + 10) { m.x += Math.cos(toHer) * S.walk * 0.5 * dt; m.y += Math.sin(toHer) * S.walk * 0.5 * dt; m.moving = true; }
+          this.dance(m, dt);
+          if (g.phase === 'watch' && (m.stay -= dt) <= 0) this.giveUp(g, m);
+        } else if (m.state === 'chosen') {
+          m.angle = toHer;
+          if ((m.leaveT -= dt) <= 0) m.state = 'gone';
+        } else if (m.state === 'leave' || m.state === 'gone') {
+          m.angle = toHer + Math.PI; m.x += Math.cos(m.angle) * S.leave * dt; m.y += Math.sin(m.angle) * S.leave * dt; m.moving = true;
         }
-        return;
+        if (m.state === 'walkIn' || m.state === 'dance') { m.x = clamp(m.x, 20, World.w - 20); m.y = clamp(m.y, 20, World.h - 20); }
       }
-      if (g.phase === 'sac') {
-        const home = Game.inHome();
-        setAction('Spin', home);
-        if (home && working(input)) {
-          g.spinT += work(input, dt); p.progress = g.spinT / 2;
-          if (g.spinT >= 2) {
-            g.phase = 'guard';
-            g.sac = { sprite: 'eggSac', kind: 'sac', x: g.home.x + 20, y: g.home.y, r: 12, scale: 1.4, angle: 0 };
-            g.items.push(g.sac);
-            Sound.play('score'); Game.pop(g.sac.x, g.sac.y - 24, 'Egg sac!', '#fff'); Game.fact('sac');
-            g.toasts.unshift({ text: 'Guard your eggs! Jump at ants that come near.', kind: 'hint' }); g.toastT = 0;
-          }
+      // two males never stand on top of each other
+      for (let i = 0; i < g.males.length; i++) for (let j = i + 1; j < g.males.length; j++) {
+        const a = g.males[i], b = g.males[j], dd = dist(a, b);
+        if (dd < 55 && dd > 0.01) { const k = (55 - dd) / 2 / dd, ux = (a.x - b.x) * k, uy = (a.y - b.y) * k; a.x += ux; a.y += uy; b.x -= ux; b.y -= uy; }
+      }
+      // a male who has walked away is gone for now; one who gave up comes back later
+      g.males = g.males.filter(m => {
+        if ((m.state === 'leave' || m.state === 'gone') && (dist(m, p) > S.gone || m.x < -40 || m.x > World.w + 40 || m.y < -40 || m.y > World.h + 40)) {
+          const i = g.items.indexOf(m); if (i >= 0) g.items.splice(i, 1);
+          if (m.state === 'leave' && g.phase === 'watch') { m.state = 'wait'; m.backT = sRange(S.back); g.queue.push(m); }
+          return false;
         }
-        return;
+        return true;
+      });
+    },
+    watch(g, dt, input) {
+      const p = g.player, S = SUITORS;
+      g.watchT += dt;
+      for (const q of g.queue) q.backT -= dt;
+      if ((g.arriveT -= dt) <= 0) {
+        const here = g.males.filter(q => q.state !== 'gone').length, next = g.queue.find(q => q.backT <= 0);
+        if (here < S.present && next) { this.arrive(g, next); g.arriveT = sRange(S.every); } else g.arriveT = 0.5;
       }
-      // Guarding: ants come one at a time toward the sac
+      const m = nearest(g.males.filter(q => q.state !== 'gone' && q.state !== 'chosen'), p, S.reach);
+      setAction('Choose', !!m);
+      if (m && input.pressed) this.choose(g, m);
+      else if (g.watchT > 45) { g.watchT = 0; Game.hint('Walk up to the male you like best and press Choose.'); }
+    },
+    choose(g, m) {
+      g.phase = 'sac'; g.chosen = m; g.spinT = 0;
+      m.state = 'chosen'; m.leaveT = 2.5;
+      for (const o of g.males) if (o !== m) o.state = 'gone';
+      g.queue = [];
+      Sound.play('win'); Game.pop(m.x, m.y - 30, '♥', '#e8506a'); Game.fact('choose');
+      if (m.standout) { Game.pop(m.x, m.y - 54, 'Good eye!', '#ffd23f'); Game.fact('judge'); }   // the best dancer
+      g.toasts.unshift({ text: 'Good choice! Now go back to your silk retreat and hold Spin.', kind: 'hint' }); g.toastT = 0;
+    },
+    laySac(g) {
+      if (g.sac) { const i = g.items.indexOf(g.sac); if (i >= 0) g.items.splice(i, 1); }   // last brood's empty sac
+      g.phase = 'guard';
+      g.sac = { sprite: 'eggSac', kind: 'sac', x: g.home.x + 20, y: g.home.y, r: 12, scale: 1.4, angle: 0 };
+      g.items.push(g.sac);
+      g.eggs = sInt(BROOD.eggs[0], BROOD.eggs[1]); g.hatchT = BROOD.hatch; g.guardT = 0; g.antT = BROOD.antFirst; g.ant = null;
+      Sound.play('score'); Game.pop(g.sac.x, g.sac.y - 24, g.eggs + ' eggs!', '#fff'); Game.fact('sac');
+      g.toasts.unshift({ text: 'Guard your eggs until they hatch! Jump at ants that come near.', kind: 'hint' }); g.toastT = 0;
+      // the spiderlings' looks, made a little at a time while she guards (3D only)
+      if (typeof Render3D !== 'undefined' && Render3D.ok && typeof SpriteCache !== 'undefined' && SpriteCache.is3D('spiderling')) {
+        const px = (Game.dpr || 1) * (Game.zoom || 1) * 0.55;
+        for (let b = 0; b < 8; b++) for (let i = 0; i < 8; i++) SpriteCache.queue.push({ name: 'spiderling', e: { moving: true, angle: b * TAU / 8 }, t: (i + 0.5) / 8 * TAU / 16, px });
+      }
+    },
+    guard(g, dt, input) {
+      const p = g.player;
+      g.hatchT -= dt; g.guardT += dt;
+      if (g.guardT > 8) Game.fact('hungry');
+      if (g.hatchT <= 0) { this.hatch(g); return; }
+      // Ants come one at a time toward the sac
       if (!g.ant) {
         g.antT -= dt;
         if (g.antT <= 0) {
-          const a = Math.random() * TAU;
-          g.ant = { sprite: 'smallAnt', kind: 'ant', x: g.sac.x + Math.cos(a) * 380, y: g.sac.y + Math.sin(a) * 380, r: 10, scale: 1.4, angle: 0, state: 'sit' };
-          g.ant.x = clamp(g.ant.x, 30, World.w - 30); g.ant.y = clamp(g.ant.y, 30, World.h - 30);
+          const a = Math.random() * TAU, d = sRange(BROOD.antFrom);
+          g.ant = { sprite: 'smallAnt', kind: 'ant', x: clamp(g.sac.x + Math.cos(a) * d, 30, World.w - 30), y: clamp(g.sac.y + Math.sin(a) * d, 30, World.h - 30), r: 10, scale: 1.4, angle: 0, state: 'sit' };
           g.items.push(g.ant); Game.fact('ant');
         }
       }
       const ant = g.ant;
       if (ant) {
         if (ant.flee) {
-          ant.x += Math.cos(ant.angle) * 200 * dt; ant.y += Math.sin(ant.angle) * 200 * dt;
+          const sp = ant.carry ? 110 : 200;
+          ant.x += Math.cos(ant.angle) * sp * dt; ant.y += Math.sin(ant.angle) * sp * dt; ant.moving = true;
           ant.flee -= dt;
-          if (ant.flee <= 0) { g.items.splice(g.items.indexOf(ant), 1); g.ant = null; g.antT = 3 + Math.random() * 2; }
+          if (ant.flee <= 0) { const i = g.items.indexOf(ant); if (i >= 0) g.items.splice(i, 1); g.ant = null; g.antT = sRange(BROOD.antEvery); }
         } else {
           ant.angle = Math.atan2(g.sac.y - ant.y, g.sac.x - ant.x);
           if (dist(ant, g.sac) > 20) { ant.x += Math.cos(ant.angle) * 45 * dt; ant.y += Math.sin(ant.angle) * 45 * dt; ant.moving = true; }
+          else {   // it got there: it takes an egg and runs
+            if (g.eggs > 1) g.eggs--;
+            ant.carry = true; ant.flee = 2.5; ant.angle += Math.PI;
+            Game.pop(g.sac.x, g.sac.y - 24, 'Stolen!', '#e8506a'); Sound.play('caught');
+            if (!g.toldSteal) { g.toldSteal = true; g.toasts.unshift({ text: 'An ant stole an egg! Jump at the ants before they reach your sac.', kind: 'hint' }); g.toastT = 0; }
+          }
         }
       }
       // Jump at the ant to scare it off
@@ -1028,19 +1151,73 @@ Object.assign(Missions, {
         g.chased++; Game.pop(hit.x, hit.y - 20, 'Shoo!', '#ffd23f'); Game.fact('guard');
       }
     },
+    // The sac opens and the spiderlings run off in every direction
+    hatch(g) {
+      g.phase = 'hatch'; g.hatchShow = BROOD.scatter; g.broods++; g.sac.state = 'open';
+      if (g.ant) { const i = g.items.indexOf(g.ant); if (i >= 0) g.items.splice(i, 1); g.ant = null; }
+      g.player.jump = null; g.player.hop = 0;
+      for (let i = 0; i < g.eggs; i++) {
+        const y = { sprite: 'spiderling', kind: 'young', x: g.sac.x, y: g.sac.y, r: 4, scale: 0.55, angle: i / g.eggs * TAU + Math.random() * 0.4, moving: false, speed: 75 + Math.random() * 30, delay: Math.random() * 0.5 };
+        g.items.push(y); g.young.push(y);
+      }
+      g.raised += g.eggs;
+      Sound.play('score'); Game.pop(g.sac.x, g.sac.y - 30, g.eggs + ' spiderlings!', '#ffd23f'); Game.burst(g.sac.x, g.sac.y, '#f4f2ea', 14); Game.fact('hatch');
+    },
+    updateYoung(g, dt) {
+      if (!g.young.length) return;
+      g.young = g.young.filter(y => {
+        if (y.delay > 0) { y.delay -= dt; return true; }
+        y.moving = true; y.x += Math.cos(y.angle) * y.speed * dt; y.y += Math.sin(y.angle) * y.speed * dt;
+        if (dist(y, g.sac) > 240 || y.x < -20 || y.y < -20 || y.x > World.w + 20 || y.y > World.h + 20) { const i = g.items.indexOf(y); if (i >= 0) g.items.splice(i, 1); return false; }
+        return true;
+      });
+    },
+    update(g, dt, input) {
+      const p = g.player;
+      this.updateMales(g, dt);
+      this.updateYoung(g, dt);
+      if (g.phase === 'watch') { this.watch(g, dt, input); return; }
+      if (g.phase === 'sac') {
+        const home = Game.inHome();
+        setAction('Spin', home);
+        if (home && working(input)) {
+          g.spinT += work(input, dt); p.progress = g.spinT / 2;
+          if (g.spinT >= 2) this.laySac(g);
+        }
+        return;
+      }
+      if (g.phase === 'hatch') {
+        setAction('Choose', false);
+        if ((g.hatchShow -= dt) <= 0) { g.score = g.broods; this.newRound(g); }
+        return;
+      }
+      this.guard(g, dt, input);
+    },
     locked(g) { return !!g.player.jump; },
-    drawExtra(ctx, g) { drawSilk(ctx, g.player); },
+    drawExtra(ctx, g) {
+      drawSilk(ctx, g.player);
+      if (g.phase === 'guard' && g.sac) {   // how long until the eggs hatch
+        const rr = 30, k = 1 - Math.max(0, g.hatchT) / BROOD.hatch;
+        ctx.beginPath(); ctx.arc(g.sac.x, g.sac.y, rr, 0, TAU); ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(g.sac.x, g.sac.y, rr, -Math.PI / 2, -Math.PI / 2 + TAU * k); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
+      }
+      const ant = g.ant;
+      if (ant && ant.carry) ell(ctx, ant.x + Math.cos(ant.angle) * 13, ant.y + Math.sin(ant.angle) * 13, 2.6, 2.4, '#f6eed8');   // the stolen egg
+    },
     goalPoint(g) {
       if (g.phase === 'sac') return g.home;
-      if (g.phase === 'guard' && g.ant && !g.ant.flee) return g.ant;
-      return null;
+      if (g.phase === 'guard') { if (g.ant && !g.ant.flee) return g.ant; return dist(g.sac, g.player) > 150 ? g.sac : null; }
+      return null;   // while the males dance, the choice is hers
     },
     hud(g) {
-      if (g.phase === 'watch') setHud('Choose a male', g.males.length + ' dancing');
-      else if (g.phase === 'sac') setHud('Spin an egg sac at home', '');
-      else setHud('Ants chased: ' + g.chased + ' / ' + this.goal, '');
+      const n = g.phase === 'hatch' ? g.broods : g.broods + 1, brood = n > this.goal ? 'Broods: ' + g.broods : 'Brood ' + n + ' of ' + this.goal;
+      if (g.phase === 'watch') setHud('Choose a mate', g.males.filter(m => m.state === 'dance').length + ' dancing');
+      else if (g.phase === 'sac') setHud('Spin an egg sac at home', brood);
+      else if (g.phase === 'guard') setHud('Guard your ' + g.eggs + ' eggs', brood);
+      else setHud('Spiderlings!', brood);
     },
-    won(g) { return g.chased >= this.goal; },
+    endLine(g) { return 'You raised ' + g.raised + ' spiderlings in ' + g.broods + ' broods.'; },
+    won(g) { return g.score >= this.goal; },
   },
 });
 Bugs.find(b => b.id === 'dragonfly').stages.push('skimmerF');
@@ -1073,6 +1250,7 @@ const NOT_READY = {
   termite: (g) => g.player.carry ? 'Take it to the mound first! Then chew more wood.' : 'Walk right up to a wood chip or a mud patch, then press Chew.',
   snail: () => 'Crawl onto a leaf to graze. Seal is for a sunny patch.',
   mosquito: (g) => g.player.blood >= 1 ? 'Find the water to lay your eggs.' : 'Fly to an arm or a leg first.',
+  spiderF: (g) => g.phase === 'watch' ? 'Walk right up to a male, then press Choose.' : g.phase === 'sac' ? 'Go home to your silk retreat, then hold Spin.' : '',
 };
 for (const id in NOT_READY) if (Missions[id]) Missions[id].notReady = NOT_READY[id];
 finishMissions();

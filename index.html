@@ -48,7 +48,7 @@
       <button id="quizBtn">Bug quiz</button>
       <button id="installBtn" class="secondary" hidden>Install app</button>
     </div>
-    <p class="version">Version 3.13 · released 30 October 2026</p>
+    <p class="version">Version 3.14 · released 1 November 2026</p>
   </section>
 
   <section id="bug" class="screen">
@@ -89,7 +89,6 @@
       <button id="actionBtn"></button>
       <div id="tools" hidden></div>
     </div>
-    <p class="rotate">Turn your phone sideways for a bigger view.</p>
   </section>
 
   <section id="end" class="screen">
@@ -213,6 +212,14 @@
   </section>
 
 </main>
+<div id="turn" hidden>
+  <svg viewBox="0 0 200 200" aria-hidden="true">
+    <path class="turnArrow" d="M150 52 A70 70 0 0 1 166 120" />
+    <path class="turnArrow" d="M158 112 L166 124 L176 112" />
+    <g class="turnPhone"><rect x="70" y="40" width="60" height="110" rx="10" /><rect class="turnScreen" x="77" y="52" width="46" height="84" rx="3" /><circle cx="100" cy="143" r="3.5" /></g>
+  </svg>
+  <p>Turn your phone sideways to play.</p>
+</div>
 <script src="js/sprites.js"></script>
 <script src="js/textures.js"></script>
 <script src="js/render3d.js"></script>
@@ -223,6 +230,7 @@
 <script src="js/art-ground.js"></script>
 <script src="js/art-world.js"></script>
 <script src="js/engine.js"></script>
+<script src="js/orient.js"></script>
 <script src="js/sprite-cache.js"></script>
 <script src="js/media.js"></script>
 <script src="js/mic.js"></script>

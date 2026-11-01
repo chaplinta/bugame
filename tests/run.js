@@ -33,13 +33,37 @@ test('map, pins, bug pages, Bug Book load without errors', async (b) => {
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
-test('phone portrait shows place list and rotate tip', async (b) => {
-  const p = await openGame(b, { width: 390, height: 844 });
-  check(await p.isVisible('#placeList'), 'place list hidden');
-  await p.locator('#placeList button').first().click();
+test('a phone held upright asks to turn sideways and the game waits', async (b) => {
+  // a touch phone held upright: the cover, and no time passes in the level or on the day clock
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const p = await ctx.newPage(); p.errors = []; p.on('pageerror', (e) => p.errors.push(e.message));
+  await p.goto(FILE_URL);
+  check(await p.isVisible('#turn') && await p.evaluate(() => Orient.covered && document.documentElement.classList.contains('turn')), 'no turn-sideways cover on a phone held upright');
+  await startMission(p, 'ant', { noNet: true, noPred: true });
+  const t0 = await p.evaluate(() => [Game.g.t, Night.elapsed]);
+  await p.waitForTimeout(1300);
+  const t1 = await p.evaluate(() => [Game.g.t, Night.elapsed]);
+  check(t1[0] === t0[0] && t1[1] === t0[1], 'time passed while the phone was upright: ' + JSON.stringify([t0, t1]));
+  // turned sideways: the cover goes and the level runs
+  await p.setViewportSize({ width: 844, height: 390 });
+  await p.waitForTimeout(400);
+  check(!(await p.isVisible('#turn')) && await p.evaluate((t) => !Orient.covered && Game.g.t > t, t1[0]), 'the cover stayed or the level did not run after turning sideways');
+  // Start asks for full screen and landscape; where both are refused nothing breaks
+  await p.evaluate(() => { document.documentElement.requestFullscreen = () => Promise.reject(new Error('no')); if (screen.orientation) screen.orientation.lock = () => Promise.reject(new Error('no')); window.locked = 0; const l = Orient.lock.bind(Orient); Orient.lock = () => { window.locked++; l(); }; });
+  await p.click('#menuBtn');
+  await p.locator('.pin').first().click();
   await p.click('#bugStart');
-  check(await p.isVisible('.rotate'), 'rotate tip hidden');
-  check(await p.isVisible('#actionBtn'), 'action button hidden');
+  await p.waitForTimeout(300);
+  check(await p.evaluate(() => window.locked === 1 && Game.running), 'Start did not ask for landscape, or it broke the start');
+  check(p.errors.length === 0, p.errors.join('; '));
+  await ctx.close();
+  // a desktop window that is tall and narrow is never covered, and keeps the place list
+  const q = await openGame(b, { width: 390, height: 844 });
+  check(!(await q.isVisible('#turn')) && await q.isVisible('#placeList'), 'a narrow desktop window was covered or lost the place list');
+  await q.locator('#placeList button').first().click();
+  await q.click('#bugStart');
+  check(await q.isVisible('#actionBtn'), 'action button hidden');
+  check(q.errors.length === 0, q.errors.join('; '));
 });
 
 test('phone landscape: touch-drag moves the bug and the action button fits', async (b) => {
@@ -73,15 +97,43 @@ if (!quick) {
   }
 }
 
-test('keep exploring resumes play after winning', async (b) => {
+test('keep exploring: offered only where the bug can go on, and there it moves', async (b) => {
   const p = await openGame(b);
-  await startMission(p, 'ant', { noNet: true, noPred: true });
-  await forceWin(p);
-  check(await p.isVisible('#endExplore'), 'no keep exploring button');
-  await p.click('#endExplore');
-  await p.keyboard.down('ArrowRight'); await p.waitForTimeout(300); await p.keyboard.up('ArrowRight');
-  check(await p.evaluate(() => Game.running && Game.g.player.moving !== undefined), 'not running');
-  check(await p.isVisible('#play.active'), 'not on play screen');
+  const bad = [];
+  for (const id of MISSIONS) {
+    await startMission(p, id, { noNet: true, noPred: true });
+    if (id === 'flight') await p.waitForFunction(() => Game.g.fl3d || Game.g.noGL, null, { timeout: 30000 });   // the 3D flight loads first
+    await p.evaluate(() => { Game.timeScale = 8; });
+    try { await forceWin(p); } catch (e) { bad.push(id + ': never reached the end screen'); await p.evaluate(() => { Game.stop(); buildMap(); }); continue; }
+    const want = await p.evaluate(() => { const m = currentMission, g = Game.g; return typeof m.explore === 'function' ? m.explore(g) : m.explore !== false; });
+    const shown = await p.isVisible('#endExplore');
+    if (shown !== want) bad.push(id + ': Keep exploring ' + (shown ? 'shown' : 'hidden') + ' but explore is ' + want);
+    if (shown) {
+      await p.click('#endExplore');
+      const moved = await p.evaluate(() => {
+        const g = Game.g, m = g.mission, p = g.player;
+        if (m.pointerOnly) return true;
+        Game.timeScale = 1;
+        const at = () => m.id === 'flight' && g.fl ? [g.fl.x, g.fl.z] : [p.x, p.y];   // the flight moves its own 3D butterfly
+        const tryMove = () => {
+          for (const k of ['arrowright', 'arrowleft', 'arrowdown', 'arrowup']) {
+            const a = at();
+            Input.keys.add(k); for (let i = 0; i < 20; i++) Game.update(1 / 60); Input.keys.delete(k);
+            const b = at(); if (Math.hypot(b[0] - a[0], b[1] - a[1]) > (m.id === 'flight' ? 1 : 3)) return true;   // the flight's units are metres, not pixels
+          }
+          return false;
+        };
+        if (tryMove()) return true;
+        Input.pressed = true; Game.update(1 / 60); Input.pressed = false;   // the sandhopper's burrow: Hop out first
+        for (let i = 0; i < 30; i++) Game.update(1 / 60);
+        return tryMove();
+      });
+      if (!moved) bad.push(id + ': the bug cannot move after Keep exploring');
+    }
+    await p.evaluate(() => { Game.stop(); buildMap(); });
+  }
+  check(bad.length === 0, bad.join(' | '));
+  check(p.errors.length === 0, p.errors.join('; '));
 });
 
 test('finishing a first stage unlocks the next', async (b) => {
@@ -119,7 +171,127 @@ test('Pupate button works anywhere once the caterpillar is grown', async (b) => 
   await p.waitForTimeout(1000);
   check(await p.evaluate(() => document.getElementById('actionBtn').classList.contains('ready')), 'Pupate not ready');
   await p.click('#actionBtn');
+  await p.waitForTimeout(100);
+  // the button says what is happening: never a green Pupate that does nothing
+  check(await p.evaluate(() => { const b = document.getElementById('actionBtn'); return /Pupating/.test(b.textContent) && !b.classList.contains('ready'); }), 'the button still offers Pupate while pupating');
   await p.waitForSelector('#end.active', { timeout: 8000 });
+  check(!(await p.isVisible('#endExplore')), 'a chrysalis was offered Keep exploring');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+// The female peacock spider: stepping the mission directly, as the circus test does
+const SPIDER_STEP = `window.step = (sec, I) => { const g = Game.g, m = g.mission; I = I || { pressed: false, held: false }; for (let i = 0; i < Math.round(sec * 60); i++) { m.update(g, 1 / 60, I); I.pressed = false; } };`;
+
+test('female peacock spider: a varied set of males with one standout, a new set every round', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'spiderF', { noNet: true, noPred: true });
+  await p.evaluate(SPIDER_STEP);
+  const r = await p.evaluate(() => {
+    const g = Game.g, m = g.mission;
+    const sig = (s) => s.map(q => q.col + '/' + q.scale.toFixed(2) + '/' + q.routine.join('-') + '/' + q.beat.toFixed(2)).join(' ');
+    const look = (s) => ({ n: s.length, stars: s.filter(q => q.standout).length, cols: new Set(s.map(q => q.col)).size, sizes: new Set(s.map(q => q.scale.toFixed(2))).size, routines: new Set(s.map(q => q.routine.join('-'))).size,
+      star: s.filter(q => q.standout).map(q => ({ skill: q.skill, full: q.routine.includes('full'), col: q.col }))[0], othersFull: s.some(q => !q.standout && q.routine.includes('full')), palettesOk: s.every(q => q.col >= 0 && q.col < SPIDER_COLS.length), queueFirstStar: g.queue[0].standout });
+    const one = look(g.suitors), s1 = sig(g.suitors);
+    m.newRound(g);
+    const two = look(g.suitors), s2 = sig(g.suitors);
+    // every palette and the opened sac draw in 2D
+    const c = document.createElement('canvas'); c.width = c.height = 120; const ctx = c.getContext('2d'); const errs = [];
+    for (let k = 0; k < SPIDER_COLS.length; k++) for (const o of [{}, { dance: 1 }, { fan: 1 }, { wave: 1, bob: 1 }]) { try { ctx.setTransform(1, 0, 0, 1, 60, 60); Sprites.spider(ctx, Object.assign({ col: k }, o), 0.4); } catch (e) { errs.push(k + ' ' + e.message); } }
+    try { Sprites.eggSac(ctx, { state: 'open' }, 0); } catch (e) { errs.push('sac ' + e.message); }
+    return { one, two, differ: s1 !== s2, starColChanged: one.star.col !== two.star.col, errs, round: g.round, pretend: g.seen.has('pretend') };
+  });
+  for (const k of ['one', 'two']) {
+    const s = r[k];
+    check(s.n >= 5 && s.n <= 6 && s.stars === 1 && s.cols === s.n && s.sizes >= 4 && s.routines >= s.n - 1 && s.palettesOk, 'the suitors ' + k + ': ' + JSON.stringify(s));
+    check(s.star.skill === 1 && s.star.full && !s.othersFull && !s.queueFirstStar && [0, 3, 4].includes(s.star.col), 'the standout ' + k + ': ' + JSON.stringify(s));
+  }
+  check(r.differ && r.starColChanged && r.round === 1 && r.pretend, 'the next round is not a new set: ' + JSON.stringify(r));
+  check(r.errs.length === 0, r.errs.join('; '));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('female peacock spider: males come, dance, give up and come back', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'spiderF', { noNet: true, noPred: true });
+  await p.evaluate(SPIDER_STEP);
+  const r = await p.evaluate(() => {
+    const g = Game.g, p = g.player;
+    let most = 0, starAt = null, danced = 0;
+    const seenLeave = new Set(), removed = new Set();
+    for (let s = 0; s < 120 * 4; s++) {
+      step(0.25);
+      most = Math.max(most, g.males.filter(q => q.state !== 'gone').length);
+      for (const q of g.males) { if (q.state === 'leave') seenLeave.add(q); if (q.state === 'dance') danced++; }
+      for (const q of seenLeave) if (!g.items.includes(q)) removed.add(q);
+      if (starAt === null && g.males.some(q => q.standout)) starAt = s * 0.25;
+    }
+    return { most, starAt, firstIsStar: g.suitors.find(q => q.n === g.arrivals[0]).standout, gaveUp: g.gaveUp, removed: removed.size, back: g.suitors.filter(q => q.visits >= 2).length, danced, fussy: g.seen.has('fussy'), dance: g.seen.has('dance'), phase: g.phase };
+  });
+  check(r.most <= 3 && r.most >= 2, 'males on screen at once: ' + JSON.stringify(r));
+  check(!r.firstIsStar && r.starAt !== null && r.starAt <= 25, 'the standout should come, but not first: ' + JSON.stringify(r));
+  check(r.gaveUp >= 3 && r.removed >= 2 && r.back >= 2 && r.danced > 0 && r.phase === 'watch', 'males did not come and go: ' + JSON.stringify(r));
+  check(r.fussy && r.dance, 'the dance and fussy facts: ' + JSON.stringify(r));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('female peacock spider: choose the standout, guard the eggs from ants, they hatch, then a new mate and two broods win', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'spiderF', { noNet: true, noPred: true });
+  await p.evaluate(SPIDER_STEP);
+  // choose the standout once he is dancing
+  const c = await p.evaluate(() => {
+    const g = Game.g, p = g.player;
+    let n = 0; while (!g.males.some(q => q.standout && q.state === 'dance') && n++ < 400) step(0.1);
+    const star = g.males.find(q => q.standout);
+    p.x = star.x - 40; p.y = star.y;
+    step(1 / 60, { pressed: true, held: true });
+    return { phase: g.phase, judge: g.seen.has('judge'), chosen: g.chosen === star, others: g.males.filter(q => q !== star).every(q => q.state === 'gone'), queue: g.queue.length };
+  });
+  check(c.phase === 'sac' && c.judge && c.chosen && c.others && c.queue === 0, 'choosing the standout: ' + JSON.stringify(c));
+  // spin at home, then an ant steals an egg, and a shooed ant takes none
+  const s = await p.evaluate(() => {
+    const g = Game.g, p = g.player;
+    p.x = g.home.x; p.y = g.home.y;
+    step(2.5, { pressed: false, held: true });
+    const out = { phase: g.phase, eggs: g.eggs, sac: !!g.sac && g.items.includes(g.sac) };
+    g.antT = 0; step(1 / 60);
+    g.ant.x = g.sac.x + 22; g.ant.y = g.sac.y; step(0.1);
+    out.stolen = out.eggs - g.eggs; out.carry = !!g.ant.carry;
+    step(3);   // the thief runs off with it
+    const before = g.eggs;
+    g.antT = 0; step(1 / 60);
+    g.ant.x = g.sac.x + 100; g.ant.y = g.sac.y; p.x = g.sac.x; p.y = g.sac.y;
+    step(1 / 60, { pressed: true, held: true }); step(0.6);
+    out.chased = g.chased; out.kept = g.eggs === before;
+    return out;
+  });
+  check(s.phase === 'guard' && s.sac && s.eggs >= 8 && s.eggs <= 12 && s.stolen === 1 && s.carry && s.chased === 1 && s.kept, 'the egg sac and the ants: ' + JSON.stringify(s));
+  // the eggs hatch: as many spiderlings as eggs run off, the sac is open, then a new round
+  const h = await p.evaluate(() => {
+    const g = Game.g;
+    g.hatchT = 0.01; step(1 / 60);
+    const out = { phase: g.phase, young: g.items.filter(i => i.kind === 'young').length, eggs: g.eggs, open: g.sac.state === 'open', broods: g.broods, hatch: g.seen.has('hatch') };
+    step(5);
+    Object.assign(out, { left: g.items.filter(i => i.kind === 'young').length, phase2: g.phase, round: g.round, score: g.score, pretend: g.seen.has('pretend'), newMales: g.suitors.length >= 5 && g.queue.length + g.males.length === g.suitors.length });
+    return out;
+  });
+  check(h.phase === 'hatch' && h.young === h.eggs && h.open && h.broods === 1 && h.hatch, 'the hatch: ' + JSON.stringify(h));
+  check(h.left === 0 && h.phase2 === 'watch' && h.round === 1 && h.score === 1 && h.pretend && h.newMales, 'after the hatch: ' + JSON.stringify(h));
+  // the second brood, quickly: any male, spin, hatch; two broods win, and Keep exploring carries on
+  await p.evaluate(() => {
+    const g = Game.g, p = g.player;
+    let n = 0; while (!g.males.some(q => q.state === 'dance') && n++ < 400) step(0.1);
+    const m = g.males.find(q => q.state === 'dance'); p.x = m.x - 40; p.y = m.y;
+    step(1 / 60, { pressed: true, held: true });
+    p.x = g.home.x; p.y = g.home.y; step(2.5, { pressed: false, held: true });
+    g.hatchT = 0.01; step(4);
+  });
+  await p.waitForSelector('#end.active', { timeout: 8000 });
+  const e = await p.evaluate(() => ({ stars: document.getElementById('endStars').textContent, line: document.getElementById('endUnlock').textContent, explore: getComputedStyle(document.getElementById('endExplore')).display !== 'none' }));
+  check(/★/.test(e.stars) && /spiderlings in 2 broods/.test(e.line) && e.explore, 'the end screen: ' + JSON.stringify(e));
+  await p.click('#endExplore');
+  await p.waitForTimeout(2500);
+  check(await p.evaluate(() => Game.running && Game.g.phase === 'watch' && Game.g.males.length > 0), 'Keep exploring did not bring new males');
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
@@ -531,8 +703,8 @@ test('real size: the bug is drawn life-size with a ruler, the coin match is save
   check(bad3.length === 0, bad3.join('; '));
   check(p3.errors.length === 0, p3.errors.join('; '));
   await p3.context().close();
-  // a touch screen starts from 160 dpi: the ant is 126 px long; a phone held upright has no sideways scroll
-  const ctx = await b.newContext({ viewport: { width: 360, height: 740 }, hasTouch: true });
+  // a touch screen starts from 160 dpi: the ant is 126 px long; a phone on its side has no sideways scroll
+  const ctx = await b.newContext({ viewport: { width: 740, height: 360 }, hasTouch: true });
   const q = await ctx.newPage(); q.errors = []; q.on('pageerror', (e) => q.errors.push(e.message));
   await q.goto(FILE_URL);
   await q.evaluate(() => { openBug(Bugs.find(b => b.id === 'ant'), 'ant'); });
@@ -596,8 +768,17 @@ test('bug quiz: eight picture questions a round, right and wrong answers explain
   const q = await openGame(b, { width: 360, height: 740 });
   await q.click('#quizBtn');
   const ph = await q.evaluate(() => ({ scrollX: document.documentElement.scrollWidth - window.innerWidth, h: Math.min(...[...document.querySelectorAll('.quizA')].map(b => b.getBoundingClientRect().height)), rows: new Set([...document.querySelectorAll('.quizA')].map(b => Math.round(b.getBoundingClientRect().top))).size }));
-  check(ph.scrollX <= 0 && ph.h >= 44 && ph.rows === 1, 'the quiz on a phone: ' + JSON.stringify(ph));
+  check(ph.scrollX <= 0 && ph.h >= 44 && ph.rows === 1, 'the quiz in a narrow window: ' + JSON.stringify(ph));
   check(q.errors.length === 0, q.errors.join('; '));
+  // a phone on its side (phones always play landscape): three answers across, no scroll sideways
+  const ctx = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true });
+  const r = await ctx.newPage(); r.errors = []; r.on('pageerror', (e) => r.errors.push(e.message));
+  await r.goto(FILE_URL);
+  await r.click('#quizBtn');
+  const pl = await r.evaluate(() => ({ scrollX: document.documentElement.scrollWidth - window.innerWidth, h: Math.min(...[...document.querySelectorAll('.quizA')].map(b => b.getBoundingClientRect().height)), rows: new Set([...document.querySelectorAll('.quizA')].map(b => Math.round(b.getBoundingClientRect().top))).size, covered: Orient.covered }));
+  check(pl.scrollX <= 0 && pl.h >= 44 && pl.rows === 1 && !pl.covered, 'the quiz on a phone on its side: ' + JSON.stringify(pl));
+  check(r.errors.length === 0, r.errors.join('; '));
+  await ctx.close();
 });
 
 test('the progress ring shows while munching', async (b) => {
@@ -733,8 +914,17 @@ test('3D sprites: a model renders with a shadow, light turns with the heading, t
     let along = 0, across = 0;
     for (let d = -5.5 * 8; d <= 4.5 * 8; d++) if (dark(ox - 8 + d, oy)) along++;      // the row through the dome's centre line
     for (let d = -4.5 * 8; d <= 4.5 * 8; d++) if (dark(ox - 8, oy + d)) across++;     // the column across it
-    return { ant: a && count(a.c), threeD: !!(a && a.threeD), different: a && b2 && a.c.toDataURL() !== b2.c.toDataURL(), bee: bee && count(bee.c), left, right, seam: { along, across }, stats: Render3D.stats };
+    // every fan palette renders from one shared spider (recoloured in pose), and col 0 comes back the same
+    const fans = SPIDER_COLS.map((_, k) => { const e = SpriteCache.image('spider', { dance: 1, col: k }, { px: 4, angle: 0 }); return e && e.threeD ? e.c.toDataURL() : null; });
+    SpriteCache.clear();
+    const again = SpriteCache.image('spider', { dance: 1, col: 0 }, { px: 4, angle: 0 });
+    const roots = [...Models.built.keys()].filter(k => k.startsWith('spider|')).length;
+    const sac = SpriteCache.image('eggSac', {}, { px: 4, angle: 0 }), sacOpen = SpriteCache.image('eggSac', { state: 'open' }, { px: 4, angle: 0 });
+    return { ant: a && count(a.c), threeD: !!(a && a.threeD), different: a && b2 && a.c.toDataURL() !== b2.c.toDataURL(), bee: bee && count(bee.c), left, right, seam: { along, across }, stats: Render3D.stats,
+      fans: { all3D: fans.every(Boolean), distinct: new Set(fans).size, same0: !!again && again.c.toDataURL() === fans[0], roots }, sac: { open3D: !!(sacOpen && sacOpen.threeD), differs: !!(sac && sacOpen) && sac.c.toDataURL() !== sacOpen.c.toDataURL() } };
   });
+  check(r.fans.all3D && r.fans.distinct === 8 && r.fans.same0 && r.fans.roots <= 4, 'the spider palettes in 3D: ' + JSON.stringify(r.fans));
+  check(r.sac.open3D && r.sac.differs, 'the opened egg sac in 3D: ' + JSON.stringify(r.sac));
   check(r.seam.along > 40 && r.seam.along > r.seam.across * 1.5, 'ladybird seam does not run along the back: ' + JSON.stringify(r.seam));
   check(r.threeD, 'ant was not rendered in 3D');
   check(r.ant.body > r.ant.px * 0.03, 'ant body too small: ' + JSON.stringify(r.ant));

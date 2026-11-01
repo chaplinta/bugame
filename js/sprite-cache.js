@@ -81,7 +81,7 @@ const SpriteCache = {
     const nb = reg.buckets || 8, a = e.angle || 0, bucket = this.bucketOf(reg, a), P = this.P(px);
     const vk = this.keyOf(reg, e, t, threeD);
     if (vk === null) return false;   // this one wants to be drawn live right now
-    const key = name + '|' + vk + '|' + bucket + '|' + P, near = name + '|' + bucket + '|' + P;
+    const key = name + '|' + vk + '|' + bucket + '|' + P, near = name + '|' + (threeD && reg.model.near ? reg.model.near(e) : '') + '|' + bucket + '|' + P;
     let ent = this.entries.get(key);
     // 3D renders are rationed per frame: past the budget, reuse the last look of this heading for a frame
     if (!ent && threeD && this.frameRenders >= this.FRAME_RENDERS && this.recent.get(near)) ent = this.recent.get(near);

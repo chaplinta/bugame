@@ -32,7 +32,8 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 - **Storybook art**: everything is drawn in code (`js/art.js` adds soft shading, shadows, grain and vignette; `js/art-bugs.js` has the hand-drawn bugs).
 - **Gentle first stages**: on a bug's first stage you can't run out of hearts. Later stages end when all 3 hearts are gone.
 - **Reach and feedback**: an action is ready from beside its target (a bug never has to stand on top of a leaf or a chip), tap targets in the building levels are finger-sized on phones, and pressing a button that can't act says why.
-- **Fills the screen**: the view is 600 tall and as wide as the screen's shape allows (960 to 1320), so a phone on its side or a laptop sees more of the world sideways instead of empty margins; a phone held upright keeps the 960-wide view with a tip to turn it. The map and the bug pages fit a phone on its side without scrolling.
+- **Fills the screen**: the view is 600 tall and as wide as the screen's shape allows (960 to 1320), so a phone on its side or a laptop sees more of the world sideways instead of empty margins; a desktop window narrower than it is tall keeps the 960-wide view. The map and the bug pages fit a phone on its side without scrolling.
+- **Always landscape**: phones and tablets play sideways. The installed app is set to landscape; Start (and the quiz, Paint and Real size) asks for full screen and locks the screen sideways where the browser allows it (Android). Where it can't (iPhones, a browser tab), holding the phone upright shows a picture asking to turn it, and the game waits: no time passes in the level or on the day clock.
 - **Bug Book**: every fact you've found, plus "???" for the ones still to find. Progress is saved in the browser.
 - **Sound**, **Read to me** (reads facts aloud) and **3D pictures** can be turned on or off on the map. The 3D pictures are small three.js models of every bug, bird, plant and prop, rendered with real shadows; on a device without WebGL (or with it turned off, or with `?no3d=1` in the address) the same things are drawn flat.
 - **Shout to buzz**: off until you turn it on. Then the microphone is a second action button in the levels that allow it: land on a flower as the blue-banded bee and shout BUZZ, or call like a motorbike frog at the night lake. It listens only while the game is running, on your device; nothing is recorded or sent anywhere. The button still works too.
@@ -58,7 +59,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 | Blue skimmer: nymph | Underwater, Herdsman Lake | grab wrigglers and tadpoles with your shooting jaw, jet away from the oblong turtle, then climb a reed and emerge |
 | Blue skimmer: adult (*Orthetrum caledonicum*) | Herdsman Lake | catch mosquitoes in the air; dart from the Australian hobby |
 | Blue skimmer: adult female | Herdsman Lake | catch mosquitoes for energy, then dip eggs into open water while a blue male guards you |
-| Peacock spider: adult female | Cottesloe dunes | watch three males dance (one keeps the beat best) and choose one, spin an egg sac, chase ants away from it |
+| Peacock spider: adult female | Cottesloe dunes | males come, dance and give up and leave, then come back: five or six each round, all different in size, fan colour and dance, with one standout; choose one, spin an egg sac, jump at ants before they steal eggs, watch the spiderlings hatch and run off, then choose a new mate for a second brood (that part is pretend: real mothers almost never mate twice) |
 | Painted lady: flying high (3D) | Above Bold Park | take off, fly to glowing flowers, land and sip; dodge a willie wagtail |
 | Sandhopper, female (Talitridae) | Port Beach, North Fremantle (side-on) | hop along the beach eating seaweed wrack, then get back to your burrow; dodge a silver gull and a red-capped plover |
 | Native garden (build your own) | Your backyard | paint soils and ponds, plant natives, add rocks, logs and nest boxes; 23 kinds of wildlife move in when the garden suits them; saved between visits |
@@ -73,6 +74,7 @@ When you change any game file, bump `VERSION` in `sw.js` so players get the upda
 ## Code
 
 - `js/engine.js`: loop, input, movement, predators, fact pop-ups
+- `js/orient.js`: always landscape (the full-screen lock and the turn-sideways picture)
 - `js/sprites.js`: the plain drawings of bugs, predators, plants and backgrounds (the base the art files build on)
 - `js/art.js`: shaded shapes (gradient, material texture, rim light, specular), the painted map and landmarks
 - `js/textures.js`: seamless material tiles made in code (chitin, hair, leaf, wing, scales, sand, soil, bark, caustics)
