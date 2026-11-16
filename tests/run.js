@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { launch, launchMedia, openGame, startMission, forceWin, serve, ROOT, MISSIONS, FILE_URL } = require('./helpers');
+const { launch, launchMedia, openGame, startMission, forceWin, settle, serve, ROOT, MISSIONS, FILE_URL } = require('./helpers');
 
 const quick = process.argv.includes('--quick');
 const BOT = fs.readFileSync(path.join(__dirname, 'bot.js'), 'utf8');
@@ -97,10 +97,11 @@ if (!quick) {
   }
 }
 
-test('keep exploring: offered only where the bug can go on, and there it moves', async (b) => {
+// Keep exploring, swept over every mission in two halves (each test has a time limit)
+async function exploreSweep(b, ids) {
   const p = await openGame(b);
   const bad = [];
-  for (const id of MISSIONS) {
+  for (const id of ids) {
     await startMission(p, id, { noNet: true, noPred: true });
     if (id === 'flight') await p.waitForFunction(() => Game.g.fl3d || Game.g.noGL, null, { timeout: 30000 });   // the 3D flight loads first
     await p.evaluate(() => { Game.timeScale = 8; });
@@ -134,7 +135,10 @@ test('keep exploring: offered only where the bug can go on, and there it moves',
   }
   check(bad.length === 0, bad.join(' | '));
   check(p.errors.length === 0, p.errors.join('; '));
-});
+}
+const HALF = Math.ceil(MISSIONS.length / 2);
+test('keep exploring: offered only where the bug can go on, and there it moves (first half)', (b) => exploreSweep(b, MISSIONS.slice(0, HALF)));
+test('keep exploring: offered only where the bug can go on, and there it moves (second half)', (b) => exploreSweep(b, MISSIONS.slice(HALF)));
 
 test('finishing a first stage unlocks the next', async (b) => {
   const p = await openGame(b);
@@ -379,6 +383,7 @@ test('bush fly: hitch a ride on the kangaroo, and a wagtail perched there catche
 test('frog chorus: calls in the gap count, the heron hears you, the others call in stereo', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'frog', { noNet: true, noPred: true });
+  await settle(p);
   await p.waitForFunction(() => Missions.frog.gap(Game.g), null, { timeout: 8000 });
   await p.keyboard.down('Space'); await p.waitForTimeout(800); await p.keyboard.up('Space');
   const r1 = await p.evaluate(() => ({ score: Game.g.score, sac: Game.g.seen.has('sac'), call: Game.g.seen.has('call'), rings: Game.g.rings.length }));

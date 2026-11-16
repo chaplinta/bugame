@@ -51,7 +51,12 @@ async function forceWin(page) {
     for (const o of [g.oly, g.cir]) if (o) { o.finished = true; o.doneT = 9; }   // an Olympics event or a circus act, over
     if (g.rooms) { g.mound = g.food = 99; g.rooms.push({ type: 'nursery', cells: [] }, { type: 'food', cells: [] }); }   // the sugar ant nest's four jobs
   });
-  await page.waitForSelector('#end.active', { timeout: 5000 });
+  await page.waitForSelector('#end.active', { timeout: 15000 });   // the win's confetti runs in game time, slow while a 3D level is still warming up
+}
+
+// Wait until the game runs smoothly (a 3D level builds its models in its first seconds), for tests that time things in real time.
+async function settle(page) {
+  await page.waitForFunction(() => new Promise((res) => { let n = 0, last = performance.now(); const f = (now) => { if (now - last > 60) n = 0; else n++; last = now; if (n >= 15) res(true); else requestAnimationFrame(f); }; requestAnimationFrame(f); }), null, { timeout: 30000 });
 }
 
 // Minimal static file server, so service-worker and install checks run over http.
@@ -75,4 +80,4 @@ const MISSIONS = ['ant', 'queen', 'bee', 'fly', 'caterpillar', 'butterfly', 'ter
   'cir_strong', 'cir_trapeze', 'cir_rope', 'cir_vanish', 'cir_water',
   'ldn_bee', 'ldn_wasp', 'ldn_mosquito', 'ldn_moth', 'ldn_stag'];
 
-module.exports = { launch, launchMedia, openGame, startMission, forceWin, serve, ROOT, FILE_URL, MISSIONS };
+module.exports = { launch, launchMedia, openGame, startMission, forceWin, settle, serve, ROOT, FILE_URL, MISSIONS };
