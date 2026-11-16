@@ -10,6 +10,7 @@
   function decide(g) {
     const p = g.player, m = g.mission, id = m.id;
     const near = (list) => nearest(list, p, 99999);
+    if (id.startsWith('ldn_')) return ldn(g, m, p);
     const pr = g.preds[0];
     if (pr && (pr.state === 'chase' || pr.state === 'alert') && dist(pr, p) < 170) return { goal: g.home, flee: true };
     let goal = null, act = false, hold = false;
@@ -208,6 +209,32 @@
       if (b) { const want = Math.atan2(b.y - p.y, b.x - p.x), off = Math.abs(CIR.adiff(want, p.angle)); goal = b; act = off < 0.5 && Math.hypot(p.vx, p.vy) < 120; }
     }
     return { goal, act, hold };
+  }
+
+  // London (side-on): hide when a hazard is due, else head for the next route point (the one the arrow shows) and
+  // hold or press at its task. Goals are the bug's middle; a walker just walks toward the point's x.
+  function ldn(g, m, p) {
+    const L = g.level, P = m.P, cy = p.y - P.hh / 2, h = g.hz;
+    const hideAt = (x) => {
+      let best = null, bd = 1e9;
+      for (const r of L.hides || []) { const c = { x: r[0] + r[2] / 2, y: r[1] + r[3] / 2 }, d = Math.abs(c.x - x); if (d < bd) { bd = d; best = c; } }
+      return best;
+    };
+    const aim = (pt) => P.walk ? { x: pt.x, y: cy } : pt;
+    const hunted = g.preds.some(pr => pr.state === 'alert' || pr.state === 'chase');
+    const train = h.trainT !== undefined && (h.trainT < (kidLike ? 2.6 : 3.2) || h.pass > 0);
+    if (hunted || train) { const c = hideAt(p.x); if (c) return { goal: aim(c), flee: hunted }; }
+    if (h.swat && h.swat.t < 1) {
+      const c = hideAt(p.x);
+      if (c && Math.abs(c.x - p.x) < 140) return { goal: c };
+      return { goal: { x: h.swat.x + (p.x >= h.swat.x ? 150 : -150), y: Math.max(120, h.swat.y - 70) } };
+    }
+    const w = m.waypoint(g), s = w.spot;
+    // A kid sometimes stops at the wrong flower (and meets a crab spider)
+    const here = g.spot;
+    if (kidLike && here && here.crab && here !== s && Math.random() < 0.15) return { hold: true };
+    if (s && here === s && s.verb) return s.hold ? { hold: true } : { goal: s, act: true };
+    return { goal: aim(w) };
   }
 
   const Bot = {

@@ -253,6 +253,12 @@ drawPerthMap = function (ctx, W, H) {
     ctx.fillStyle = i % 2 ? '#b5523a' : '#8a5a4a';
     ctx.beginPath(); ctx.moveTo(x - 2, y + 1); ctx.lineTo(x + 8, y - 7); ctx.lineTo(x + 18, y + 1); ctx.fill();
   }
+  // Perth Airport, east of the city: two runways, the terminal, and a little plane (tap it: London, js/ui.js)
+  ctx.save(); ctx.translate(785, 352);
+  for (const [a, len] of [[-0.55, 90], [0.35, 70]]) { ctx.save(); ctx.rotate(a); ctx.fillStyle = '#9a9890'; ctx.fillRect(-len / 2, -4, len, 8); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-len / 2 + 4, 0); ctx.lineTo(len / 2 - 4, 0); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); }
+  ctx.fillStyle = '#d8d4c8'; ctx.fillRect(14, 14, 20, 8); ctx.fillStyle = '#8a8a84'; ctx.fillRect(14, 22, 20, 2);
+  if (Sprites.jetPlane) { ctx.save(); ctx.translate(-6, -2); ctx.rotate(-0.55); ctx.scale(1.15, 1.15); Sprites.jetPlane(ctx); ctx.restore(); }
+  ctx.restore();
   // Labels
   ctx.textAlign = 'center';
   const label = (text, x, y, size, col) => {

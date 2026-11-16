@@ -42,8 +42,10 @@ function show(id) {
 }
 
 // Small bugs need a bigger icon to match the others.
-const ICON_SCALE = { bushFly: 2.2, termiteWorker: 1.6, butterfly: 1.3, mosquito: 2.4, sandhopper: 1.5 };
-const SIDE_VIEW = { sandhopper: true };   // drawn from the side, so not turned to face up
+const ICON_SCALE = { bushFly: 2.2, termiteWorker: 1.6, butterfly: 1.3, mosquito: 2.4, sandhopper: 1.5, bumblebee: 1.7, commonWasp: 1.7, ugMosquito: 2.6, tigerMoth: 1.5, stagBeetle: 1.1, londonIcon: 1.1 };
+const SIDE_VIEW = { sandhopper: true, bumblebee: true, commonWasp: true, ugMosquito: true, tigerMoth: true, stagBeetle: true, londonIcon: true };   // drawn from the side, so not turned to face up
+// A bug from a hidden place (London, js/london.js) shows up in the Bug Book and the parade only once it's found
+function known(bug) { return !bug.hub || Progress.hasSecret('s_' + bug.hub); }
 
 // A bug's picture on a canvas. o: extra sprite state (a painted design, a pose); remembered on the canvas for redraws.
 function portrait(canvas, sprite, size, o) {
@@ -97,7 +99,9 @@ function buildMap() {
   const pins = $('pins'), places = $('placeList');
   pins.innerHTML = '';
   places.innerHTML = '';
+  if (typeof Run !== 'undefined') Run.stop();   // back on the map: a London run is over
   for (const bug of Bugs) {
+    if (!bug.pin) continue;   // London has no pin: you fly there from the airport
     const b = document.createElement('button');
     b.className = 'pin';
     // The CSS clamps these, so a pin near the edge stays on the map.
@@ -138,7 +142,7 @@ function openBug(bug, missionId) {
   // Default: first unlocked stage not yet finished, else the last stage.
   let pick = missionId;
   if (!pick) {
-    pick = bug.stages[bug.stages.length - 1];
+    pick = bug.stages[bug.run ? 0 : bug.stages.length - 1];   // a run starts again from the beginning once it's all done
     for (let i = 0; i < bug.stages.length; i++) {
       if (Progress.unlocked(bug, i) && !Progress.stars(bug.stages[i])) { pick = bug.stages[i]; break; }
     }
@@ -167,7 +171,8 @@ function selectStage(id) {
   $('stagePlace').textContent = (bug.stages.length > 1 ? '' : m.stage + ' · ') + m.place + (viewTag(m) ? ' · ' + viewTag(m) + ' view' : '') + best;
   $('stageSex').textContent = m.sex || '';
   fillList($('stageFacts'), m.facts);
-  fillList($('stageHow'), m.gentle ? m.how.concat('You can\u2019t lose this one. If you get caught you just go home.') : m.how);
+  const gentleLine = bug.run ? 'You can\u2019t lose this one. If you get caught you go back to the last safe spot.' : 'You can\u2019t lose this one. If you get caught you just go home.';
+  fillList($('stageHow'), m.gentle ? m.how.concat(gentleLine) : m.how);
   $('sizeBtn').hidden = !(typeof Size !== 'undefined' && Size.of(m));   // Real size (js/size.js), for the stages that are a real bug
 }
 
@@ -208,6 +213,7 @@ Game.onWin = (g) => {
 };
 
 Game.onEnd = (won, g) => {
+  if (won && Run.next(currentMission, g)) return;   // a London run goes straight on to its next part
   const m = currentMission, bug = currentBug;
   const stars = won ? starsFor(m, g) : 0;
   const idx = bug.stages.indexOf(m.id);
@@ -224,9 +230,48 @@ Game.onEnd = (won, g) => {
   $('endExplore').style.display = explore ? '' : 'none';
   $('endExplore').classList.toggle('secondary', !!next);
   $('endAgain').classList.toggle('secondary', !!won && (!!next || explore));   // otherwise Play again is the main button
+  if (won && Run.on) {   // the end of a whole London run: every part's stars and facts
+    $('endTitle').textContent = 'You crossed London!';
+    $('endUnlock').textContent = 'Stars across London: ' + Run.stars + ' / ' + Run.parts * 3 + '.' + (Run.parts === bug.stages.length ? ' Five real London bugs in one day.' : '');
+    fillList($('endFacts'), Run.learned);
+    Run.on = false;
+  }
   show('end');
   if (won) Speech.say($('endTitle').textContent + ' ' + m.factText.win);
 };
+
+// A London run (js/london.js): Start on the London page plays every part from the one picked to the end. Between
+// parts a card says where you're going next; Go starts it with three fresh hearts. Only the Start button arms a run,
+// so a part started any other way (Play again, the tests) ends with its own end screen.
+const Run = {
+  on: false, learned: [], stars: 0, parts: 0, nextId: null,
+  arm(bug) { this.on = !!(bug && bug.run); this.learned = []; this.stars = 0; this.parts = 0; this.hide(); },
+  stop() { this.on = false; this.hide(); },
+  hide() { $('runCard').hidden = true; $('actionBtn').style.visibility = ''; },
+  collect(m, g) { for (const f of g.learned) if (!this.learned.includes(f)) this.learned.push(f); this.stars += starsFor(m, g); this.parts++; },
+  next(m, g) {
+    if (!this.on || !currentBug || !currentBug.run) return false;
+    this.collect(m, g);
+    const nid = currentBug.stages[currentBug.stages.indexOf(m.id) + 1];
+    if (!nid) return false;   // the last part: the end screen shows the whole run
+    this.nextId = nid;
+    const text = (typeof LDN_NEXT !== 'undefined' && LDN_NEXT[nid]) || 'Next: ' + Missions[nid].stage + '!';
+    portrait($('runCard').querySelector('canvas'), Missions[nid].sprite, 96);
+    $('runCard').querySelector('p').textContent = text;
+    $('runCard').hidden = false;
+    $('actionBtn').style.visibility = 'hidden';
+    Sound.play('win');
+    Speech.say(text);
+    return true;
+  },
+  go() {
+    if (!this.nextId) return;
+    $('runCard').hidden = true; $('actionBtn').style.visibility = '';
+    currentMission = Missions[this.nextId]; this.nextId = null;
+    startGame();
+  },
+};
+$('runGo').addEventListener('click', () => { Sound.play('tap'); Run.go(); });
 
 // ---------------------------------------------------------------- Bug Book
 
@@ -234,6 +279,7 @@ function buildBook() {
   const list = $('bookList');
   list.innerHTML = '';
   for (const bug of Bugs) {
+    if (!known(bug)) continue;   // London, until the plane has been found
     const sec = document.createElement('section');
     sec.className = 'bookBug panel';
     let total = 0, found = 0;
@@ -298,7 +344,7 @@ function buildBook() {
 
 Game.onSecret = (key) => Progress.addSecret(key);
 
-function mapSecret(key, text, draw) {
+function mapSecret(key, text, draw, go) {
   const pop = $('secretPop');
   const c = pop.querySelector('canvas');
   const ctx = c.getContext('2d');
@@ -310,6 +356,7 @@ function mapSecret(key, text, draw) {
   ctx.scale(1.4, 1.4);
   draw(ctx);
   pop.querySelector('p').textContent = text;
+  $('secretGo').hidden = !go; $('secretGo').onclick = go || null;   // a secret that takes you somewhere (the plane to London)
   pop.hidden = false;
   Sound.play('win');
   Speech.say(text);
@@ -321,6 +368,30 @@ $('rottnest').addEventListener('click', () => mapSecret('s_quokka',
   'A quokka! Quokkas live on Rottnest Island. In 1696 a Dutch explorer thought they were giant rats, and named the island \u201crat\u2019s nest\u201d.',
   (ctx) => Sprites.quokka(ctx)));
 $('secretClose').addEventListener('click', () => { $('secretPop').hidden = true; Speech.stop(); });
+
+// Tap the plane at Perth Airport: fly to London (js/london.js), a hidden run of five real London bugs
+$('plane').addEventListener('click', () => mapSecret('s_london',
+  'A plane at Perth Airport! Planes fly non-stop from Perth to London: 14,498 km, in about 17 hours.',
+  (ctx) => { ctx.rotate(-0.5); ctx.scale(2.6, 2.6); Sprites.jetPlane(ctx); }, flyToLondon));
+let planeFlying = false;
+function flyToLondon() {
+  if (planeFlying) return;
+  planeFlying = true;
+  $('secretPop').hidden = true; Speech.stop();
+  const c = $('parade'), dpr = window.devicePixelRatio || 1;
+  c.width = MAP_W * dpr; c.height = MAP_H * dpr; c.hidden = false;
+  const ctx = c.getContext('2d'), start = performance.now();
+  Sound.play('jump');
+  const step = (now) => {
+    const k = Math.min(1, (now - start) / 1500), e = k * k;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, MAP_W, MAP_H);
+    ctx.save(); ctx.translate(790 - e * 760, 350 - e * 330); ctx.rotate(-2.55); ctx.scale(1.6 + k * 1.4, 1.6 + k * 1.4);
+    Sprites.jetPlane(ctx); ctx.restore();
+    if (k < 1) requestAnimationFrame(step);
+    else { c.hidden = true; planeFlying = false; openBug(Bugs.find(b => b.id === 'london')); }
+  };
+  requestAnimationFrame(step);
+}
 
 // Tap the title lots of times: a parade of bugs marches across the map.
 let titleTaps = 0, titleTimer = 0;
@@ -335,7 +406,7 @@ $('title').addEventListener('click', () => {
 
 // Every bug marches, plus one bug per design you painted (js/paint.js), wearing it.
 function paradeMarchers() {
-  const list = Bugs.map((b, i) => ({ sprite: b.sprite, x: -60 - i * 70, y: 300 + Math.sin(i) * 40 }));
+  const list = Bugs.filter(known).map((b, i) => ({ sprite: b.sprite, x: -60 - i * 70, y: 300 + Math.sin(i) * 40 }));
   if (typeof Paint !== 'undefined') for (const name of Object.keys(PAINT_BUGS)) {
     const st = Paint.stamp(name);
     if (st) { const i = list.length; list.push({ sprite: name, paint: st, x: -60 - i * 70, y: 300 + Math.sin(i) * 40 }); }
@@ -409,7 +480,7 @@ $('hudSound').addEventListener('click', () => { Settings.sound = !Settings.sound
 
 $('bugBack').addEventListener('click', () => { Speech.stop(); buildMap(); });
 $('readBtn').addEventListener('click', readStage);
-$('bugStart').addEventListener('click', startGame);
+$('bugStart').addEventListener('click', () => { Run.arm(currentBug); startGame(); });
 $('endAgain').addEventListener('click', startGame);
 $('endExplore').addEventListener('click', () => { show('play'); Game.resume(); });
 $('endNext').addEventListener('click', () => {

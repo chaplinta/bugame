@@ -34,10 +34,11 @@
       <canvas id="parade" hidden></canvas>
       <div id="pins"></div>
       <button id="rottnest" aria-label="Rottnest Island"></button>
+      <button id="plane" aria-label="A plane at Perth Airport"></button>
       <div id="secretPop" class="panel" hidden>
         <canvas></canvas>
         <p></p>
-        <button id="secretClose">Cool!</button>
+        <div class="buttons secretButtons"><button id="secretGo" hidden>Fly to London!</button><button id="secretClose">Cool!</button></div>
       </div>
     </div>
     <div id="placeList"></div>
@@ -48,7 +49,7 @@
       <button id="quizBtn">Bug quiz</button>
       <button id="installBtn" class="secondary" hidden>Install app</button>
     </div>
-    <p class="version">Version 3.14 · released 1 November 2026</p>
+    <p class="version">Version 3.15 · released 16 November 2026</p>
   </section>
 
   <section id="bug" class="screen">
@@ -86,6 +87,7 @@
         <span id="hudLives"></span>
       </div>
       <div id="toast" aria-live="polite"></div>
+      <div id="runCard" class="panel" hidden><canvas></canvas><p></p><button id="runGo">Go!</button></div>
       <button id="actionBtn"></button>
       <div id="tools" hidden></div>
     </div>
@@ -231,7 +233,9 @@
 <script src="js/art-world.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/orient.js"></script>
+<script src="js/platform.js"></script>
 <script src="js/sprite-cache.js"></script>
+<script src="js/art-london.js"></script>
 <script src="js/media.js"></script>
 <script src="js/mic.js"></script>
 <script src="js/tank.js"></script>
@@ -247,11 +251,13 @@
 <script src="js/olympics.js"></script>
 <script src="js/circus.js"></script>
 <script src="js/hand.js"></script>
+<script src="js/london.js"></script>
 <script src="js/art-world2.js"></script>
 <script src="js/models-bugs.js"></script>
 <script src="js/models-plants.js"></script>
 <script src="js/models-animals.js"></script>
 <script src="js/models-props.js"></script>
+<script src="js/models-london.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/paint.js"></script>
 <script src="js/size.js"></script>

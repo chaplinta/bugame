@@ -70,10 +70,11 @@ Each bug gets 2–3 short stages (2–4 min each). Verbs stay to two at most: **
 
 ## Accuracy requirements
 - Each bug has a `facts` list in data. Each fact has a short source note (WA Museum, Australian Museum, CSIRO, Atlas of Living Australia) kept in `docs/facts.md`, not shown to kids.
-- Predators, prey and plants must occur in that Perth habitat (check ALA records).
+- Predators, prey and plants must occur in that Perth habitat (check ALA records). London is the one place outside Perth: everything in it must live in London (sources in `docs/facts.md`, London).
 - Allowed simplifications: size scaling, compressed time, fewer individuals. Each one goes in `docs/facts.md`.
 - No invented abilities. Bugs only get verbs the real animal has.
 - The Bug Circus is labelled as pretend on every act page; each act is a documented behaviour (pulling, the jumping spider's dragline, bridging lines, bark camouflage, walking on water) and the one invented control (Land in the gymnastics, Settle in the circus) is named as the game's own.
+- London is one pretend summer day and says so; the trains' wind is real but being blown back is pretend, and both the bug page and `docs/facts.md` say so. No startle flash for the Jersey tiger, since no source confirms one.
 - The Bug Olympics are labelled as pretend games on every event page; the bugs only do what they really do (jump, dart, dig, carry, buzz, click and flip) and every number in the text is sourced.
 - Player designs (Paint a bug) are labelled as such and never replace the real pictures: one individual wears the design, the species keeps its real look everywhere else, and the Bug Book shows both.
 - Real size: every figure is a published body length or wingspan (sources in `docs/facts.md`, Real size), said as "about"; the screen scale is a guess for the kind of device until the player matches a 20 cent coin, and the screen says which.

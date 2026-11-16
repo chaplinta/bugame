@@ -42,6 +42,11 @@ const WHAT = {
   person: 'Barbecue guest', bbq: 'Barbecue', table: 'Table with umbrella', pot: 'Pot plant', isoBirdbath: 'Bird bath', bucket: 'Bucket',
   cricketBall: 'Cricket ball', gnome: 'Garden gnome', thong: 'Thong', paperPlane: 'Paper plane', billyCan: 'Billy can', marble: 'Marble', sandcastle: 'Sandcastle', toyBoat: 'Toy boat',
   rubberDuck: 'Rubber duck', quokka: 'Quokka',
+  bumblebee: 'Buff-tailed bumblebee worker (Bombus terrestris)', commonWasp: 'Common wasp worker (Vespula vulgaris)', ugMosquito: 'London Underground mosquito (Culex pipiens f. molestus)',
+  tigerMoth: 'Jersey tiger moth (Euplagia quadripunctaria)', stagBeetle: 'Stag beetle, male (Lucanus cervus)', stagBeetleF: 'Stag beetle, female (Lucanus cervus)',
+  crabSpider: 'Flower crab spider (Misumena vatia)', flySide: 'Fly, from the side', greatTit: 'Great tit', euMagpie: 'Eurasian magpie', fox: 'Red fox',
+  londonIcon: 'London (a red double-decker bus)', jetPlane: 'Jet plane (from above)', nutShell: 'Nibbled nutshell', oldTicket: 'Old paper Tube ticket', mouseSide: 'House mouse',
+  acorn: 'Acorn', antler: 'Deer antler',
   bgShrub: 'Heath shrub (scenery)', bgBanksia: 'Banksia (scenery)', bgGrassTree: 'Grass tree (scenery)', bgGum: 'Gum crown (scenery)', bgTuft: 'Grass tuft (scenery)',
   bgRock: 'Rock (scenery)', bgLog: 'Fallen log (scenery)', bgLily: 'Lily pad (scenery)', bgWeed: 'Pond weed (scenery)',
 };
@@ -129,6 +134,17 @@ L('honeydew', 'honeydew-drop'); L('lerpBug', 'lerp-psyllid');
 L('moth', 'brown-moth'); L('moth', 'brown-moth-caught-in-web', { stuck: true }, { state: 'caught in the web' });
 L('beetle', 'christmas-beetle'); L('beetle', 'christmas-beetle-caught-in-web', { stuck: true }, { state: 'caught in the web' });
 L('wrapped', 'silk-wrapped-prey');
+// London (side-on)
+const SIDE = { face: 1, angle: 0 };
+L('bumblebee', 'buff-tailed-bumblebee', SIDE); L('bumblebee', 'buff-tailed-bumblebee-flying-with-pollen', Object.assign({ flying: true, moving: true, pollen: 4 }, SIDE), { state: 'flying, pollen baskets full' });
+L('commonWasp', 'common-wasp', SIDE); L('commonWasp', 'common-wasp-flying', Object.assign({ flying: true, moving: true }, SIDE), { state: 'flying' });
+L('ugMosquito', 'underground-mosquito', SIDE); L('ugMosquito', 'underground-mosquito-fed', Object.assign({ blood: 1 }, SIDE), { state: 'after a blood meal' });
+L('tigerMoth', 'jersey-tiger-moth', SIDE); L('tigerMoth', 'jersey-tiger-moth-flying', Object.assign({ flying: true, moving: true }, SIDE), { state: 'flying, orange underwings showing' });
+L('stagBeetle', 'stag-beetle-male', SIDE); L('stagBeetle', 'stag-beetle-male-flying', Object.assign({ flyT: 1 }, SIDE), { state: 'flying, tipped up' }); L('stagBeetleF', 'stag-beetle-female', SIDE);
+L('crabSpider', 'flower-crab-spider', { open: true }, { only: '2d' }); L('flySide', 'fly-side-on', SIDE, { only: '2d' });
+L('greatTit', 'great-tit', SIDE, { only: '2d' }); L('euMagpie', 'eurasian-magpie', SIDE, { only: '2d' }); L('fox', 'red-fox', SIDE, { only: '2d' });
+L('londonIcon', 'london-bus', {}, { only: '2d' }); L('jetPlane', 'jet-plane', {}, { only: '2d' }); L('nutShell', 'nutshell', {}, { only: '2d' }); L('oldTicket', 'old-ticket', {}, { only: '2d' });
+L('mouseSide', 'house-mouse', SIDE, { only: '2d' }); L('acorn', 'acorn', {}, { only: '2d' }); L('antler', 'deer-antler', {}, { only: '2d' });
 // predators and the other animals
 L('echidna', 'short-beaked-echidna'); L('beeEater', 'rainbow-bee-eater'); L('hobby', 'australian-hobby'); L('wagtail', 'willie-wagtail'); L('magpie', 'western-magpie'); L('turtle', 'oblong-turtle');
 L('wasp', 'spider-wasp'); L('paperWasp', 'paper-wasp');

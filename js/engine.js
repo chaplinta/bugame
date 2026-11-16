@@ -245,6 +245,7 @@ const Game = {
     g.finds = (mission.discoveries || []).map(d => Object.assign({ found: false, angle: 0 }, d,
       { x: d.fx * World.w, y: d.fy * World.h }));
     this.g = g;
+    document.getElementById('stage').classList.toggle('toastTop', !!mission.toastTop);   // side-on levels keep the ground clear of messages
     if (typeof Paint !== 'undefined') g.player.paint = Paint.stamp(mission.playerSprite ? mission.playerSprite(g) : (mission.sprite || mission.id));   // a design of your own on your bug (js/paint.js)
     if (typeof SpriteCache !== 'undefined') SpriteCache.clear();
     if (typeof Tex !== 'undefined') Tex.ready();
@@ -352,14 +353,15 @@ const Game = {
   // Small screens (phones, held either way) see a zoomed-in part of a big world so bugs aren't tiny.
   updateZoom() {
     const r = this.canvas.getBoundingClientRect(), small = r.width > 0 && (r.width < 700 || r.height < 450);
-    this.zoom = World.w > W ? (small ? 1.6 : 1.3) : 1;
+    const mz = this.g && this.g.mission.zoom;   // a level can ask for its own zoom: [desktop, phone] (the London side-scroller)
+    this.zoom = World.w > W ? (mz ? mz[small ? 1 : 0] : small ? 1.6 : 1.3) : 1;
   },
 
   updateCamera() {
     const g = this.g, p = g.player, z = this.zoom || 1;
-    const vw = W / z, vh = H / z;
-    g.cam.x = clamp(p.x - vw / 2, 0, Math.max(0, World.w - vw));
-    g.cam.y = clamp(p.y - vh / 2, 0, Math.max(0, World.h - vh));
+    const vw = W / z, vh = H / z, f = g.mission.camera ? g.mission.camera(g, vw, vh) : p;   // a level can choose what the camera follows
+    g.cam.x = clamp(f.x - vw / 2, 0, Math.max(0, World.w - vw));
+    g.cam.y = clamp(f.y - vh / 2, 0, Math.max(0, World.h - vh));
   },
 
   // Discoveries: hidden things to find while exploring. Each one is a fact for the Bug Book.
@@ -519,7 +521,7 @@ const Game = {
     Sound.play('caught');
     g.shake = 0.4; g.flash = 0.4;
     if (g.mission.onCaught) g.mission.onCaught(g);
-    g.toasts.unshift({ text: 'Caught by the ' + pr.name + '! Back home you go.', kind: 'hint' });
+    g.toasts.unshift({ text: g.mission.caughtText ? g.mission.caughtText(pr) : 'Caught by the ' + pr.name + '! Back home you go.', kind: 'hint' });
     g.toastT = 0;
     if (g.lives <= 0) { this.finish(false); return; }
     p.x = g.home.x; p.y = g.home.y;
@@ -705,6 +707,7 @@ const Game = {
     this.drawSprite(m.playerSprite ? m.playerSprite(g) : (m.sprite || m.id), p, m.scale * (1 + (p.hop || 0) * 0.5));
     if (this.drawHat) this.drawHat(ctx);
     ctx.globalAlpha = 1;
+    if (m.drawFront) m.drawFront(ctx, g);   // things in front of the bug: leaves it hides in, a passing train
 
     for (const pr of g.preds) {
       // Shadow first so flyers look airborne (3D models bring their own, thrown by their height).

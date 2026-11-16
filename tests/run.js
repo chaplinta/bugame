@@ -15,7 +15,7 @@ function check(cond, msg) { if (!cond) throw new Error(msg); }
 test('map, pins, bug pages, Bug Book load without errors', async (b) => {
   const p = await openGame(b);
   const pins = await p.locator('.pin').count();
-  check(pins === (await p.evaluate(() => Bugs.length)), 'pin count ' + pins);
+  check(pins === (await p.evaluate(() => Bugs.filter(b => b.pin).length)), 'pin count ' + pins);
   for (let i = 0; i < pins; i++) {
     await p.locator('.pin').nth(i).click();
     check(await p.isVisible('#bug.active'), 'bug page ' + i);
@@ -1464,7 +1464,7 @@ test('paint a bug: every bug, strokes on the whole bug save, the drawings and mo
     PaintUI.pick('butterfly'); PaintUI.colour = '#3a5ab0'; const f = Paint.frame('butterfly'); PaintUI.stamp({ x: f.cx + f.S * 10, y: f.cy + f.S * 15 }, 'star'); PaintUI.save();
     PaintUI.pick('sugarAnt'); PaintUI.colour = '#f4f4f0'; const g = Paint.frame('sugarAnt'); PaintUI.stamp({ x: g.cx, y: g.cy }, 'spot'); PaintUI.save();
   });
-  check(await p.evaluate(() => paradeMarchers().length === Bugs.length + 3 && paradeMarchers().slice(-3).every(m => m.paint)), 'the parade did not gain the painted bugs');
+  check(await p.evaluate(() => paradeMarchers().length === Bugs.filter(b => !b.hub).length + 3 && paradeMarchers().slice(-3).every(m => m.paint)), 'the parade did not gain the painted bugs');
   await p.click('#paintBack');
   await p.click('#bookBtn');
   check(await p.locator('.bookBug', { hasText: 'Painted Lady' }).locator('.mine').count() === 1 && await p.locator('.bookBug', { hasText: 'Bull Ant' }).locator('.mine').count() === 0, 'the Book does not show the design as yours');
@@ -1669,6 +1669,157 @@ test('installable as an app (no manifest or installability errors)', async (b) =
     const inst = await cdp.send('Page.getInstallabilityErrors');
     check(inst.installabilityErrors.length === 0, 'install: ' + JSON.stringify(inst.installabilityErrors));
   } finally { await ctx.close(); srv.close(); }
+});
+
+// ------------------------------------------------------------------ London (js/platform.js, js/london.js)
+// Steps the game by hand with the loop paused, so a side-on part runs the same every time
+const LDN_STEP = `window.lstep = (sec, o) => { o = o || {}; Game.running = false; Input.keys = new Set(o.keys || []); Input.target = null; Input.held = !!o.held;
+  for (let i = 0; i < Math.round(sec * 60); i++) { Input.pressed = !!o.press && i === 0; Game.update(1 / 60); } Input.pressed = false; Input.held = false; Input.keys = new Set(); };`;
+
+test('platform physics: the same at any frame rate; sink and land, drop through, walls, ceiling; the stag beetle climbs and flies', async (b) => {
+  const p = await openGame(b);
+  const r = await p.evaluate(() => {
+    const L = { w: 1000, floor: 500, solids: [[0, 0, 1000, 40, 'ceiling'], [400, 300, 50, 200, 'wall'], [600, 420, 100, 80, 'bark']], ledges: [[100, 350, 150]] };
+    const F = { hw: 9, hh: 12, fly: 200, accel: 5, sink: 45 }, S = LDN_PHYS.stag;
+    const bug = (x, y) => ({ x, y, vx: 0, vy: 0, acc: 0, flyT: 0, warmT: 0 });
+    const run = (P, p, sec, dt, dx, dy, o) => { for (let i = 0; i < Math.round(sec / dt); i++) Plat.move(L, P, p, dt, dx, dy, o); return p; };
+    const out = {};
+    const a = run(F, bug(50, 300), 1.5, 1 / 60, 0.9, -0.3), c = run(F, bug(50, 300), 1.5, 1 / 20, 0.9, -0.3);
+    out.rate = Math.hypot(a.x - c.x, a.y - c.y);
+    const s = run(F, bug(170, 200), 6, 1 / 60, 0, 0); out.land = [s.y, s.onGround];
+    run(F, s, 3, 1 / 60, 0, 1); out.drop = [s.y, s.onGround];
+    const w = run(F, bug(300, 450), 3, 1 / 60, 1, 0); out.wall = w.x;
+    const u = run(F, bug(200, 200), 3, 1 / 60, 0, -1); out.ceil = u.y;
+    const k = run(F, bug(200, 300), 2, 1 / 60, 0, -1, { weak: true }); out.weak = k.y;
+    const h = run(F, bug(200, 300), 2, 1 / 60, 0, 0, { hover: true }); out.hover = h.y;
+    // the stag beetle: walks into the bark and climbs it, then stands on top
+    const st = run(S, bug(520, 500), 3.2, 1 / 60, 1, 0); out.climb = [st.x, st.y, st.onGround];
+    // Fly: a warm-up on the ground first, then a short flight, then he lands
+    const f = run(S, bug(150, 500), 0.5, 1 / 60, 0, 0); Plat.takeOff(S, f);
+    run(S, f, 0.4, 1 / 60, 1, -1); out.warm = [f.warmT > 0, f.flyT, f.x];
+    run(S, f, 0.6, 1 / 60, 1, -1); out.flying = [f.flyT > 0, f.y];
+    out.again = Plat.takeOff(S, f);
+    run(S, f, 6, 1 / 60, 1, 0); out.landed = [f.flyT, f.onGround];
+    return out;
+  });
+  check(r.rate < 2, 'different paths at 60 and 20 frames a second: ' + r.rate);
+  check(r.land[0] === 350 && r.land[1], 'did not sink onto the ledge: ' + r.land);
+  check(r.drop[0] === 500 && r.drop[1], 'did not drop through the ledge to the floor: ' + r.drop);
+  check(r.wall === 391, 'went into the wall: ' + r.wall);
+  check(r.ceil === 52, 'went into the ceiling: ' + r.ceil);
+  check(r.weak > 300, 'an empty bee still flew up: ' + r.weak);
+  check(r.hover === 300, 'did not hover: ' + r.hover);
+  check(r.climb[0] > 600 && r.climb[1] === 420 && r.climb[2], 'the stag beetle did not climb the bark: ' + r.climb);
+  check(r.warm[0] && r.warm[1] === 0 && r.warm[2] === 150, 'no warm-up before the flight: ' + r.warm);
+  check(r.flying[0] && r.flying[1] < 500, 'the stag beetle did not fly: ' + r.flying);
+  check(!r.again, 'took off again in mid-air');
+  check(r.landed[0] === 0 && r.landed[1], 'the flight did not end on the ground: ' + r.landed);
+});
+
+test('London: every part’s route is clear of the walls, and no task sits inside one', async (b) => {
+  const p = await openGame(b);
+  const bad = await p.evaluate(() => {
+    const out = [];
+    for (const id of Bugs.find(x => x.id === 'london').stages) {
+      const m = Missions[id], L = m.level(), P = m.P;
+      for (const s of L.spots) if (L.solids.some(q => Plat.overlaps(s.x, s.y + P.hh / 2, P.hw - 1, P.hh - 1, q))) out.push(id + ' ' + s.id + ' is inside a wall');
+      for (const s of L.spots) if (s.need && !L.route.some(r => r[2] === s.id)) out.push(id + ' ' + s.id + ' is not on the route');
+      if (P.walk) {   // a walker's route points are on the ground or on top of a log
+        for (const r of L.route) if (r[1] !== L.floor && !L.solids.some(q => q[1] === r[1] && r[0] > q[0] && r[0] < q[0] + q[2])) out.push(id + ' route point ' + r + ' is in mid-air');
+      } else {
+        const pts = [L.start].concat(L.route.map(r => [r[0], r[1] + P.hh / 2]));
+        for (let i = 1; i < pts.length; i++) if (!Plat.clear(L, P, pts[i - 1], pts[i])) out.push(id + ' route ' + pts[i - 1] + ' to ' + pts[i] + ' hits a wall');
+      }
+    }
+    return out;
+  });
+  check(bad.length === 0, bad.join('; '));
+});
+
+test('London: the bee runs on nectar, a crab spider and the train send you back to the safe spot, never below one heart', async (b) => {
+  const p = await openGame(b);
+  await startMission(p, 'ldn_bee', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const r = await p.evaluate(() => {
+    const g = Game.g, pl = g.player, out = {};
+    g.timers = [];
+    Object.assign(pl, { x: 700, y: 300, vx: 0, vy: 0 }); g.fuel = 0;
+    lstep(3, { keys: ['arrowup'] }); out.empty = [g.fuel, pl.y];
+    const f = g.level.spots.find(s => s.id === 'f1');
+    Object.assign(pl, { x: f.x, y: f.y + 7, vx: 0, vy: 0 }); lstep(1.3, { held: true }); out.sip = [g.counts.flower, g.fuel];
+    Object.assign(pl, { x: 1010, y: 470 }); lstep(0.1); out.cp = [g.cp, g.home.x];
+    const c = g.level.spots.find(s => s.id === 'f4');
+    pl.invuln = 0; Object.assign(pl, { x: c.x, y: c.y + 7, vx: 0, vy: 0 }); lstep(0.6, { held: true }); out.crab = [g.lives, pl.x, g.seen.has('crab'), c.done];
+    g.lives = 1; pl.invuln = 0; Object.assign(pl, { x: c.x, y: c.y + 7, vx: 0, vy: 0 }); lstep(0.6, { held: true }); out.last = g.lives;
+    return out;
+  });
+  check(r.empty[0] === 0 && r.empty[1] > 300, 'an empty bee still flew: ' + r.empty);
+  check(r.sip[0] === 1 && r.sip[1] > 0.4, 'sipping did not refill her: ' + r.sip);
+  check(r.cp[0] === 1 && r.cp[1] === 1000, 'the safe spot did not move: ' + r.cp);
+  check(r.crab[0] === 2 && r.crab[1] === 1000 && r.crab[2] && !r.crab[3], 'the crab spider did not send her back: ' + r.crab);
+  check(r.last === 1, 'a London part ran out of hearts');
+  await startMission(p, 'ldn_mosquito', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const t = await p.evaluate(() => {
+    const g = Game.g, pl = g.player, out = {};
+    g.timers = [];
+    Object.assign(pl, { x: 585, y: 260, vx: 0, vy: 0 }); g.hz.trainT = 0.5; lstep(2.5); out.hidden = [g.lives, g.hz.trainT > 20];
+    pl.invuln = 0; Object.assign(pl, { x: 300, y: 380, vx: 0, vy: 0 }); g.hz.trainT = 0.5;
+    const shown = [], show = Game.showToast.bind(Game); Game.showToast = (t) => { if (t) shown.push(t.text); show(t); };
+    lstep(2.5); out.open = [g.lives, shown.some(t => /rush of air/.test(t))];
+    return out;
+  });
+  check(t.hidden[0] === 3 && t.hidden[1], 'the train got the mosquito behind the pillar: ' + t.hidden);
+  check(t.open[0] === 2 && t.open[1], 'the train missed the mosquito in the open: ' + t.open);
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('London is hidden until the plane at Perth Airport is found; then one run crosses London, part to part', async (b) => {
+  const p = await openGame(b, { width: 844, height: 390 });
+  const before = await p.evaluate(() => ({ pins: document.querySelectorAll('.pin').length, pinned: Bugs.filter(x => x.pin).length, parade: paradeMarchers().some(m => m.sprite === 'londonIcon' || Missions.ldn_bee && m.sprite === 'bumblebee') }));
+  check(before.pins === before.pinned && !before.parade, 'London shows before the plane is found: ' + JSON.stringify(before));
+  // the plane: a finger-sized button that no pin covers
+  const box = await p.evaluate(() => {
+    const r = document.getElementById('plane').getBoundingClientRect();
+    const hit = [...document.querySelectorAll('.pin')].filter(el => { const q = el.getBoundingClientRect(); return q.left < r.right && q.right > r.left && q.top < r.bottom && q.bottom > r.top; }).length;
+    return { w: r.width, h: r.height, hit };
+  });
+  check(box.w >= 44 && box.h >= 44 && box.hit === 0, 'the plane button: ' + JSON.stringify(box));
+  await p.click('#bookBtn');
+  check(!(await p.locator('.bookBug', { hasText: 'London' }).count()), 'the Book shows London before the plane is found');
+  await p.click('#bookBack');
+  await p.click('#plane');
+  check(await p.isVisible('#secretGo') && /London/.test(await p.textContent('#secretPop p')), 'no Fly to London on the plane');
+  check(await p.evaluate(() => Progress.hasSecret('s_london')), 'the plane secret was not saved');
+  await p.click('#secretGo');
+  await p.waitForSelector('#bug.active', { timeout: 5000 });
+  check(/London/.test(await p.textContent('#bug')), 'the London page did not open');
+  await p.click('#bugStart');
+  await p.waitForTimeout(300);
+  check(await p.evaluate(() => Game.g.mission.id === 'ldn_bee' && Run.on), 'the run did not start with the bumblebee');
+  const parts = await p.evaluate(() => Bugs.find(x => x.id === 'london').stages);
+  for (let i = 0; i < parts.length; i++) {
+    check(await p.evaluate((id) => Game.g.mission.id === id && Game.g.lives === 3, parts[i]), 'part ' + parts[i] + ' did not start with three hearts');
+    await p.evaluate(() => { Game.g.lives = 2; Game.g.homeSafe = true; });
+    if (i === parts.length - 1) break;
+    await p.waitForSelector('#runCard:not([hidden])', { timeout: 8000 });
+    check(!(await p.isVisible('#end.active')), 'an end screen came between parts');
+    await p.click('#runGo');
+    await p.waitForTimeout(300);
+  }
+  await p.waitForSelector('#end.active', { timeout: 8000 });
+  check(/crossed London/.test(await p.textContent('#endTitle')) && /10 \/ 15/.test(await p.textContent('#endUnlock')), 'no end of the run: ' + await p.textContent('#end'));
+  check(await p.evaluate(() => Bugs.find(x => x.id === 'london').stages.every(id => Progress.stars(id) === 2)), 'the parts’ stars were not saved');
+  // the menu stops a run; the Book now has London
+  await p.evaluate(() => buildMap());
+  check(await p.evaluate(() => !Run.on && paradeMarchers().some(m => m.sprite === 'londonIcon')), 'London not in the parade after the plane');
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('every script the page loads is cached for offline play', async () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  const missing = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]).filter(s => !sw.includes("'" + s.replace(/^\.\//, '') + "'") && !sw.includes("'./" + s.replace(/^\.\//, '') + "'"));
+  check(missing.length === 0, 'not in sw.js FILES: ' + missing.join(', '));
 });
 
 // ------------------------------------------------------------------ run

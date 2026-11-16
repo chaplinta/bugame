@@ -448,5 +448,5 @@ function mixHex(a, b, k) { const A = hexRGB(a), B = hexRGB(b); return '#' + [0, 
 Ground.paint = function (name, ctx, W, H, home) {
   Shade.maxR = 30;
   try { Backgrounds[name](ctx, W, H, home); } finally { Shade.maxR = 1e9; }
-  Ground.finish(ctx, W, H);
+  if (!Backgrounds[name].noVignette) Ground.finish(ctx, W, H);   // a long side-scroller would darken its own start and goal
 };

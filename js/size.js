@@ -10,7 +10,7 @@ const BUG_NAMES = {
   plCaterpillar: 'Painted lady caterpillar', butterfly: 'Painted lady', chrysalis: 'Painted lady chrysalis', termiteWorker: 'Termite', snail: 'Native snail',
   spider: 'Peacock spider', femaleSpider: 'Peacock spider (female)', spiderling: 'Peacock spiderling', nymph: 'Skimmer nymph', dragonfly: 'Blue skimmer',
   sandhopper: 'Sandhopper', babyHopper: 'Baby sandhopper', mosquito: 'Mosquito', orbSpider: 'Golden orb-weaver', frog: 'Motorbike frog',
-  dungBeetle: 'Dung beetle', hornBeetle: 'Horned dung beetle', ladybird: 'Ladybird', clickBeetle: 'Click beetle', moth: 'Moth', waterStrider: 'Water strider',
+  dungBeetle: 'Dung beetle', hornBeetle: 'Horned dung beetle', bumblebee: 'Buff-tailed bumblebee', commonWasp: 'Common wasp', ugMosquito: 'Underground mosquito', tigerMoth: 'Jersey tiger moth', stagBeetle: 'Stag beetle', ladybird: 'Ladybird', clickBeetle: 'Click beetle', moth: 'Moth', waterStrider: 'Water strider',
 };
 
 // mm: the real measurement; axis: which way across the drawing it runs ('x' along the body, 'y' across the wings);
@@ -44,6 +44,12 @@ const SIZES = {
   clickBeetle: { mm: 15, what: 'A click beetle like this one is about 15 mm long.' },
   moth: { mm: 20, what: 'A moth like this one is about 20 mm long.' },
   waterStrider: { mm: 10, what: 'A water strider’s body is about 10 mm long. Its legs reach much further.' },
+  // London (js/london.js), measured side-on from the jaws or the head to the tail
+  bumblebee: { mm: 15, what: 'A buff-tailed bumblebee worker is about 15 mm long.' },
+  commonWasp: { mm: 15, what: 'A common wasp worker is about 15 mm long.' },
+  ugMosquito: { mm: 6, what: 'The Underground mosquito is about 6 mm long, counting its long mouthpart.' },
+  tigerMoth: { mm: 26, what: 'A Jersey tiger moth is about 26 mm long with its wings folded.' },
+  stagBeetle: { mm: 60, what: 'A big male stag beetle is about 60 mm long, jaws and all: Britain’s biggest beetle.' },
 };
 // A stage whose sprite is a special drawing of a bug listed above
 const SIZE_STAGE = { cir_trapeze: 'spider' };
