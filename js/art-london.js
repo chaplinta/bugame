@@ -428,9 +428,11 @@ const LondonArt = {
     for (const f of g.fronts) if (f) { ctx.globalAlpha = g.hidden ? 0.78 : 0.95; ctx.drawImage(f.c, f.x, f.y); }
     ctx.globalAlpha = 1;
     const h = g.hz;
-    if (h && h.shoo) {   // someone waving the wasp away: its reach as a shadow, then the hand sweeping to and fro
-      const s = h.shoo, k = Math.min(1, s.t);
-      ctx.fillStyle = 'rgba(0,0,0,' + (0.12 + k * 0.2) + ')'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 20 + k * 40, 14 + k * 26, 0, 0, TAU); ctx.fill();
+    if (h && h.shoo) {   // someone waving the wasp away: the red zone the wave reaches, then the hand sweeping to and fro
+      const s = h.shoo, k = Math.min(1, s.t), R = m.SHOO_R;
+      ctx.beginPath(); ctx.arc(s.x, s.y, R, 0, TAU);
+      ctx.fillStyle = 'rgba(230,40,40,' + (0.12 + k * 0.12 + 0.05 * Math.sin(g.t * 8)) + ')'; ctx.fill();
+      ctx.strokeStyle = 'rgba(220,40,40,.6)'; ctx.lineWidth = 2; ctx.stroke();
       if (s.t > 0.5) {
         const sw = Math.sin(g.t * 16), hx = s.x + sw * 40, hy = s.y - 20 - (1 - Math.min(1, (s.t - 0.5) * 3)) * 120;
         ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 3;

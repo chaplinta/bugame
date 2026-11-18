@@ -640,7 +640,7 @@ Object.assign(Missions, {
     how: [
       'Fly with the arrow keys, or touch and drag. This yard is seen from up high, at an angle.',
       'Land on a person’s arm or ankle while they are busy chatting, and hold or tap Bite.',
-      'If someone looks around (?), fly off before they shoo you away!',
+      'When someone looks around (?), a red zone shows where they’re looking. Keep out of it, or they’ll shoo you away!',
       'When you’re full of blood, find still water and hold Lay. Lay 3 egg rafts.',
     ],
     discoveries: [
@@ -679,6 +679,20 @@ Object.assign(Missions, {
       Game.later(4, () => Game.fact('co2'));
     },
     people(g) { return g.items.filter(i => i.kind === 'person'); },
+    // Looking round: the red zone shows where they can see. Close round their face (so a bite on the arm is seen), and
+    // a wedge from their eyes that sweeps from the side they face, down past the front, to the other side over the
+    // look (the zone is the game's own way of showing where someone is looking).
+    LOOK: 2.4, ZONE: { near: 55, far: 200, half: 0.42 },
+    eyes(pp) { return { x: pp.x + pp.face * 9, y: pp.y - (pp.pose === 'sit' ? 110 : 128) }; },
+    gazeAt(pp) { const k = clamp(1 - pp.timer / this.LOOK, 0, 1); return (pp.face > 0 ? 0 : Math.PI) + pp.face * k * Math.PI; },
+    inZone(pp, pt) {
+      if (!pp.look) return false;
+      const e = this.eyes(pp), dx = pt.x - e.x, dy = pt.y - e.y, d = Math.hypot(dx, dy), Z = this.ZONE;
+      if (d < Z.near) return true;
+      if (d > Z.far) return false;
+      const a = Math.atan2(dy, dx) - (pp.gaze || 0);
+      return Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < Z.half;
+    },
     // Where a mosquito can bite this person: an ankle and an arm.
     spots(pp) {
       const f = pp.face;
@@ -694,23 +708,24 @@ Object.assign(Missions, {
       for (const pp of this.people(g)) {
         pp.timer -= dt;
         pp.itch = Math.max(0, pp.itch - dt * 0.05);
-        if (pp.state === 'chat' && pp.timer <= 0) { pp.state = 'look'; pp.timer = 2.4; }
-        else if (pp.state === 'look' && pp.timer <= 0) { pp.state = 'chat'; pp.timer = 5 + Math.random() * 4; }
+        if (pp.state === 'chat' && pp.timer <= 0) { pp.state = 'look'; pp.timer = this.LOOK; }
+        else if (pp.state === 'look' && pp.timer <= 0 && !(pp.shoo > 0)) { pp.state = 'chat'; pp.timer = 5 + Math.random() * 4; }
         pp.look = pp.state === 'look'; pp.talk = !pp.look;
-        // Noticing a mosquito close to their face, or one biting them: they wave her away
-        const near = Math.hypot(p.x - pp.x, p.y - (pp.y - 70)) < 110;
-        if (pp.look && (near || p.biting === pp) && !pp.shoo && !g.shooed && p.invuln <= 0) {
+        if (pp.look && !(pp.shoo > 0)) pp.gaze = this.gazeAt(pp);   // while waving, they keep looking at her
+        // A mosquito in the red zone (where they're looking) gets noticed, and they wave her away
+        if (this.inZone(pp, p) && !pp.shoo && !g.shooed && p.invuln <= 0) {
           pp.shoo = 0.75; pp.sx = p.x; pp.sy = p.y;
-          Game.hint('Look out! They’ve seen you. Fly away!');
+          Game.hint('They’ve seen you! Fly out of the red!');
           Game.fact('swat');
         }
         if (pp.shoo > 0) {
           pp.shoo -= dt;
           if (pp.shoo <= 0) {
             pp.shoo = 0; Sound.play('tap');
-            if (Math.hypot(p.x - pp.sx, p.y - pp.sy) < 40 && p.invuln <= 0 && !g.shooed) {
+            if (this.inZone(pp, p) && p.invuln <= 0 && !g.shooed) {
               // Shooed: the wave blows her a little way off, away from them, and she flies on from there
-              let dx = p.x - pp.x, dy = p.y - (pp.y - 50);
+              const e = this.eyes(pp);
+              let dx = p.x - e.x, dy = p.y - e.y;
               const d = Math.hypot(dx, dy);
               if (d < 1) { dx = pp.face; dy = 0; }
               const n = Math.hypot(dx, dy);
@@ -763,6 +778,14 @@ Object.assign(Missions, {
     },
     drawExtra(ctx, g) {
       const p = g.player, t = g.t, full = p.blood >= 1;
+      // The red zone: where someone looking round can see (fly in it and they'll wave you away)
+      for (const pp of this.people(g)) if (pp.look) {
+        const e = this.eyes(pp), Z = this.ZONE, a = pp.gaze || 0, glow = 0.16 + 0.06 * Math.sin(t * 6);
+        ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.arc(e.x, e.y, Z.far, a - Z.half, a + Z.half); ctx.closePath();
+        ctx.moveTo(e.x + Z.near, e.y); ctx.arc(e.x, e.y, Z.near, 0, TAU);
+        ctx.fillStyle = 'rgba(230,40,40,' + glow + ')'; ctx.fill('nonzero');
+        ctx.strokeStyle = 'rgba(220,40,40,.55)'; ctx.lineWidth = 2; ctx.stroke();
+      }
       // Bite spots glow: green while they chat, red when they're looking
       if (!full) for (const pp of this.people(g)) for (const s of this.spots(pp)) {
         const k = 0.5 + 0.5 * Math.sin(t * 5 + s.x);

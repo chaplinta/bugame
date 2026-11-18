@@ -237,7 +237,7 @@ Object.assign(Missions, {
       'Fly by dragging, or with the arrow keys.',
       'Hold Scrape on the fence posts to chew wood for the nest. Do two.',
       'Catch the fly buzzing by the bin: get close and press Catch.',
-      'Someone waves you away! When you see the hand, fly off or hide under a table. Then fly home to the nest under the shed roof.',
+      'Someone waves you away! A red zone shows where the hand will go: fly out of it, or hide under a table. Then fly home to the nest under the shed roof.',
     ],
     discoveries: [{ key: 'd_leaf', sprite: 'deadLeaf', fx: 0.12, fy: 0.925 }, { key: 'd_feather', sprite: 'feather', color: '#8a6a48', band: '#4a3424', fx: 0.77, fy: 0.925 }],
     factText: {
@@ -274,7 +274,7 @@ Object.assign(Missions, {
         h.shoo.t += dt;
         if (h.shoo.t >= 1 && !h.shoo.hit) {
           h.shoo.hit = true; Sound.play('tap');
-          if (!g.hidden && p.invuln <= 0 && Math.hypot(p.x - h.shoo.x, cy - h.shoo.y) < 55) {
+          if (!g.hidden && p.invuln <= 0 && Math.hypot(p.x - h.shoo.x, cy - h.shoo.y) < this.SHOO_R) {
             g.shooDir = p.x >= h.shoo.x ? 1 : -1; g.shooed = 0.5; p.push = g.shooDir * 3400; p.vy = -150;
             for (const s of g.level.spots) s.t = 0;   // a scrape or a catch in progress starts again
             Game.pop(p.x, p.y - 34, 'Shoo!', '#fff');
@@ -285,11 +285,12 @@ Object.assign(Missions, {
         h.next = (h.next === undefined ? 2.5 : h.next) - dt;
         if (h.next <= 0 && p.invuln <= 0) {
           h.shoo = { x: p.x, y: cy, t: 0 }; Sound.play('caught'); Game.fact('swat');
-          if (!g.toldShoo) { g.toldShoo = true; g.toasts.unshift({ text: 'Look out, a hand! Fly away before it shoos you, or hide under a table.', kind: 'hint' }); g.toastT = 0; }
+          if (!g.toldShoo) { g.toldShoo = true; g.toasts.unshift({ text: 'Look out, a hand! Fly out of the red zone, or hide under a table.', kind: 'hint' }); g.toastT = 0; }
         }
       }
     },
     locked(g) { return g.shooed > 0; },   // being blown off by the wave
+    SHOO_R: 55,                           // the red zone the wave reaches
     hud(g) {
       const w = Math.min(2, g.counts.post || 0), f = g.counts.fly ? 1 : 0;
       setHud(w < 2 || !f ? 'Wood: ' + w + ' / 2 · Fly: ' + f + ' / 1' : 'Fly home to the nest!', '');

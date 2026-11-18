@@ -1814,6 +1814,26 @@ test('mozzies and the London wasp are shooed away, not swatted: blown a little w
   check(r.waving[0] && r.waving[1], 'nobody waved: ' + JSON.stringify(r));
   check(r.blown[0] && r.blown[1] && r.drift[0] && r.drift[1], 'the wave did not blow her off: ' + JSON.stringify(r));
   check(r.after.d > 60 && r.after.lives === 3 && r.after.blood && r.after.home > 200 && !r.after.shooed && !r.after.waving, 'shooed wrongly: ' + JSON.stringify(r));
+  // the red zone: only someone looking has one; it sweeps; outside it nobody waves; fly out of it in time and the wave misses
+  const z = await p.evaluate(() => {
+    const g = Game.g, pl = g.player, m = g.mission, out = {};
+    for (const q of m.people(g)) { q.state = 'chat'; q.timer = 99; q.shoo = 0; }
+    lstep(0.1);
+    const pp = m.people(g)[3], e = m.eyes(pp);
+    out.chatting = m.inZone(pp, { x: e.x, y: e.y + 10 });
+    pp.state = 'look'; pp.timer = m.LOOK; lstep(1 / 60);
+    const along = (a, r) => ({ x: e.x + Math.cos(a) * r, y: e.y + Math.sin(a) * r });
+    out.ahead = m.inZone(pp, along(pp.gaze, 150)); out.beside = m.inZone(pp, along(pp.gaze + 1.5, 150)); out.far = m.inZone(pp, along(pp.gaze, 260));
+    const g0 = pp.gaze; pp.timer = m.LOOK / 2; lstep(1 / 60); out.swept = Math.abs(pp.gaze - g0) > 1;
+    // outside the zone: nobody waves
+    Object.assign(pl, along(pp.gaze + Math.PI, 150)); pl.invuln = 0; pp.timer = 2; lstep(0.5); out.outside = pp.shoo > 0 || !!pp.wave;
+    // inside it: they wave; out again before it lands: missed
+    Object.assign(pl, along(pp.gaze, 120)); lstep(0.1); out.started = pp.shoo > 0;
+    Object.assign(pl, along(pp.gaze + Math.PI, 260)); lstep(0.8); out.escaped = [!!g.shooed, g.lives, shown.includes('Missed!')];
+    return out;
+  });
+  check(!z.chatting && z.ahead && !z.beside && !z.far && z.swept, 'the red zone is in the wrong place: ' + JSON.stringify(z));
+  check(!z.outside && z.started && !z.escaped[0] && z.escaped[1] === 3 && z.escaped[2], 'the zone did not decide the shoo: ' + JSON.stringify(z));
   // the London wasp among the café tables: the hand waves, she's blown off where she is; under a table it misses
   await startMission(p, 'ldn_wasp', { noNet: true });
   await p.evaluate(LDN_STEP);

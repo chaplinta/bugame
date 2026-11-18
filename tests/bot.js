@@ -62,8 +62,9 @@
       // Hop away from a chasing plover or a diving gull
       if (pr && (pr.state === 'chase' || pr.state === 'alert') && dist(pr, p) < 200 && p.onGround) act = true;
     } else if (id === 'mosquito') {
-      const threat = m.people(g).find(pp => pp.shoo > 0);
-      if (threat) goal = { x: p.x + (p.x - threat.sx) * 3 + 60, y: p.y + (p.y - threat.sy) * 3 + 60 };
+      // out of the red zone of anyone looking round
+      const threat = m.people(g).find(pp => pp.shoo > 0 || m.inZone(pp, p));
+      if (threat) { const e = m.eyes(threat), d = Math.hypot(p.x - e.x, p.y - e.y) || 1; goal = { x: p.x + (p.x - e.x) / d * 250, y: p.y + (p.y - e.y) / d * 250 }; }
       else {
         const t = m.goalPoint(g);
         if (t && dist(t, p) < 22 && !(t.pp && t.pp.look)) { hold = true; goal = null; } else goal = t;
