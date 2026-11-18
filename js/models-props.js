@@ -522,9 +522,9 @@ const mirrored = (fn) => (ctx, w, h) => { ctx.translate(w, 0); ctx.scale(-1, 1);
 
 Models.define('person', {
   // A person at the barbecue, standing or sitting on a chair, chatting (a bubble), looking round (a question
-  // mark), waving, swatting, drinking; a red itch spot where the mosquito bit; breath drifting up.
+  // mark), waving a mosquito away, drinking; a red itch spot where the mosquito bit; breath drifting up.
   view: 'iso',
-  variant(o) { return [o.pose || 'stand', o.face < 0 ? 'L' : 'R', o.skin, o.shirt, o.pants, o.hair, o.hat || '', o.long ? 'l' : '', o.drink ? 'd' : '', o.swat > 0 ? 's' : '', o.wave ? 'w' : '', o.talk ? 't' : '', o.look ? 'q' : '', o.itch > 0.3 ? 'i' : ''].join('|'); },
+  variant(o) { return [o.pose || 'stand', o.face < 0 ? 'L' : 'R', o.skin, o.shirt, o.pants, o.hair, o.hat || '', o.long ? 'l' : '', o.drink ? 'd' : '', o.wave ? 'w' : '', o.talk ? 't' : '', o.look ? 'q' : '', o.itch > 0.3 ? 'i' : ''].join('|'); },
   key(o, t) { return Models.defs.person.variant(o) + 'b' + SpriteCache.phase(t, Math.PI, 4) + (o.wave ? 'v' + SpriteCache.phase(t, 6, 4) : ''); },
   build(M, o) {
     const g = new THREE.Group(), T = THREE, sit = o.pose === 'sit', rot = o.face < 0 ? Math.PI * 0.75 : -Math.PI / 4;
@@ -546,9 +546,9 @@ Models.define('person', {
     }
     const torso = hip + 24;
     M.ellipsoid(g, 13, 17, 30, shirt, [0, 0, torso]);
-    // arms: one busy (holding a drink, waving, swatting), the other hanging
-    const sh = [0, 17, torso + 22], elbow = o.swat > 0 ? [8, 22, torso + 44] : o.wave ? [6, 24, torso + 50] : o.drink ? [10, 19, torso + 24] : [8, 20, torso + 4];
-    const hand = o.swat > 0 ? [18, 14, torso + 62] : o.wave ? [2, 28, torso + 74] : o.drink ? [16, 8, torso + 40] : [22, 14, torso - 8];
+    // arms: one busy (holding a drink, or raised to wave a mosquito away), the other hanging
+    const sh = [0, 17, torso + 22], elbow = o.wave ? [6, 24, torso + 50] : o.drink ? [10, 19, torso + 24] : [8, 20, torso + 4];
+    const hand = o.wave ? [2, 28, torso + 74] : o.drink ? [16, 8, torso + 40] : [22, 14, torso - 8];
     M.seg(g, sh, elbow, 4, skin, { full: true }); M.seg(g, elbow, hand, 3.6, skin, { full: true }); M.ellipsoid(g, 4, 4, 4, skin, hand);
     g.userData.hand = hand;
     M.seg(g, [0, -17, torso + 22], [-6, -22, torso], 4, skin, { full: true }); M.seg(g, [-6, -22, torso], [-2, -20, torso - 22], 3.6, skin, { full: true });

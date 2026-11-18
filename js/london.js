@@ -7,14 +7,16 @@
 // is sourced in docs/facts.md (London); the pretend parts are listed there too.
 
 Bugs.push({ id: 'london', name: 'London', sci: 'Five real London bugs', place: 'London, England', sprite: 'londonIcon',
-  hub: 'london', kind: 'sandbox', run: true, stages: ['ldn_bee', 'ldn_wasp', 'ldn_mosquito', 'ldn_moth', 'ldn_stag'] });
+  hub: 'london', kind: 'sandbox', run: true, free: true,   // free: every part is open from the start
+  stages: ['ldn_bee', 'ldn_wasp', 'ldn_mosquito', 'ldn_moth', 'ldn_stag'] });
 
-// How each bug moves. Fliers steer to fly; the stag beetle walks, climbs bark and flies a short, clumsy way.
+// How each bug moves. Fliers steer to fly and hover when you let go; the stag beetle walks, climbs bark and flies a
+// short, clumsy way.
 const LDN_PHYS = {
-  bee: { hw: 9, hh: 14, fly: 190, accel: 5, sink: 45 },
-  wasp: { hw: 9, hh: 12, fly: 210, accel: 6, sink: 50 },
-  mosquito: { hw: 7, hh: 10, fly: 160, accel: 5, sink: 35 },
-  moth: { hw: 12, hh: 14, fly: 175, accel: 4, sink: 40 },
+  bee: { hw: 9, hh: 14, fly: 190, accel: 9, sink: 45 },
+  wasp: { hw: 9, hh: 12, fly: 210, accel: 10, sink: 50 },
+  mosquito: { hw: 7, hh: 10, fly: 160, accel: 9, sink: 35 },
+  moth: { hw: 12, hh: 14, fly: 175, accel: 8, sink: 40 },
   stag: { hw: 18, hh: 16, walk: 75, grav: 900, climb: 55, flyV: 120, flyLift: 90, flySink: 30, warm: 0.6, flyT: 2.4 },
 };
 
@@ -36,18 +38,20 @@ function ldnPart(d) {
       Game.later(16, () => Game.fact(this.later2));
     },
 
-    // The way the bug is steered: from the finger to the bug's middle, with a still zone so a flier can hover
+    // The way the bug is steered: toward the finger (slowing as she gets there, so she stops on it) or with the arrow
+    // keys. Let go and a flier hovers where she is; only a bumblebee out of fuel drifts down.
     move(g, dt, dx, dy) {
       const p = g.player, P = this.P, L = g.level;
-      let hover = false;
-      if (Input.target && !Input.keys.size) {
+      if (Input.target && !Input.keys.size && !(this.locked && this.locked(g))) {   // locked: blown off, no steering
         const z = Game.zoom || 1, tx = Input.target.x / z + g.cam.x, ty = Input.target.y / z + g.cam.y;
         const cx = p.x, cy = p.y - P.hh / 2, d = Math.hypot(tx - cx, ty - cy);
-        if (d < 30) { dx = 0; dy = 0; hover = !P.walk; } else { dx = (tx - cx) / d; dy = (ty - cy) / d; }
+        if (d < 10) { dx = 0; dy = 0; }
+        else { const k = P.walk ? 1 : Math.min(1, d / 60); dx = (tx - cx) / d * k; dy = (ty - cy) / d * k; }
       }
       const len = Math.hypot(dx, dy); if (len > 1) { dx /= len; dy /= len; }
       if (P.walk && !(p.flyT > 0)) dx = Math.abs(dx) < 0.2 ? 0 : Math.sign(dx);
-      Plat.move(L, P, p, dt, dx, dy, { hover, perch: g.perch, weak: this.weak ? this.weak(g) : false });
+      const weak = this.weak ? this.weak(g) : false, hover = !P.walk && !weak && !dx && !dy;
+      Plat.move(L, P, p, dt, dx, dy, { hover, perch: g.perch, weak });
       if (Math.abs(p.vx) > 8) p.face = p.vx > 0 ? 1 : -1;
       p.angle = 0;
       p.flying = P.walk ? (p.flyT > 0 || p.warmT > 0) : !p.onGround;
@@ -166,7 +170,7 @@ Object.assign(Missions, {
       'The London run is a pretend day out: one summer day, five real London bugs, a different one in each part.',
     ],
     how: [
-      'This is side-on! Drag (or use the arrow keys) and you fly that way. Let go and you drift down.',
+      'This is side-on! Touch and drag (or use the arrow keys) and you fly that way. Let go and you hover.',
       'Fly to a flower and hold Sip. Nectar fills your fuel, and you collect pollen. Four flowers fill your baskets.',
       'Some flowers hide a crab spider. Look before you land!',
       'Then fly down into your nest, an old mouse hole in the bank at the end.',
@@ -198,11 +202,12 @@ Object.assign(Missions, {
         route: [[320, 490, 'f1'], [520, 410, 'f2'], [900, 445, 'f3'], [1290, 380], [1550, 430, 'f5'], [1860, 100], [1935, 100], [2010, 120], [2250, 450, 'f7'], [2560, 420, 'f8'], [2795, 540, 'nest']],
       };
     },
-    start(g) { g.fuel = 0.7; },
+    start(g) { g.fuel = 0.8; },
     weak(g) { return g.fuel <= 0; },
     tick(g, dt) {
       const p = g.player;
-      if (p.flying && !g.perch) g.fuel = Math.max(0, g.fuel - dt / 30);
+      if (p.flying && !g.perch) g.fuel = Math.max(0, g.fuel - dt / 45);
+      if (g.fuel < 0.25 && g.fuel > 0 && !g.toldLow) { g.toldLow = true; Game.hint('Fuel low! Sip a flower soon.'); }
       if (g.fuel <= 0 && !g.toldFuel) { g.toldFuel = true; Game.hint('Out of fuel! Drift down to a flower and Sip.'); }
     },
     done(g, s) {
@@ -232,7 +237,7 @@ Object.assign(Missions, {
       'Fly by dragging, or with the arrow keys.',
       'Hold Scrape on the fence posts to chew wood for the nest. Do two.',
       'Catch the fly buzzing by the bin: get close and press Catch.',
-      'A hand swats at you! When you see its shadow, fly away or hide under a table. Then fly home to the nest under the shed roof.',
+      'Someone waves you away! When you see the hand, fly off or hide under a table. Then fly home to the nest under the shed roof.',
     ],
     discoveries: [{ key: 'd_leaf', sprite: 'deadLeaf', fx: 0.12, fy: 0.925 }, { key: 'd_feather', sprite: 'feather', color: '#8a6a48', band: '#4a3424', fx: 0.77, fy: 0.925 }],
     factText: {
@@ -260,25 +265,31 @@ Object.assign(Missions, {
         route: [[260, 465, 'p1'], [640, 445, 'p2'], [900, 400], [1085, 500], [1525, 400, 'fly'], [1845, 500], [2300, 350], [2690, 330, 'nest']],
       };
     },
-    // A hand swats every few seconds while you're among the tables: its shadow warns first
+    // Every few seconds among the tables someone waves the wasp away: the hand shows first, then its wave blows her
+    // a little way off if she's still there (no heart lost; under a table she's out of reach)
     hazards(g, dt) {
       const p = g.player, h = g.hz, cy = p.y - this.P.hh / 2;
-      if (h.swat) {
-        h.swat.t += dt;
-        if (h.swat.t >= 1 && !h.swat.hit) {
-          h.swat.hit = true; g.shake = 0.15; Sound.play('tap');
-          if (!g.hidden && p.invuln <= 0 && Math.hypot(p.x - h.swat.x, cy - h.swat.y) < 55) Game.caught({ name: 'hand', caughtText: 'Swatted! Back to the last safe spot.' });
-          else Game.pop(h.swat.x, h.swat.y - 34, 'Missed!', '#fff');
+      if (g.shooed > 0) g.shooed = Math.max(0, g.shooed - dt);
+      if (h.shoo) {
+        h.shoo.t += dt;
+        if (h.shoo.t >= 1 && !h.shoo.hit) {
+          h.shoo.hit = true; Sound.play('tap');
+          if (!g.hidden && p.invuln <= 0 && Math.hypot(p.x - h.shoo.x, cy - h.shoo.y) < 55) {
+            g.shooDir = p.x >= h.shoo.x ? 1 : -1; g.shooed = 0.5; p.push = g.shooDir * 3400; p.vy = -150;
+            for (const s of g.level.spots) s.t = 0;   // a scrape or a catch in progress starts again
+            Game.pop(p.x, p.y - 34, 'Shoo!', '#fff');
+          } else Game.pop(h.shoo.x, h.shoo.y - 34, 'Missed!', '#fff');
         }
-        if (h.swat.t >= 1.5) { h.swat = null; h.next = 5 + Math.random() * 2; }
+        if (h.shoo.t >= 1.5) { h.shoo = null; h.next = 5 + Math.random() * 2; }
       } else if (p.x > 850 && p.x < 2050 && !g.homeSafe) {
         h.next = (h.next === undefined ? 2.5 : h.next) - dt;
         if (h.next <= 0 && p.invuln <= 0) {
-          h.swat = { x: p.x, y: cy, t: 0 }; Sound.play('caught'); Game.fact('swat');
-          if (!g.toldSwat) { g.toldSwat = true; g.toasts.unshift({ text: 'Look out, a hand! Fly away from its shadow, or hide under a table.', kind: 'hint' }); g.toastT = 0; }
+          h.shoo = { x: p.x, y: cy, t: 0 }; Sound.play('caught'); Game.fact('swat');
+          if (!g.toldShoo) { g.toldShoo = true; g.toasts.unshift({ text: 'Look out, a hand! Fly away before it shoos you, or hide under a table.', kind: 'hint' }); g.toastT = 0; }
         }
       }
     },
+    locked(g) { return g.shooed > 0; },   // being blown off by the wave
     hud(g) {
       const w = Math.min(2, g.counts.post || 0), f = g.counts.fly ? 1 : 0;
       setHud(w < 2 || !f ? 'Wood: ' + w + ' / 2 · Fly: ' + f + ' / 1' : 'Fly home to the nest!', '');

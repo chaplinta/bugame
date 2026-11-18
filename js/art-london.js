@@ -1,7 +1,7 @@
 'use strict';
 // London's art (js/london.js): the five bugs side-on (feet at the origin, facing +x; o.face flips them, and they undo
 // the engine's turn themselves), the animals that hunt them, the things found on the way, the five side-on
-// backgrounds, and the overlays: task spots, the leaves a hidden bug sits in, the swatting hand and the Tube train.
+// backgrounds, and the overlays: task spots, the leaves a hidden bug sits in, the hand that waves the wasp away and the Tube train.
 // The 3D models of the bugs are in js/models-london.js; the drawings are the fallback.
 
 // Side-on drawings start like this: undo the turn, face the way the bug faces, lift the body off the feet
@@ -428,10 +428,20 @@ const LondonArt = {
     for (const f of g.fronts) if (f) { ctx.globalAlpha = g.hidden ? 0.78 : 0.95; ctx.drawImage(f.c, f.x, f.y); }
     ctx.globalAlpha = 1;
     const h = g.hz;
-    if (h && h.swat) {
-      const s = h.swat, k = Math.min(1, s.t);
-      ctx.fillStyle = 'rgba(0,0,0,' + (0.15 + k * 0.25) + ')'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 20 + k * 40, 14 + k * 26, 0, 0, TAU); ctx.fill();
-      if (s.t > 0.75) this.hand(ctx, s.x, s.y - (1 - Math.min(1, (s.t - 0.75) * 4)) * 140);
+    if (h && h.shoo) {   // someone waving the wasp away: its reach as a shadow, then the hand sweeping to and fro
+      const s = h.shoo, k = Math.min(1, s.t);
+      ctx.fillStyle = 'rgba(0,0,0,' + (0.12 + k * 0.2) + ')'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 20 + k * 40, 14 + k * 26, 0, 0, TAU); ctx.fill();
+      if (s.t > 0.5) {
+        const sw = Math.sin(g.t * 16), hx = s.x + sw * 40, hy = s.y - 20 - (1 - Math.min(1, (s.t - 0.5) * 3)) * 120;
+        ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 3;
+        for (const side of [-1, 1]) for (let i = 0; i < 2; i++) { const a = side > 0 ? 0 : Math.PI; ctx.beginPath(); ctx.arc(hx, hy - 20, 58 + i * 14, a - 0.45, a + 0.45); ctx.stroke(); }
+        ctx.save(); ctx.translate(hx, hy); ctx.rotate(sw * 0.35); this.hand(ctx, 0, 0); ctx.restore();
+      }
+    }
+    if (g.shooed > 0) {   // blown off: streaks of air behind her
+      const p = g.player, dir = g.shooDir || 1, cy = p.y - m.P.hh / 2;
+      ctx.strokeStyle = 'rgba(255,255,255,' + (0.3 + g.shooed) + ')'; ctx.lineWidth = 2;
+      for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(p.x - dir * 14, cy + i * 7); ctx.lineTo(p.x - dir * 48, cy + i * 9); ctx.stroke(); }
     }
     if (h && h.pass > 0) {
       const z = Game.zoom || 1, vw = W / z, tc = this.trainImage();

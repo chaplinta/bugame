@@ -183,6 +183,7 @@ Each fact shown to players, with where to check it. Sources: Australian Museum (
 - Larvae (wrigglers) develop in still water; tipping out containers weekly is the standard advice. WA Dept of Health "Fight the Bite".
 - Mainly active at dusk and night. WA Dept of Health.
 - A mosquito can take in more than its own body weight in blood. AM.
+- People's defensive movements (waving, slapping) drive mosquitoes off and interrupt their feeding, so a mosquito often has to try again. Edman & Kale 1971, *Annals of the Entomological Society of America* 64(2): 513–516; "Host defensive behaviour and the feeding success of mosquitoes", *Insect Science and its Application* 1987. The game shows only the waving.
 - Marbled geckos (*Christinus marmoratus*) live in southwest WA and hunt insects at night, often near lights. WAM.
 
 ## Painted lady flight stage
@@ -371,7 +372,7 @@ Found by tapping the plane at Perth Airport on the Perth map. One late-July day 
 - Great tits hunt caterpillars and moths, and feed their chicks mostly on moth caterpillars (RSPB, great tit; University of Tartu nestling diet studies). Song thrushes smash snails on a stone "anvil" (RSPB, song thrush). Blackbirds are among the first birds to sing at dawn (RSPB, dawn chorus).
 - **Stag beetle** (*Lucanus cervus*), Richmond Park at dusk: Britain's biggest land beetle; males 35–75 mm with their jaws, females 30–50 mm (Buglife; NHM). London and the Thames Valley are its UK stronghold (NHM "Stag beetles"; London Wildlife Trust). Only males have the antler-like jaws, used to wrestle rival males. The grubs live in rotting wood underground for at least three to four years; adults live only a few weeks and can't eat solid food, living on fat stored as grubs; males fly at dusk on warm evenings in May to August, slowly and clumsily, looking for females; foxes, cats, magpies, crows and kestrels eat them (PTES, stag beetle factsheet and Great Stag Hunt). Females lay eggs by buried dead wood (PTES).
 - Richmond Park has about 1,300 veteran oak trees (Friends of Richmond Park; Royal Parks) and about 600 red and fallow deer (Royal Parks); male deer cast their antlers each spring and grow new ones (British Deer Society; Mammal Society). Foxes are common in London's parks and gardens (Mammal Society; London Wildlife Trust).
-- Pretend, and said so in the game and here: the five parts are one late-July day (stag beetles fly until about August, Jersey tigers from July, so all five can be about in late July); the train's rush of air blowing the mosquito back to the last safe spot; the hand that swats near the tables; the routes, safe spots, timings, the fuel bar and the flowers' places. The bumblebee drifts down when her fuel runs out; really a bumblebee with no nectar left soon can't fly at all.
+- Pretend, and said so in the game and here: the five parts are one late-July day (stag beetles fly until about August, Jersey tigers from July, so all five can be about in late July); the train's rush of air blowing the mosquito back to the last safe spot; the hand that shoos you a little way off near the tables; the routes, safe spots, timings, the fuel bar and the flowers' places. The bumblebee drifts down when her fuel runs out; really a bumblebee with no nectar left soon can't fly at all.
 
 ## Landmarks in backgrounds
 - Lake Joondalup is drawn on the map north of Herdsman Lake, where it really is (Yellagonga Regional Park). Scenery only.
@@ -404,7 +405,7 @@ Found by tapping the plane at Perth Airport on the Perth map. One late-July day 
 - Emergence happens on the water's surface in the game; in reality the nymph climbs well up the stem first.
 - The day lasts 10 minutes; at night every bug sleeps. Really, sandhoppers, mosquitoes and many others are active at night.
 - The sandhopper's beach is shown at dusk; the 2D gull dives and the plover gives up after a few seconds.
-- Mosquito bite spots are marked; people swat only when looking around, so there is a fair chance to fly away.
+- Mosquito bite spots are marked; people only wave the mosquito away when looking around, so there is a fair chance to fly off first, and a wave just blows her a little way off (no heart lost).
 - The 3D butterfly flies at a steady speed and lands automatically on a flower's ring.
 - The female peacock spider: five or six males a round, at most three at once; each dances for 10 to 20 seconds, gives up and walks off, and comes back later. Any choice is fine in the game. Eggs hatch 18 seconds after the sac is spun (really about two weeks, and the spiderlings stay about two more), and an ant that reaches the sac takes one egg. **A new mate for each brood is pretend**: real mated females almost never mate again (see the section above), and the game says so.
 - The male's courtship is ten beats in twelve seconds with the moves in a fixed order; real displays go on for minutes and vary. The drumming is drawn as rings on the sand. She steps closer or away to show how it is going; really she simply stays, walks off or attacks.

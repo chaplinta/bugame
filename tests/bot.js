@@ -62,7 +62,7 @@
       // Hop away from a chasing plover or a diving gull
       if (pr && (pr.state === 'chase' || pr.state === 'alert') && dist(pr, p) < 200 && p.onGround) act = true;
     } else if (id === 'mosquito') {
-      const threat = m.people(g).find(pp => pp.swat > 0);
+      const threat = m.people(g).find(pp => pp.shoo > 0);
       if (threat) goal = { x: p.x + (p.x - threat.sx) * 3 + 60, y: p.y + (p.y - threat.sy) * 3 + 60 };
       else {
         const t = m.goalPoint(g);
@@ -224,10 +224,10 @@
     const hunted = g.preds.some(pr => pr.state === 'alert' || pr.state === 'chase');
     const train = h.trainT !== undefined && (h.trainT < (kidLike ? 2.6 : 3.2) || h.pass > 0);
     if (hunted || train) { const c = hideAt(p.x); if (c) return { goal: aim(c), flee: hunted }; }
-    if (h.swat && h.swat.t < 1) {
+    if (h.shoo && h.shoo.t < 1) {
       const c = hideAt(p.x);
       if (c && Math.abs(c.x - p.x) < 140) return { goal: c };
-      return { goal: { x: h.swat.x + (p.x >= h.swat.x ? 150 : -150), y: Math.max(120, h.swat.y - 70) } };
+      return { goal: { x: h.shoo.x + (p.x >= h.shoo.x ? 150 : -150), y: Math.max(120, h.shoo.y - 70) } };
     }
     const w = m.waypoint(g), s = w.spot;
     // A kid sometimes stops at the wrong flower (and meets a crab spider)

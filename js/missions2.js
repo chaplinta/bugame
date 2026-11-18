@@ -540,7 +540,7 @@ Object.assign(Sprites, {
     // Body and arms
     ctx.fillStyle = sh; ctx.beginPath(); ctx.ellipse(0, by - 22 + bob, 17, 28, 0, 0, TAU); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1; ctx.stroke();
-    const arm = o.swat > 0 ? -1.2 : o.wave ? Math.sin(t * 6) * 0.3 : 0.3;
+    const arm = o.wave ? -0.9 + Math.sin(t * 14) * 0.5 : 0.3;   // o.wave: shooing a mosquito away
     line(ctx, [8, by - 40 + bob, 8 + Math.cos(arm + 1.2) * 24, by - 40 + bob + Math.sin(arm + 1.2) * 24, 14 + Math.cos(arm + 0.4) * 34, by - 40 + bob + Math.sin(arm + 0.4) * 34], sk, 8);
     if (o.drink) { ctx.fillStyle = '#d8402a'; ctx.fillRect(12 + Math.cos(arm + 0.4) * 34, by - 50 + bob + Math.sin(arm + 0.4) * 34, 9, 14); }
     line(ctx, [-8, by - 40 + bob, -14, by - 16 + bob, -10, by + 2 + bob], sk, 8);
@@ -640,7 +640,7 @@ Object.assign(Missions, {
     how: [
       'Fly with the arrow keys, or touch and drag. This yard is seen from up high, at an angle.',
       'Land on a person’s arm or ankle while they are busy chatting, and hold or tap Bite.',
-      'If someone looks around (?), fly off before they swat you!',
+      'If someone looks around (?), fly off before they shoo you away!',
       'When you’re full of blood, find still water and hold Lay. Lay 3 egg rafts.',
     ],
     discoveries: [
@@ -651,7 +651,7 @@ Object.assign(Missions, {
       start: 'This mosquito bites mostly at dusk and at night, when people are outside having a barbecue.',
       co2: 'Mosquitoes find people by smelling the carbon dioxide we breathe out, and the smell of our skin.',
       bite: 'A mosquito’s mouth is a bundle of tiny needles. Her spit stops the blood clotting, and that’s what makes the bite itchy.',
-      swat: 'People can feel a mosquito landing on them. Fly away before they swat!',
+      swat: 'People often wave mosquitoes away. Fly off before they do!',
       full: 'A mosquito can drink more than her own weight in blood.',
       raft: 'This mosquito lays her eggs stuck together in a little raft that floats on still water.',
       water: 'The young, called wrigglers, grow in still water. That’s why we tip out water from pots, buckets and bird baths.',
@@ -697,24 +697,41 @@ Object.assign(Missions, {
         if (pp.state === 'chat' && pp.timer <= 0) { pp.state = 'look'; pp.timer = 2.4; }
         else if (pp.state === 'look' && pp.timer <= 0) { pp.state = 'chat'; pp.timer = 5 + Math.random() * 4; }
         pp.look = pp.state === 'look'; pp.talk = !pp.look;
-        // Noticing a mosquito close to their face, or one biting them
+        // Noticing a mosquito close to their face, or one biting them: they wave her away
         const near = Math.hypot(p.x - pp.x, p.y - (pp.y - 70)) < 110;
-        if (pp.look && (near || p.biting === pp) && !pp.swat && p.invuln <= 0) {
-          pp.swat = 0.75; pp.sx = p.x; pp.sy = p.y;
+        if (pp.look && (near || p.biting === pp) && !pp.shoo && !g.shooed && p.invuln <= 0) {
+          pp.shoo = 0.75; pp.sx = p.x; pp.sy = p.y;
           Game.hint('Look out! They’ve seen you. Fly away!');
           Game.fact('swat');
         }
-        if (pp.swat > 0) {
-          pp.swat -= dt;
-          if (pp.swat <= 0) {
-            pp.swat = 0; g.shake = 0.15; Sound.play('tap');
-            if (Math.hypot(p.x - pp.sx, p.y - pp.sy) < 40 && p.invuln <= 0) { p.biting = null; Game.caught({ name: 'swat of a hand', state: 'chat' }); }
-            else Game.pop(pp.sx, pp.sy - 20, 'Missed!', '#fff');
+        if (pp.shoo > 0) {
+          pp.shoo -= dt;
+          if (pp.shoo <= 0) {
+            pp.shoo = 0; Sound.play('tap');
+            if (Math.hypot(p.x - pp.sx, p.y - pp.sy) < 40 && p.invuln <= 0 && !g.shooed) {
+              // Shooed: the wave blows her a little way off, away from them, and she flies on from there
+              let dx = p.x - pp.x, dy = p.y - (pp.y - 50);
+              const d = Math.hypot(dx, dy);
+              if (d < 1) { dx = pp.face; dy = 0; }
+              const n = Math.hypot(dx, dy);
+              g.shooed = { t: 0.5, vx: dx / n * 420, vy: dy / n * 420 };
+              p.biting = null;
+              Game.pop(p.x, p.y - 20, 'Shoo!', '#fff');
+            } else Game.pop(pp.sx, pp.sy - 20, 'Missed!', '#fff');
             pp.state = 'chat'; pp.timer = 4 + Math.random() * 3;
           }
         }
+        pp.wave = pp.shoo > 0;
       }
       p.biting = null;
+      // Being blown off: no steering, no biting, slowing down as the puff of air dies away
+      if (g.shooed) {
+        const s = g.shooed, k = s.t / 0.5;
+        p.x = clamp(p.x + s.vx * k * dt, 20, World.w - 20); p.y = clamp(p.y + s.vy * k * dt, 20, World.h - 20);
+        s.t -= dt; if (s.t <= 0) g.shooed = null;
+        setAction(p.blood >= 1 ? 'Lay' : 'Bite', false);
+        return;
+      }
       const full = p.blood >= 1;
       // Lay eggs on still water when full
       const water = full ? g.items.find(i => i.kind === 'water' && Math.hypot(i.x - p.x, i.y + i.wy - p.y) < 40) : null;
@@ -757,14 +774,28 @@ Object.assign(Missions, {
         for (const rf of w.rafts) { if (typeof SpriteCache !== 'undefined' && SpriteCache.blit(ctx, 'eggRaft', {}, 0, { x: w.x + rf.dx, y: w.y + w.wy + rf.dy })) continue; ctx.save(); ctx.translate(w.x + rf.dx, w.y + w.wy + rf.dy); Sprites.eggRaft(ctx); ctx.restore(); }
         if (full) { ctx.beginPath(); ctx.ellipse(w.x, w.y + w.wy, 34, 14, 0, 0, TAU); ctx.strokeStyle = 'rgba(120,220,255,' + (0.5 + 0.4 * Math.sin(t * 5)) + ')'; ctx.lineWidth = 3; ctx.stroke(); }
       }
-      // Hands coming down to swat
-      for (const pp of this.people(g)) if (pp.swat > 0) {
-        const k = 1 - pp.swat / 0.75;
-        softShadow(ctx, pp.sx, pp.sy, 34 + k * 20, 20 + k * 12, 0.25 + k * 0.4);
-        ctx.save(); ctx.translate(pp.sx, pp.sy - 80 + k * 70); ctx.globalAlpha = 0.5 + k * 0.5;
-        ell(ctx, 0, 0, 26, 18, pp.skin);
-        for (let i = 0; i < 4; i++) ell(ctx, -15 + i * 10, -18, 5, 11, pp.skin);
+      // A hand waving her away: its reach on the ground, the hand sweeping to and fro, puffs of air either side
+      for (const pp of this.people(g)) if (pp.shoo > 0) {
+        const k = 1 - pp.shoo / 0.75, sw = Math.sin(t * 16), hx = pp.sx + sw * 26 * (0.4 + k * 0.6), hy = pp.sy - 46;
+        softShadow(ctx, pp.sx, pp.sy, 34 + k * 20, 20 + k * 12, 0.15 + k * 0.3);
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.25 + k * 0.5) + ')'; ctx.lineWidth = 2.5;
+        for (const side of [-1, 1]) for (let i = 0; i < 2; i++) {
+          const a = side > 0 ? 0 : Math.PI;
+          ctx.beginPath(); ctx.arc(hx, hy, 32 + i * 10, a - 0.5, a + 0.5); ctx.stroke();
+        }
+        ctx.save(); ctx.translate(hx, hy); ctx.rotate(sw * 0.4); ctx.globalAlpha = 0.6 + k * 0.4;
+        ell(ctx, 0, 0, 17, 22, pp.skin);                                            // the palm, flat on
+        for (let i = 0; i < 4; i++) ell(ctx, -12 + i * 8, -24, 4, 10, pp.skin);    // fingers up
+        ell(ctx, 18, 2, 4, 9, pp.skin, -0.6);                                       // thumb
         ctx.restore();
+      }
+      // Blown off: streaks of air behind her
+      if (g.shooed) {
+        const s = g.shooed, n = Math.hypot(s.vx, s.vy) || 1, ux = s.vx / n, uy = s.vy / n;
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.3 + s.t) + ')'; ctx.lineWidth = 2;
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath(); ctx.moveTo(p.x - ux * 14 - uy * i * 8, p.y - uy * 14 + ux * i * 8); ctx.lineTo(p.x - ux * 44 - uy * i * 10, p.y - uy * 44 + ux * i * 10); ctx.stroke();
+        }
       }
       // The mosquito's shadow on the ground below her
       softShadow(ctx, p.x, p.y + 30, 10, 4, 0.35);
@@ -781,6 +812,7 @@ Object.assign(Missions, {
       setHud('Egg rafts: ' + Math.min(g.score, this.goal) + ' / ' + this.goal, 'Blood ' + '■'.repeat(k) + '□'.repeat(5 - k));
     },
     won(g) { return g.score >= this.goal; },
+    locked(g) { return !!g.shooed; },   // being blown off by someone's wave
   },
 });
 

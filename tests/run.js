@@ -1748,6 +1748,10 @@ test('London: the bee runs on nectar, a crab spider and the train send you back 
   const r = await p.evaluate(() => {
     const g = Game.g, pl = g.player, out = {};
     g.timers = [];
+    // let go and she hovers; she stops soon after you let go
+    Object.assign(pl, { x: 700, y: 300, vx: 0, vy: 0 }); g.fuel = 1;
+    lstep(2); out.hover = Math.abs(pl.y - 300);
+    lstep(1, { keys: ['arrowright'] }); const x1 = pl.x; lstep(1); out.stop = [Math.round(x1 - 700), Math.round(pl.x - x1), Math.abs(pl.y - 300) < 2];
     Object.assign(pl, { x: 700, y: 300, vx: 0, vy: 0 }); g.fuel = 0;
     lstep(3, { keys: ['arrowup'] }); out.empty = [g.fuel, pl.y];
     const f = g.level.spots.find(s => s.id === 'f1');
@@ -1758,6 +1762,8 @@ test('London: the bee runs on nectar, a crab spider and the train send you back 
     g.lives = 1; pl.invuln = 0; Object.assign(pl, { x: c.x, y: c.y + 7, vx: 0, vy: 0 }); lstep(0.6, { held: true }); out.last = g.lives;
     return out;
   });
+  check(r.hover < 2, 'the bee did not hover when let go: ' + r.hover);
+  check(r.stop[0] > 140 && r.stop[1] < 30 && r.stop[2], 'the bee did not fly and then stop: ' + r.stop);
   check(r.empty[0] === 0 && r.empty[1] > 300, 'an empty bee still flew: ' + r.empty);
   check(r.sip[0] === 1 && r.sip[1] > 0.4, 'sipping did not refill her: ' + r.sip);
   check(r.cp[0] === 1 && r.cp[1] === 1000, 'the safe spot did not move: ' + r.cp);
@@ -1776,6 +1782,63 @@ test('London: the bee runs on nectar, a crab spider and the train send you back 
   });
   check(t.hidden[0] === 3 && t.hidden[1], 'the train got the mosquito behind the pillar: ' + t.hidden);
   check(t.open[0] === 2 && t.open[1], 'the train missed the mosquito in the open: ' + t.open);
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('mozzies and the London wasp are shooed away, not swatted: blown a little way off, no heart lost', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(() => {   // everything shown or said: toasts and pops
+    window.shown = [];
+    const sh = Game.showToast.bind(Game), pop = Game.pop.bind(Game);
+    Game.showToast = (t) => { if (t) shown.push(t.text); sh(t); };
+    Game.pop = (x, y, text, c) => { shown.push(text); return pop(x, y, text, c); };
+  });
+  // the Perth mosquito, biting the arm of someone who looks round
+  await startMission(p, 'mosquito', { noNet: true, noPred: true });
+  await p.evaluate(LDN_STEP);
+  const r = await p.evaluate(() => {
+    const g = Game.g, pl = g.player, m = g.mission, out = {};
+    g.timers = [];
+    for (const q of m.people(g)) { q.state = 'chat'; q.timer = 99; }
+    const pp = m.people(g)[0], s = m.spots(pp)[1], home = [g.home.x, g.home.y];
+    Object.assign(pl, { x: s.x, y: s.y, invuln: 0, blood: 0.4 });
+    pp.state = 'look'; pp.timer = 5;
+    lstep(0.3, { held: true }); out.waving = [pp.shoo > 0, !!pp.wave];
+    lstep(0.5, { held: true }); out.blown = [!!g.shooed, m.locked(g)];
+    const x0 = pl.x, b0 = pl.blood;
+    lstep(0.2, { held: true, keys: ['arrowleft'] }); out.drift = [pl.x > x0, pl.blood === b0];   // no steering, no biting
+    lstep(0.6);
+    out.after = { d: Math.round(Math.hypot(pl.x - s.x, pl.y - s.y)), lives: g.lives, blood: pl.blood >= 0.4, home: Math.round(Math.hypot(pl.x - home[0], pl.y - home[1])), shooed: !!g.shooed, waving: !!pp.wave };
+    return out;
+  });
+  check(r.waving[0] && r.waving[1], 'nobody waved: ' + JSON.stringify(r));
+  check(r.blown[0] && r.blown[1] && r.drift[0] && r.drift[1], 'the wave did not blow her off: ' + JSON.stringify(r));
+  check(r.after.d > 60 && r.after.lives === 3 && r.after.blood && r.after.home > 200 && !r.after.shooed && !r.after.waving, 'shooed wrongly: ' + JSON.stringify(r));
+  // the London wasp among the café tables: the hand waves, she's blown off where she is; under a table it misses
+  await startMission(p, 'ldn_wasp', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const w = await p.evaluate(() => {
+    const g = Game.g, pl = g.player, out = {};
+    g.timers = [];
+    Object.assign(pl, { x: 1300, y: 560, vx: 0, vy: 0, invuln: 0 });
+    g.hz.next = 0; lstep(0.1); out.started = !!g.hz.shoo;
+    const cp = g.cp, hx = g.home.x, x0 = pl.x;
+    lstep(1); out.hit = [g.shooed > 0, g.lives];
+    lstep(1); out.after = { dx: Math.round(Math.abs(pl.x - x0)), lives: g.lives, cp: g.cp === cp, home: g.home.x === hx };
+    g.hz.shoo = null; g.hz.next = 0; Object.assign(pl, { x: 1085, y: 560, vx: 0, vy: 0, push: 0 });
+    lstep(1.3); out.hidden = [g.shooed, Math.round(Math.abs(pl.x - 1085))];
+    return out;
+  });
+  check(w.started && w.hit[0] && w.hit[1] === 3, 'the wasp was not shooed: ' + JSON.stringify(w));
+  check(w.after.dx > 40 && w.after.lives === 3 && w.after.cp && w.after.home, 'the wasp was shooed wrongly: ' + JSON.stringify(w));
+  check(w.hidden[0] === 0 && w.hidden[1] < 5, 'the wave reached under the table: ' + JSON.stringify(w));
+  // nothing shown or said talks of swatting
+  const words = await p.evaluate(() => {
+    const t = [...shown];
+    for (const id of ['mosquito', 'ldn_wasp']) { const m = Missions[id]; t.push(...m.how, ...m.facts, ...Object.values(m.factText)); }
+    return { swat: t.filter(s => /swat/i.test(s)), shoo: t.filter(s => s === 'Shoo!').length };
+  });
+  check(words.swat.length === 0 && words.shoo >= 2, 'words: ' + JSON.stringify(words));
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
@@ -1799,6 +1862,7 @@ test('London is hidden until the plane at Perth Airport is found; then one run c
   await p.click('#secretGo');
   await p.waitForSelector('#bug.active', { timeout: 5000 });
   check(/London/.test(await p.textContent('#bug')), 'the London page did not open');
+  check(await p.locator('.stageBtn').count() === 5 && await p.locator('.stageBtn:disabled').count() === 0, 'not every London part is open from the start');
   await p.click('#bugStart');
   await p.waitForTimeout(300);
   check(await p.evaluate(() => Game.g.mission.id === 'ldn_bee' && Run.on), 'the run did not start with the bumblebee');

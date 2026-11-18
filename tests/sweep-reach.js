@@ -40,7 +40,7 @@ const TARGETS = {
       const out = { ready: 0, worked: 0, tries: 0, silent: false, hint: '', hasHint: !!m.notReady };
       const cssPerWorld = Game.canvas.getBoundingClientRect().width / W * (Game.zoom || 1);
       const wait = (ms) => new Promise(r => setTimeout(r, ms));
-      if (p.invuln !== undefined) p.invuln = 1e9;   // the mosquito: no swats while we teleport beside people's faces
+      if (p.invuln !== undefined) p.invuln = 1e9;   // the mosquito: nobody waves her off while we teleport beside people's faces
       for (let k = 0; k < 6; k++) {
         const t = eval(find);
         if (!t) break;
