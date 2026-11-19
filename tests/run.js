@@ -1163,7 +1163,7 @@ test('sugar ant nest: dig, build the mound, plug the entrance before rain', asyn
   await p.waitForTimeout(2500);
   check(await p.evaluate(() => Game.g.water.flat().every(w => !w)), 'water got into a plugged nest');
   // Press down on the plug to open it again
-  await p.evaluate(() => { Game.g.raining = 0; Game.timeScale = 1; });
+  await p.evaluate(() => { Game.g.raining = 0; Game.g.rainT = 60; Game.timeScale = 1; });   // rainT too, or it starts raining again at once
   await p.keyboard.down('ArrowDown'); await p.waitForTimeout(800); await p.keyboard.up('ArrowDown');
   check(await p.evaluate(() => Game.g.mission.entrances(Game.g).length === 1), 'could not reopen the entrance');
   check(p.errors.length === 0, p.errors.join('; '));
