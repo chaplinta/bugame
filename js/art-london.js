@@ -405,7 +405,15 @@ const LondonArt = {
 };
 
 // Cache the drawings that stand still; the bugs you play are drawn live (or from their 3D models)
-SpriteCache.registerAll(['nutShell', 'oldTicket', 'acorn', 'antler', 'londonIcon']);
+// London's lost things (js/secrets.js)
+Object.assign(Sprites, {
+  tennisBall(ctx) { ell(ctx, 0, 0, 7, 7, '#cfe040'); ctx.strokeStyle = '#f4f4e8'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(-7, 0, 6, -0.9, 0.9); ctx.stroke(); ctx.beginPath(); ctx.arc(7, 0, 6, Math.PI - 0.9, Math.PI + 0.9); ctx.stroke(); },
+  teaspoon(ctx) { ctx.save(); ctx.rotate(-0.4); plainLine(ctx, [-9, 0, 5, 0], '#c8ccd0', 1.8); ell(ctx, 8, 0, 4.4, 3, '#d8dce0'); plainEll(ctx, 8.6, -0.4, 2.4, 1.4, '#b02848'); ctx.restore(); },
+  umbrella(ctx) { ctx.save(); ctx.rotate(-1.1); plainLine(ctx, [-12, 0, 12, 0], '#3a3a3a', 1.6); ctx.fillStyle = '#2a4a8a'; ctx.beginPath(); ctx.moveTo(-9, -2.6); ctx.lineTo(9, -1.2); ctx.lineTo(9, 1.2); ctx.lineTo(-9, 2.6); ctx.fill(); ctx.strokeStyle = '#8a5a2a'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(-12, 2.4, 2.4, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke(); ctx.restore(); },
+  shuttlecock(ctx) { ctx.save(); ctx.rotate(0.5); ctx.fillStyle = '#f4f4f0'; ctx.beginPath(); ctx.moveTo(-2, -2); ctx.lineTo(9, -6); ctx.lineTo(9, 6); ctx.lineTo(-2, 2); ctx.fill(); ctx.strokeStyle = 'rgba(120,120,120,.6)'; ctx.lineWidth = 0.6; for (const y of [-3.5, 0, 3.5]) { ctx.beginPath(); ctx.moveTo(-2, y * 0.4); ctx.lineTo(9, y); ctx.stroke(); } ell(ctx, -4, 0, 3.2, 3.2, '#e8d8a8'); ctx.restore(); },
+  glove(ctx) { ctx.save(); ctx.rotate(0.3); ell(ctx, 0, 1, 6, 7, '#c8402a'); for (let k = 0; k < 4; k++) ell(ctx, -4.5 + k * 3, -7 - (k === 1 || k === 2 ? 1.5 : 0), 1.5, 4, '#c8402a'); ell(ctx, 6.4, -1, 1.6, 3.6, '#c8402a', -0.9); ctx.fillStyle = '#f4f0e4'; ctx.fillRect(-5.4, 6, 10.8, 3); ctx.restore(); },
+});
+SpriteCache.registerAll(['nutShell', 'oldTicket', 'acorn', 'antler', 'londonIcon', 'tennisBall', 'teaspoon', 'umbrella', 'shuttlecock', 'glove']);
 SpriteCache.register('crabSpider', { key(o) { return o.open ? 'o' : 'c'; } });
 SpriteCache.register('stagBeetleF', { key(o) { return 'F' + (o.face < 0 ? 0 : 1); } });
 

@@ -363,7 +363,11 @@ test('bush fly: hitch a ride on the kangaroo, and a wagtail perched there catche
   await p.waitForTimeout(100);
   check(await p.evaluate(() => !Game.g.player.ride && !Game.g.mission.locked(Game.g)), 'Hop off did not dismount');
   // a wagtail perched on the cow you ride snaps you up (a first stage: a heart, never a game over)
-  await p.evaluate(() => { const g = Game.g, c = g.items.find(i => i.kind === 'cow'), b = g.mission.back(c); g.player.x = b.x; g.player.y = b.y; });
+  await p.evaluate(() => {
+    const g = Game.g, c = g.items.find(i => i.kind === 'cow'), b = g.mission.back(c);
+    for (const pt of g.pats) if (Math.hypot(pt.x - b.x, pt.y - b.y) < 120) pt.x += 400;   // a pat under the cow would offer Lay instead
+    g.player.x = b.x; g.player.y = b.y;
+  });
   await p.waitForTimeout(100);
   check(await p.evaluate(() => document.getElementById('actionBtn').textContent === 'Sit'), 'no Sit offered on the cow');
   await p.click('#actionBtn');
@@ -1915,7 +1919,7 @@ test('London wasp, moth and stag beetle: meatball, jam jar, cat, the light, pond
     const nest = at('nest'); put(nest.x, nest.y + 6); lstep(0.2); out.early = !!g.homeSafe; g.counts.post = 3; lstep(0.2); out.home = [!!g.homeSafe, m.stars(g)];
     return out;
   });
-  check(w.post === 1 && w.fly === 1 && w.snipBtn === 'Snip' && w.ball[0] === 1 && w.ball[1] === 'ball' && w.ball[2], 'the wasp’s wood and meatball: ' + JSON.stringify(w));
+  check(w.post === 1 && w.fly === 1 && w.snipBtn === 'Chew' && w.ball[0] === 1 && w.ball[1] === 'ball' && w.ball[2], 'the wasp’s wood and meatball: ' + JSON.stringify(w));
   check(w.shoo[0] >= 40 && w.shoo[1] === 3 && !w.under[0] && w.under[1] < 5, 'the customer’s red zone: ' + JSON.stringify([w.shoo, w.under]));
   check(w.pull && w.jar[0] === 2 && w.jar[1] && w.jam[0] === 1 && w.jam[1] && !w.early && w.home[0] && w.home[1] === 2, 'the jam jar, the jam and the nest: ' + JSON.stringify(w));
   await startMission(p, 'ldn_moth', { noNet: true });
@@ -2022,7 +2026,7 @@ test('mozzies are shooed away, not swatted: blown a little way off, no heart los
   const words = await p.evaluate(() => {
     const t = [...shown];
     for (const id of ['mosquito'].concat(Object.keys(Missions).filter(k => k.startsWith('ldn_')))) { const m = Missions[id]; t.push(...m.how, ...m.facts, ...Object.values(m.factText)); }
-    return { swat: t.filter(s => /swat/i.test(s) && !/swat at moths/.test(s)), shoo: t.filter(s => s === 'Shoo!').length };
+    return { swat: t.filter(s => /swat/i.test(s)), shoo: t.filter(s => s === 'Shoo!').length };
   });
   check(words.swat.length === 0 && words.shoo >= 1, 'words: ' + JSON.stringify(words));
   check(p.errors.length === 0, p.errors.join('; '));

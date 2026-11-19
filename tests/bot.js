@@ -249,7 +249,7 @@
     }
     // a kid sometimes stops at the wrong flower (and meets a crab spider)
     if (kidLike && here && here.crab && here !== s && Math.random() < 0.15) return { hold: true };
-    if (m.id === 'ldn_wasp' && g.counts.fly && !g.counts.ball && !here) return { hold: true };   // snip the fly
+    if (m.id === 'ldn_wasp' && g.counts.fly && !g.counts.ball && !here) return { hold: true };   // chew the fly into a meatball
     if (s && s.on) {   // a task on a person: not while they're looking, or about to
       const q = g.people.find(x => x.id === s.on);
       if (q.look && (q.looking || (!kidLike && q.timer < (s.hold || 0.5) + 0.4 && !(here === s && s.t > 0)))) return Math.hypot(s.x - c.x, s.y - c.y) < 240 ? { goal: { x: c.x + (c.x >= q.x ? 120 : -120), y: Math.max(96, ldnAt(q, 'eyes').y - 230) } } : { goal: s };

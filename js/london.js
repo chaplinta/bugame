@@ -292,7 +292,7 @@ Object.assign(Missions, {
       pollen: 'She packs pollen into baskets on her back legs and carries it home for the young bees.',
       rob: 'Robbed! Her tongue is too short for a deep flower, so she bites a hole in its side and drinks.',
       scent: 'Bees leave smelly footprints on a flower. Other bees smell them and know the nectar has gone.',
-      rain: 'Bumblebees don’t fly in heavy rain. They sit it out under leaves and flowers.',
+      rain: 'A bumblebee caught in heavy rain sits it out under a leaf or a flower.',
       crab: 'A flower crab spider sits still on a flower and grabs bees that land there.',
       dog: 'Dogs snap at bees that buzz past. It often ends with a stung nose.',
       zoo: 'London Zoo is in Regent’s Park. Its giraffe house is nearly 200 years old.',
@@ -391,7 +391,7 @@ Object.assign(Missions, {
   }),
 
   // ------------------------------------------------------------------ 2. Common wasp, a café garden
-  // Scrape wood twice, catch a fly and snip it into a meatball, and take it all home under the shed roof. The
+  // Scrape wood three times, catch a fly and chew it into a meatball, and take it all home under the shed roof. The
   // customers wave you off if you fly where they're looking; a jam-jar trap smells lovely; a web hangs by the shed.
   ldn_wasp: ldnPart({
     id: 'ldn_wasp', kind: 'wasp', stage: 'Wasp', place: 'A café garden, a late summer lunchtime', sprite: 'commonWasp', bg: 'ldnCafe', scale: 2,
@@ -405,7 +405,7 @@ Object.assign(Missions, {
     how: [
       'Fly by dragging, or with the arrow keys. Let go and you hover.',
       'Hold Scrape on three wooden posts to chew wood for the nest.',
-      'Catch the fly buzzing by the bin (get close, press Catch), then hold Snip to make it a meatball.',
+      'Catch the fly buzzing by the bin (get close, press Catch), then hold Chew to make it a meatball.',
       'A red zone shows where a customer is looking. Fly in it and they wave you away. Keep clear of the jam jar and the web, then fly home to the nest under the shed roof.',
       'Two cheeky extras are hidden here. Each one is a star!',
     ],
@@ -414,7 +414,7 @@ Object.assign(Missions, {
       start: 'You’re a common wasp worker. Your job: wood for the nest, and food for the young.',
       paper: 'Wasps chew wood into pulp and spread it thin. It dries into paper: that’s what the nest is made of.',
       grub: 'Wasp grubs need meat, so the workers hunt insects and bring them back to the nest.',
-      ball: 'She snips off the wings and legs and chews the rest into a meatball that’s easy to carry.',
+      ball: 'She chews her catch into a meatball that’s easy to carry home to the grubs.',
       sweet: 'In return, the grubs give the workers a sweet drop to drink.',
       sugar: 'Late in summer, wasps look for sweet food, so they visit cafés and picnics.',
       trap: 'Some people set jam-jar traps. The sweet smell draws wasps in through a small hole.',
@@ -453,13 +453,13 @@ Object.assign(Missions, {
     },
     tick(g, dt, input) {
       const p = g.player, cy = p.y - this.P.hh / 2, J = g.level.jar;
-      // the fly she caught: snip it into a meatball, anywhere
+      // the fly she caught: chew it into a meatball, anywhere
       if (g.counts.fly && !g.counts.ball && !g.spot && !g.stuck) {
-        setAction('Snip', true);
+        setAction('Chew', true);
         if (working(input)) {
           g.perch = true; g.snipT = (g.snipT || 0) + work(input, dt); p.progress = Math.min(1, g.snipT);
           if (g.snipT >= 1) { g.counts.ball = 1; p.carry = 'ball'; Sound.play('score'); Game.pop(p.x, p.y - 34, 'A meatball!', '#ffd23f'); Game.fact('ball'); }
-        } else if (!g.toldSnip) { g.toldSnip = true; Game.hint('Hold Snip to trim your fly into a meatball for the grubs.'); }
+        } else if (!g.toldSnip) { g.toldSnip = true; Game.hint('Hold Chew to make your fly into a meatball for the grubs.'); }
       }
       p.carry = g.counts.ball ? 'ball' : g.counts.fly ? 'fly' : null;
       // the jam-jar trap: its smell tugs at her; inside it she's stuck till she finds the hole again
@@ -472,7 +472,7 @@ Object.assign(Missions, {
     },
     hud(g) {
       const w = Math.min(3, g.counts.post || 0), f = g.counts.fly ? 1 : 0;
-      setHud(w < 3 || !f ? 'Wood: ' + w + ' / 3 · Fly: ' + f + ' / 1' : !g.counts.ball ? 'Snip the fly into a meatball' : 'Fly home to the nest!', this.stat(g));
+      setHud(w < 3 || !f ? 'Wood: ' + w + ' / 3 · Fly: ' + f + ' / 1' : !g.counts.ball ? 'Chew the fly into a meatball' : 'Fly home to the nest!', this.stat(g));
     },
   }),
 
@@ -506,7 +506,7 @@ Object.assign(Missions, {
       feel: 'People wave mosquitoes away when they notice them.',
       train: 'Moving trains push air through the tunnels, so a wind blows along the platform.',
       raft: 'She lays her eggs together in a little raft that floats on the water.',
-      web: 'Spiders live in the tunnels too, and a web is the end of many a mosquito. Wriggle!',
+      web: 'A spider’s web is the end of many a mosquito. Wriggle!',
       d_ticket: 'An old paper ticket. The world’s first underground railway opened in London in 1863.',
       d_mouse: 'A house mouse. Mice live in the Underground, eating the crumbs people drop.',
       win: 'A big raft of eggs! In the warm tunnels, these mosquitoes can breed all year round.',
@@ -609,7 +609,7 @@ Object.assign(Missions, {
       day: 'Unlike most moths, Jersey tigers fly by day as well as at night.',
       wings: 'Its stripy forewings hide bright orange underwings.',
       sip: 'Jersey tigers love buddleia, the “butterfly bush”, and share it with butterflies.',
-      cat: 'Cats swat at moths that flutter past. This one has done it before.',
+      cat: 'Cats bat at moths that flutter past. This one has done it before.',
       tit: 'Great tits hunt moths and caterpillars. Hide until it flies off!',
       web: 'Garden spiders spin their webs across gaps where insects fly. Wriggle!',
       light: 'Lights muddle moths at night: they turn their backs to the light and end up circling it.',
@@ -695,7 +695,7 @@ Object.assign(Missions, {
       start: 'Stag beetles are Britain’s biggest beetles. London is one of the best places in the country to find them.',
       jaws: 'Only males have the big jaws, like a stag’s antlers. They use them to wrestle other males.',
       wrestle: 'Flipped him! A male tries to get his jaws under a rival and tip him off the log.',
-      sap: 'Adults can’t chew. They lap up sweet tree sap and juice with a feathery orange tongue.',
+      sap: 'Adults can’t chew. They lap up sweet tree sap and fruit juice with a feathery tongue.',
       larva: 'He spent at least three years as a grub, eating rotting wood underground.',
       noeat: 'Adult stag beetles can’t eat solid food. They live on fat they stored as grubs.',
       dusk: 'On warm summer evenings, males fly to look for females. Their flight is slow and clumsy.',

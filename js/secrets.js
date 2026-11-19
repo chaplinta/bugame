@@ -23,6 +23,17 @@ const SECRETS = {
       text: 'A sunken toy boat. Ahoy there, little nymph!' },
     dragonfly: { key: 's_duck', name: 'Rubber duck', sprite: 'rubberDuck', fx: 0.95, fy: 0.75,
       text: 'A rubber duck, floating on the lake. Quack!' },
+    // London's lost things (hub: listed in the Bug Book only once London has been found)
+    ldnPark: { key: 's_tennis', name: 'Lost tennis ball', sprite: 'tennisBall', fx: 0.83, fy: 0.925, hub: 'london',
+      text: 'A lost tennis ball. Some dog is going to be very pleased.' },
+    ldnCafe: { key: 's_spoon', name: 'Dropped teaspoon', sprite: 'teaspoon', fx: 0.496, fy: 0.925, hub: 'london',
+      text: 'A teaspoon, dropped under the table. It still tastes of jam.' },
+    ldnTube: { key: 's_brolly', name: 'Lost umbrella', sprite: 'umbrella', fx: 0.3225, fy: 0.655, hub: 'london',
+      text: 'A lost umbrella. Lots of them get left behind on the Tube.' },
+    ldnGarden: { key: 's_shuttle', name: 'Lost shuttlecock', sprite: 'shuttlecock', fx: 0.56, fy: 0.925, hub: 'london',
+      text: 'A shuttlecock, lost in the flower bed. Game over!' },
+    ldnRichmond: { key: 's_glove', name: 'Lost glove', sprite: 'glove', fx: 0.879, fy: 0.925, hub: 'london',
+      text: 'A lost glove. Somebody will walk home with one cold hand.' },
   },
   // Secrets that aren't in a place.
   other: {
@@ -36,7 +47,8 @@ const SECRETS = {
     s_tank: { name: 'Out of the bug tank', text: 'Meet the girl with the net and get out of her tank. She only turns up now and then.' },
   },
   all() {
-    const list = Object.values(this.places).map(s => ({ key: s.key, name: s.name, text: s.text }));
+    const known = (s) => !s.hub || (typeof Progress !== 'undefined' && Progress.hasSecret('s_' + s.hub));
+    const list = Object.values(this.places).filter(known).map(s => ({ key: s.key, name: s.name, text: s.text }));
     for (const [key, s] of Object.entries(this.other)) list.push({ key, name: s.name, text: s.text });
     return list;
   },
