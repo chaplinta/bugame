@@ -353,8 +353,9 @@ const LondonArt = {
     }
     for (const l of L.ledges || []) {
       if (l[2] > 600) { ctx.strokeStyle = '#2a2a2e'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(l[0], l[1] + 2); ctx.lineTo(l[0] + l[2], l[1] + 2); ctx.stroke(); ctx.strokeStyle = '#4a4a50'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(l[0], l[1] + 8); ctx.lineTo(l[0] + l[2], l[1] + 8); ctx.stroke(); continue; }   // cables along a tunnel wall
+      const under = L.solids.filter(q => q[1] > l[1] && l[0] + l[2] / 2 > q[0] && l[0] + l[2] / 2 < q[0] + q[2]).map(q => q[1]), foot = Math.min(L.floor, ...under);   // it stands on what's below it
       ctx.fillStyle = '#6a4a2a'; ctx.fillRect(l[0], l[1], l[2], 8);              // a bench, a chair seat, a shelf
-      ctx.fillStyle = '#4a3220'; ctx.fillRect(l[0] + 6, l[1] + 8, 5, 560 - l[1] - 8); ctx.fillRect(l[0] + l[2] - 11, l[1] + 8, 5, 560 - l[1] - 8);
+      ctx.fillStyle = '#4a3220'; ctx.fillRect(l[0] + 6, l[1] + 8, 5, foot - l[1] - 8); ctx.fillRect(l[0] + l[2] - 11, l[1] + 8, 5, foot - l[1] - 8);
     }
     for (const h of L.hides || []) if (h[4] === 'alcove') { ctx.fillStyle = 'rgba(10,10,14,.75)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(h[0], h[1], h[2], h[3], [20, 20, 0, 0]) : ctx.rect(h[0], h[1], h[2], h[3]); ctx.fill(); }
   },
@@ -371,97 +372,12 @@ const LondonArt = {
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, hh);
       ctx.fillStyle = 'rgba(255,255,255,.12)'; for (let k = 0; k < hh; k += 24) ctx.fillRect(0, k, w, 2);
     } else {
-      const cols = kind === 'ivy' ? ['#2a5a2a', '#3a6a34', '#1e4a22'] : kind === 'bracken' ? ['#5a7a2a', '#6a8a34', '#4a6a22', '#8a7a2a'] : ['#2f6a2e', '#3f7a38', '#285a28'];
+      const cols = kind === 'ivy' ? ['#2a5a2a', '#3a6a34', '#1e4a22'] : kind === 'bracken' ? ['#5a7a2a', '#6a8a34', '#4a6a22', '#8a7a2a'] : kind === 'buddleia' ? ['#5a7a52', '#6a8a5e', '#4a6a46', '#7a9a6a'] : ['#2f6a2e', '#3f7a38', '#285a28'];
       this.leafBlob(ctx, -6, -4, w + 12, hh + 6, cols, Math.round(x + y), Math.round(w * hh / 260));
     }
     return { c, x: x - pad, y: y - pad };
   },
 
-  // Task spots: flowers, fence posts, the fly, ankles, the puddle, nettles, the nests and the female, with a glow
-  // and the verb over the one in reach
-  spots(ctx, g, m) {
-    const L = g.level, t = g.t, x0 = g.cam.x - 90, x1 = g.cam.x + W / (Game.zoom || 1) + 90;
-    for (const s of L.spots) {
-      if (s.x < x0 || s.x > x1) continue;   // off screen
-      if (s.kind === 'flower') this.flower(ctx, s, L.floor, t);
-      else if (s.kind === 'post') { ctx.fillStyle = s.done ? '#d8c8a0' : '#a08860'; ctx.fillRect(s.x - 10, s.y - 30, 20, 60); if (s.done) { ctx.strokeStyle = '#f0e6c8'; ctx.lineWidth = 1; for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.moveTo(s.x - 8, s.y - 10 + k * 5); ctx.lineTo(s.x + 6, s.y - 12 + k * 5); ctx.stroke(); } } }
-      else if (s.kind === 'fly' && !s.done) Game.drawSprite('flySide', { x: s.x, y: s.y + 6, angle: 0, face: Math.cos(s.ph * 1.7) < 0 ? 1 : -1, flat: true }, 1.8);
-      else if (s.kind === 'ankle') this.person(ctx, s);
-      else if (s.kind === 'puddle') { ctx.fillStyle = 'rgba(80,110,130,.8)'; ctx.beginPath(); ctx.ellipse(s.x, s.y + 4, 46, 6, 0, 0, TAU); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(s.x - 20, s.y + 2, 18, 1.5); if (s.done) for (let k = 0; k < 3; k++) plainEll(ctx, s.x - 6 + k * 3, s.y + 2, 1.6, 0.8, '#3a2a1a'); }
-      else if (s.kind === 'nettle') { const r = rng(5); for (let k = 0; k < 9; k++) { const x = s.x - 50 + k * 12, h = 50 + r() * 30; line(ctx, [x, L.floor, x + 2, L.floor - h], '#3a6a2a', 2); for (let j = 1; j < 4; j++) { ell(ctx, x - 5, L.floor - h * j / 4, 6, 3, '#4a7a30', -0.5); ell(ctx, x + 7, L.floor - h * j / 4 - 4, 6, 3, '#3f7028', 0.5); } } if (s.done) for (let k = 0; k < 6; k++) plainEll(ctx, s.x - 10 + k * 3, s.y + 6, 1.2, 1.2, '#f4f0d8'); }
-      else if (s.kind === 'nest' && m.kind === 'bee') { ctx.fillStyle = '#1a1208'; ctx.beginPath(); ctx.ellipse(s.x, s.y + 6, 16, 12, 0, 0, TAU); ctx.fill(); }
-      else if (s.kind === 'nest') { ell(ctx, s.x, s.y + 10, 24, 30, '#c8c0b0'); ctx.strokeStyle = 'rgba(120,110,95,.6)'; ctx.lineWidth = 1.2; for (let k = 0; k < 7; k++) { ctx.beginPath(); ctx.ellipse(s.x, s.y - 10 + k * 7, 22 - Math.abs(k - 3) * 2, 3, 0, 0, Math.PI); ctx.stroke(); } plainEll(ctx, s.x, s.y + 34, 4, 3, '#2a2418'); }
-      else if (s.kind === 'female') Game.drawSprite('stagBeetleF', { x: s.x + 14, y: s.y + 12, angle: 0, face: -1, flat: true }, 1.4);
-    }
-    const s = g.spot, k = 0.5 + 0.5 * Math.sin(t * 6);
-    if (s && !s.done) {
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.9, 0, TAU); ctx.strokeStyle = 'rgba(140,255,120,' + (0.4 + k * 0.4) + ')'; ctx.lineWidth = 3; ctx.stroke();
-      if (s.verb) { ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(s.verb + '!', s.x, s.y - s.r - 10 - k * 4); }
-    }
-  },
-  flower(ctx, s, floor, t) {
-    const sway = Math.sin(t * 1.5 + s.x) * 1.5, x = s.x + sway, gone = s.done;
-    line(ctx, [s.x, floor, x, s.y + 6], '#4a7a30', 2);
-    ell(ctx, s.x - 6, (floor + s.y) / 2, 6, 2.6, '#4a7a30', -0.6); ell(ctx, s.x + 6, (floor + s.y) / 2 + 12, 6, 2.6, '#4a7a30', 0.6);
-    const col = { lavender: '#8a6ac8', foxglove: '#c84a9a', rose: '#e04a5a', daisy: '#f4f4ec', purple: '#9a5ac8', pink: '#e87aa8' }[s.look] || '#e0a040';
-    const c = gone ? mixHex(col, '#c8c0b0', 0.55) : col;
-    if (s.look === 'lavender' || s.look === 'purple') for (let k = 0; k < 7; k++) ell(ctx, x + (k % 2 ? 2 : -2), s.y + 4 - k * 4, 3.4, 2.6, c);
-    else if (s.look === 'foxglove') for (let k = 0; k < 5; k++) { ell(ctx, x + 4, s.y + 10 - k * 7, 3.4, 4.6, c, 0.4); plainEll(ctx, x + 5.6, s.y + 12 - k * 7, 1.2, 1, 'rgba(255,255,255,.6)'); }
-    else if (s.look === 'daisy') { for (let k = 0; k < 10; k++) ell(ctx, x + Math.cos(k / 10 * TAU) * 8, s.y + Math.sin(k / 10 * TAU) * 3, 4, 1.8, c, k / 10 * TAU); ell(ctx, x, s.y, 3.6, 2.4, '#e8c020'); }
-    else { ell(ctx, x, s.y, 9, 7, c); for (let k = 0; k < 4; k++) plainEll(ctx, x - 3 + k * 2, s.y - 2 + (k % 2) * 3, 2.4, 1.6, 'rgba(0,0,0,.15)'); }
-    if (!gone) plainEll(ctx, x, s.y - 4, 2, 1.4, 'rgba(255,240,150,.8)');   // nectar's there
-    if (s.crab) Game.drawSprite('crabSpider', { x: x + 2, y: s.y - 2, angle: -0.3, open: s.t > 0, flat: true }, 1.3);
-  },
-  // Commuters' legs on the platform: trousers or tights and shoes, still while they wait
-  person(ctx, s) {
-    const r = rng(Math.round(s.x)), trouser = ['#2a3a5a', '#3a3a3a', '#6a4a3a', '#2a2a2a'][Math.floor(r() * 4)], shoe = ['#1a1a1a', '#5a3a2a', '#c8c8c8'][Math.floor(r() * 3)];
-    for (const dx of [-12, 10]) {
-      ctx.fillStyle = trouser; ctx.fillRect(s.x + dx - 7, 220, 14, 168);
-      ctx.fillStyle = '#e8c8a8'; ctx.fillRect(s.x + dx - 6, 380, 12, 8);
-      ctx.fillStyle = shoe; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(s.x + dx - 8, 388, 26, 12, 5) : ctx.rect(s.x + dx - 8, 388, 26, 12); ctx.fill();
-    }
-    if (s.done) plainEll(ctx, s.x - 12, 384, 2.2, 1.6, '#e88080');            // an itchy bite
-  },
-
-  // In front of the bug: the leaves it hides in, the hand and its shadow, the train, arrows to hunters off screen
-  front(ctx, g, m) {
-    for (const f of g.fronts) if (f) { ctx.globalAlpha = g.hidden ? 0.78 : 0.95; ctx.drawImage(f.c, f.x, f.y); }
-    ctx.globalAlpha = 1;
-    const h = g.hz;
-    if (h && h.shoo) {   // someone waving the wasp away: the red zone the wave reaches, then the hand sweeping to and fro
-      const s = h.shoo, k = Math.min(1, s.t), R = m.SHOO_R;
-      ctx.beginPath(); ctx.arc(s.x, s.y, R, 0, TAU);
-      ctx.fillStyle = 'rgba(230,40,40,' + (0.12 + k * 0.12 + 0.05 * Math.sin(g.t * 8)) + ')'; ctx.fill();
-      ctx.strokeStyle = 'rgba(220,40,40,.6)'; ctx.lineWidth = 2; ctx.stroke();
-      if (s.t > 0.5) {
-        const sw = Math.sin(g.t * 16), hx = s.x + sw * 40, hy = s.y - 20 - (1 - Math.min(1, (s.t - 0.5) * 3)) * 120;
-        ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 3;
-        for (const side of [-1, 1]) for (let i = 0; i < 2; i++) { const a = side > 0 ? 0 : Math.PI; ctx.beginPath(); ctx.arc(hx, hy - 20, 58 + i * 14, a - 0.45, a + 0.45); ctx.stroke(); }
-        ctx.save(); ctx.translate(hx, hy); ctx.rotate(sw * 0.35); this.hand(ctx, 0, 0); ctx.restore();
-      }
-    }
-    if (g.shooed > 0) {   // blown off: streaks of air behind her
-      const p = g.player, dir = g.shooDir || 1, cy = p.y - m.P.hh / 2;
-      ctx.strokeStyle = 'rgba(255,255,255,' + (0.3 + g.shooed) + ')'; ctx.lineWidth = 2;
-      for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(p.x - dir * 14, cy + i * 7); ctx.lineTo(p.x - dir * 48, cy + i * 9); ctx.stroke(); }
-    }
-    if (h && h.pass > 0) {
-      const z = Game.zoom || 1, vw = W / z, tc = this.trainImage();
-      const x = g.cam.x + vw + 100 - h.pass * 2600;
-      ctx.drawImage(tc, x, 150);
-    } else if (h && h.trainT !== undefined && h.trainT < 3) {   // its lights coming down the tunnel
-      const z = Game.zoom || 1, x = g.cam.x + W / z - 10, a = 0.3 + 0.5 * (1 - h.trainT / 3);
-      const gr = ctx.createRadialGradient(x, 470, 4, x, 470, 160); gr.addColorStop(0, 'rgba(255,250,210,' + a + ')'); gr.addColorStop(1, 'rgba(255,250,210,0)');
-      ctx.fillStyle = gr; ctx.fillRect(x - 170, 300, 180, 260);
-    }
-    // a hunter you can't see yet: an arrow at the edge of the view
-    const z = Game.zoom || 1, vw = W / z;
-    for (const pr of g.preds) if (pr.state !== 'leave' && (pr.x < g.cam.x || pr.x > g.cam.x + vw)) {
-      const left = pr.x < g.cam.x, x = left ? g.cam.x + 24 : g.cam.x + vw - 24, y = clamp(pr.y, g.cam.y + 70, g.cam.y + H / z - 40);
-      ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.moveTo(x + (left ? -14 : 14), y); ctx.lineTo(x + (left ? 6 : -6), y - 12); ctx.lineTo(x + (left ? 6 : -6), y + 12); ctx.fill();
-      ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', x + (left ? 18 : -18), y + 6);
-    }
-  },
   hand(ctx, x, y) {
     ctx.save(); ctx.translate(x, y);
     ctx.fillStyle = '#e8b896'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-34, -24, 62, 44, 18) : ctx.rect(-34, -24, 62, 44); ctx.fill();
@@ -487,87 +403,6 @@ const LondonArt = {
     return (this.train = c);
   },
 };
-
-// ------------------------------------------------------------------ the five backgrounds
-Backgrounds.ldnPark = function (ctx, W, H) {
-  const L = Game.g.level;
-  LondonArt.sky(ctx, W, '#9ac4e8', '#d8e8f0', '#f0f0e0');
-  LondonArt.skyline(ctx, W, 400, 'rgba(150,160,175,.55)', 3, [1400]);   // terraces round the park, a tall tower beyond
-  LondonArt.trees(ctx, W, 470, 'rgba(70,110,60,.6)', 8, 26, 70);
-  LondonArt.trees(ctx, W, 520, 'rgba(60,100,50,.8)', 9, 16, 50);
-  LondonArt.grass(ctx, W, 556, '#5a8a3a', '#6a9a44', 4);
-  // flower beds along the path
-  ctx.fillStyle = '#7a5a3a'; for (const x of [260, 840, 1500, 2200, 2500]) ctx.fillRect(x, 552, 160, 10);
-  LondonArt.solids(ctx, L);
-};
-Backgrounds.ldnPark.noVignette = true;
-
-Backgrounds.ldnCafe = function (ctx, W, H) {
-  const L = Game.g.level;
-  LondonArt.sky(ctx, W, '#7ab0e0', '#c8e0f0', '#f0eada');
-  LondonArt.skyline(ctx, W, 380, '#b8a088', 11);
-  ctx.fillStyle = '#a8644a'; ctx.fillRect(0, 300, W, 260);                  // the garden's back wall, brick
-  ctx.strokeStyle = 'rgba(240,220,200,.35)'; ctx.lineWidth = 1;
-  for (let y = 300; y < 560; y += 12) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-  ctx.fillStyle = '#8a6a44'; for (let x = 0; x < 800; x += 26) ctx.fillRect(x, 380, 20, 180);   // the wooden fence
-  ctx.fillStyle = '#6a5034'; ctx.fillRect(0, 410, 800, 8); ctx.fillRect(0, 500, 800, 8);
-  ctx.fillStyle = '#c8bca8'; ctx.fillRect(0, 556, W, 44);                  // paving
-  ctx.strokeStyle = 'rgba(80,70,60,.3)'; for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 556); ctx.lineTo(x, 600); ctx.stroke(); }
-  for (const x of [1060, 1820]) { ctx.fillStyle = '#e8e4d8'; ctx.beginPath(); ctx.moveTo(x - 90, 300); ctx.quadraticCurveTo(x, 250, x + 120, 300); ctx.fill(); ctx.fillStyle = '#6a6a6a'; ctx.fillRect(x + 14, 300, 4, 130); }   // parasols
-  LondonArt.solids(ctx, L);
-};
-Backgrounds.ldnCafe.noVignette = true;
-
-Backgrounds.ldnTube = function (ctx, W, H) {
-  const L = Game.g.level;
-  ctx.fillStyle = '#2a2a30'; ctx.fillRect(0, 0, W, 600);
-  // tiled wall along the platform, then the dark tunnel
-  const g = ctx.createLinearGradient(0, 70, 0, 400); g.addColorStop(0, '#c8c0a8'); g.addColorStop(1, '#a8a088');
-  ctx.fillStyle = g; ctx.fillRect(0, 70, 1650, 330);
-  ctx.strokeStyle = 'rgba(80,70,60,.25)'; ctx.lineWidth = 1;
-  for (let y = 70; y < 400; y += 14) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1650, y); ctx.stroke(); }
-  for (let x = 0; x < 1650; x += 28) { ctx.beginPath(); ctx.moveTo(x, 70); ctx.lineTo(x, 400); ctx.stroke(); }
-  ctx.fillStyle = '#7a2a24'; ctx.fillRect(0, 150, 1650, 16);                 // a coloured band of tiles
-  for (const x of [200, 1200]) { ctx.fillStyle = '#e8e4d8'; ctx.fillRect(x, 190, 220, 120); ctx.fillStyle = '#5a5a60'; ctx.fillRect(x + 10, 200, 200, 100); }   // poster frames
-  const t = ctx.createLinearGradient(1650, 0, 3000, 0); t.addColorStop(0, '#3a3a40'); t.addColorStop(1, '#141418');
-  ctx.fillStyle = t; ctx.fillRect(1650, 70, 1350, 490);
-  ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 3; for (let x = 1700; x < 3000; x += 90) { ctx.beginPath(); ctx.moveTo(x, 70); ctx.lineTo(x, 560); ctx.stroke(); }   // tunnel rings
-  // the track bed, rails and sleepers
-  ctx.fillStyle = '#3a3634'; ctx.fillRect(0, 540, W, 60);
-  ctx.fillStyle = '#5a4a3a'; for (let x = 0; x < W; x += 30) ctx.fillRect(x, 548, 18, 8);
-  ctx.fillStyle = '#9a9aa0'; ctx.fillRect(0, 544, W, 3); ctx.fillRect(0, 552, W, 3);
-  LondonArt.solids(ctx, L);
-};
-Backgrounds.ldnTube.noVignette = true;
-
-Backgrounds.ldnGarden = function (ctx, W, H) {
-  const L = Game.g.level;
-  LondonArt.sky(ctx, W, '#8ab8e0', '#e0e8e8', '#f4ead0');
-  LondonArt.skyline(ctx, W, 360, '#c09a7a', 21);                           // the backs of terraced houses
-  ctx.fillStyle = 'rgba(255,255,255,.25)'; for (let x = 30; x < W; x += 140) ctx.fillRect(x, 300, 16, 20);
-  ctx.fillStyle = '#8a6a48'; for (let x = 0; x < W; x += 30) ctx.fillRect(x, 420, 24, 140);   // the fence
-  ctx.fillStyle = '#6a5034'; ctx.fillRect(0, 450, W, 8);
-  LondonArt.trees(ctx, W, 470, 'rgba(60,110,60,.7)', 23, 14, 45);
-  LondonArt.grass(ctx, W, 556, '#5e9440', '#6aa04a', 24);
-  LondonArt.solids(ctx, L);
-};
-Backgrounds.ldnGarden.noVignette = true;
-
-Backgrounds.ldnRichmond = function (ctx, W, H) {
-  const L = Game.g.level;
-  LondonArt.sky(ctx, W, '#3a3a6a', '#d88a6a', '#f8c88a');                   // dusk
-  const sun = ctx.createRadialGradient(2300, 470, 10, 2300, 470, 260); sun.addColorStop(0, 'rgba(255,230,170,.9)'); sun.addColorStop(1, 'rgba(255,200,140,0)');
-  ctx.fillStyle = sun; ctx.fillRect(2000, 200, 600, 400);
-  LondonArt.skyline(ctx, W, 470, 'rgba(70,60,90,.45)', 31, [600]);         // the city far off
-  // old oaks in silhouette, and deer on the skyline
-  const r = rng(32);
-  for (let i = 0; i < 9; i++) { const x = 100 + i * 340 + r() * 80; ctx.fillStyle = 'rgba(40,36,50,.75)'; ctx.fillRect(x - 10, 360, 20, 200); ctx.beginPath(); ctx.ellipse(x, 330, 110, 70, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x - 70, 360, 60, 40, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x + 70, 356, 60, 40, 0, 0, TAU); ctx.fill(); }
-  ctx.fillStyle = 'rgba(40,36,50,.8)';
-  for (const x of [900, 1650]) { ctx.beginPath(); ctx.ellipse(x, 500, 18, 8, 0, 0, TAU); ctx.fill(); ctx.fillRect(x - 12, 504, 3, 14); ctx.fillRect(x + 10, 504, 3, 14); ctx.fillRect(x + 14, 488, 4, 12); ctx.beginPath(); ctx.ellipse(x + 20, 486, 6, 4, -0.3, 0, TAU); ctx.fill(); plainLine(ctx, [x + 20, 482, x + 18, 472, x + 24, 468], 'rgba(40,36,50,.8)', 1.4); }
-  LondonArt.grass(ctx, W, 556, '#6a7a3a', '#7a8a44', 33);
-  LondonArt.solids(ctx, L);
-};
-Backgrounds.ldnRichmond.noVignette = true;
 
 // Cache the drawings that stand still; the bugs you play are drawn live (or from their 3D models)
 SpriteCache.registerAll(['nutShell', 'oldTicket', 'acorn', 'antler', 'londonIcon']);
@@ -734,3 +569,437 @@ function drawLondonMap(ctx, W, H) {
   storybookFinish(ctx, W, H, 77);
   ctx.strokeStyle = 'rgba(90,60,30,.35)'; ctx.lineWidth = 6; ctx.strokeRect(0, 0, W, H);
 }
+
+// ------------------------------------------------------------------ people
+// A whole person from the side, feet on (q.x, q.y), facing q.face. pose: stand | sit | bend | sleep (in a
+// deckchair). prop: phone | paper | guitar | cup | book. hat: 'flowers' (a sunhat). q.wave: waving a bug away;
+// q.looking: looking round (a "?" over the head; the red zone is drawn by LondonArt.zone). Clothes, skin and hair
+// come from q.seed. Body points for tasks (ankle, neck, bum, nose...) are LDN_BODY in js/london.js.
+LondonArt.human = function (ctx, q, t) {
+  const r = rng((q.seed || 1) * 7 + 3), pick = (a) => a[Math.floor(r() * a.length)];
+  const skin = pick(['#f2cfae', '#e0b088', '#b98054', '#8a5a3a', '#f6d8bc']), top = pick(['#3a6ab0', '#c8501e', '#2f7d5b', '#8a4a9a', '#d8a020', '#5a5a66', '#c03a5a']);
+  const bot = pick(['#2a3a5a', '#3a3a3a', '#6a4a3a', '#4a5a3a', '#7a7a88']), hair = pick(['#2a1a10', '#5a3a1e', '#c8a060', '#1a1a1a', '#8a8a8a', '#a8502a']), shoe = pick(['#1a1a1a', '#5a3a2a', '#e8e8e8', '#c8281e']);
+  const limb = (pts, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]); ctx.stroke(); };
+  const box = (x, y, w, h, col, rad) => { ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, rad || 0) : ctx.rect(x, y, w, h); ctx.fill(); };
+  const dot = (x, y, rx, ry, col, rot) => { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, TAU); ctx.fill(); };
+  const foot = (x, y) => box(x - 7, y - 10, 24, 10, shoe, 5);
+  const head = (x, y, down) => {
+    dot(x, y, 15, 16, skin);
+    ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(x - 1, y - 2, 16, Math.PI * 0.82, Math.PI * 1.96); ctx.fill();
+    dot(x + 14, y + 3 + (down ? 3 : 0), 3.4, 2.6, skin);                                             // nose
+    dot(x + 8, y - 1 + (down ? 3 : 0), 1.8, q.sleepy ? 0.5 : 2.2, '#2a1a10');                        // eye
+    ctx.strokeStyle = '#8a4a3a'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(x + 8, y + 7, 3.4, 0.2, Math.PI - 0.6); ctx.stroke();
+    if (q.hat === 'flowers') { dot(x, y - 11, 25, 5, '#e8d49a'); box(x - 12, y - 24, 24, 14, '#e8d49a', 7); for (const [dx, dy, c] of [[-7, -17, '#e04a5a'], [2, -19, '#8a6ac8'], [9, -16, '#f4f4ec'], [-1, -13, '#e87aa8']]) dot(x + dx, y + dy, 3.2, 3.2, c); }
+  };
+  ctx.save(); ctx.translate(q.x, q.y); ctx.scale(q.face < 0 ? -1 : 1, 1);
+  const wave = q.wave ? Math.sin(t * 16) : 0;
+  if (q.pose === 'sit') {
+    limb([30, -48, 31, -16], bot, 13); limb([31, -17, 31, -11], skin, 9); foot(31, 0);
+    limb([0, -52, 30, -50], bot, 15);
+    box(-15, -116, 30, 70, top, 10);
+    if (q.wave) { limb([2, -108, 16, -134, 18 + wave * 12, -160], top, 10); dot(18 + wave * 12, -164, 6, 7, skin); }
+    else if (q.prop === 'phone') { limb([2, -106, 12, -88, 26, -100], top, 10); box(24, -116, 7, 13, '#1a1a1a', 2); box(25, -114, 5, 9, '#9ad0f0', 1); }
+    else if (q.prop === 'book') { limb([2, -106, 12, -84, 24, -74], top, 10); box(18, -84, 18, 12, '#b8402a', 2); box(20, -82, 14, 8, '#f4ecd8', 1); }
+    else { limb([2, -106, 14, -84, 26, -64], top, 10); dot(27, -62, 5, 5, skin); if (q.prop === 'cup') { box(27, -78, 10, 12, '#f4f0e4', 2); ctx.strokeStyle = '#f4f0e4'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(38, -72, 4, -1.2, 1.2); ctx.stroke(); } }
+    limb([0, -118, 1, -122], skin, 9);
+    head(2, -134, q.prop === 'phone' || q.prop === 'book');
+  } else if (q.pose === 'bend') {
+    limb([-12, -92, -8, -12], mixHex(bot, '#000000', 0.2), 14); limb([-4, -92, -2, -12], bot, 14); limb([-2, -17, -2, -11], skin, 9); foot(-8, 0); foot(-2, 0);
+    dot(-14, -96, 17, 15, bot);                                                                     // trousers, riding low
+    dot(-19, -108, 9, 5, skin, -0.3); ctx.strokeStyle = 'rgba(120,70,50,.7)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-21, -112); ctx.lineTo(-18, -104); ctx.stroke();   // and what shows above them
+    limb([-8, -102, 36, -92], top, 30);
+    limb([32, -90, 40, -58, 42, -32], top, 9); dot(42, -29, 5, 5, skin);
+    box(30, -24, 40, 24, '#c8281e', 4); box(44, -30, 12, 8, '#8a1a14', 2);                          // the toolbox
+    head(50, -78, true);
+  } else if (q.pose === 'sleep') {
+    limb([-72, -100, 36, 0], '#7a5a34', 7); limb([-46, 0, 56, -38], '#7a5a34', 7); limb([-72, -100, -80, -108], '#7a5a34', 7);   // the deckchair's crossed legs
+    limb([-66, -92, 46, -30], '#e8b030', 14); limb([-66, -92, 46, -30], '#f4f0e4', 4);                 // and its stripy sling
+    limb([10, -42, 40, -40, 52, -22], bot, 14); foot(50, -14);
+    limb([-34, -60, 10, -42], top, 28);
+    limb([-20, -62, -4, -48, 10, -46], top, 9); dot(10, -44, 5, 5, skin);
+    q.sleepy = true; head(-46, -64); q.sleepy = false;
+    const z = (t * 0.6) % 1; ctx.fillStyle = 'rgba(255,255,255,' + (0.9 - z * 0.9) + ')'; ctx.font = 'bold ' + (14 + z * 8) + 'px sans-serif';
+    ctx.save(); ctx.translate(-30, -92 - z * 30); ctx.scale(q.face < 0 ? -1 : 1, 1); ctx.fillText('z', 0, 0); ctx.restore();
+  } else {
+    limb([-5, -84, -5, -14], mixHex(bot, '#000000', 0.2), 14); limb([5, -84, 5, -17], bot, 14); limb([5, -17, 5, -11], skin, 9); foot(-5, 0); foot(5, 0);
+    box(-17, -148, 34, 70, top, 11);
+    if (q.prop === 'guitar') { dot(4, -104, 20, 15, '#b8743a', -0.3); dot(4, -104, 6, 5, '#3a2414', -0.3); limb([16, -112, 40, -134], '#7a4a22', 5); }
+    if (q.wave) { limb([0, -138, 16, -160, 18 + wave * 12, -190], top, 10); dot(18 + wave * 12, -194, 6, 7, skin); }
+    else if (q.prop === 'phone') { limb([0, -138, 8, -116, 22, -134], top, 10); box(20, -152, 8, 14, '#1a1a1a', 2); box(21, -150, 6, 10, '#9ad0f0', 1); }
+    else if (q.prop === 'paper') { limb([0, -138, 10, -120, 22, -124], top, 10); box(18, -156, 26, 40, '#f0ead8', 2); ctx.fillStyle = 'rgba(60,60,60,.5)'; for (let k = 0; k < 5; k++) ctx.fillRect(21, -150 + k * 7, 20, 2); }
+    else if (q.prop === 'guitar') { limb([0, -138, 10, -122, 8, -106], top, 10); dot(8, -104, 5, 5, skin); }
+    else { limb([0, -138, 4, -112, 10, -90], top, 10); dot(11, -87, 5, 5, skin); }
+    limb([0, -150, 1, -156], skin, 9);
+    head(2, -168, q.prop === 'phone' || q.prop === 'paper');
+  }
+  ctx.restore();
+  if (q.looking) { const e = ldnAt(q, 'head'); ctx.fillStyle = '#c0392b'; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('?', e.x, e.y - 30); }
+};
+// Where someone looking round can see: the red zone (js/london.js ldnInZone)
+LondonArt.zone = function (ctx, q, t) {
+  const e = ldnAt(q, 'eyes'), a = q.gaze || 0, glow = 0.15 + 0.06 * Math.sin(t * 6);
+  ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.arc(e.x, e.y, LDN_ZONE.far, a - LDN_ZONE.half, a + LDN_ZONE.half); ctx.closePath();
+  ctx.moveTo(e.x + LDN_ZONE.near, e.y); ctx.arc(e.x, e.y, LDN_ZONE.near, 0, TAU);
+  ctx.fillStyle = 'rgba(230,40,40,' + glow + ')'; ctx.fill('nonzero');
+  ctx.strokeStyle = 'rgba(220,40,40,.55)'; ctx.lineWidth = 2; ctx.stroke();
+};
+
+// ------------------------------------------------------------------ animals and things in the levels
+LondonArt.rat = function (ctx, x, y, face, sniff, t) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(face < 0 ? -1 : 1, 1);
+  const up = sniff ? -5 : 0, run = sniff ? 0 : Math.sin(t * 26) * 3;
+  ctx.strokeStyle = '#c89a94'; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-18, -8); ctx.quadraticCurveTo(-38, -2 + run, -50, -10); ctx.stroke();   // tail
+  ctx.fillStyle = '#6a5a50'; ctx.beginPath(); ctx.ellipse(0, -11, 19, 10, sniff ? -0.25 : 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#7a6a5e'; ctx.beginPath(); ctx.ellipse(18, -15 + up, 10, 7.5, -0.2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(26, -17 + up); ctx.lineTo(33, -13 + up); ctx.lineTo(25, -10 + up); ctx.fill();
+  ctx.fillStyle = '#d8a8a0'; ctx.beginPath(); ctx.ellipse(13, -24 + up, 5, 6, 0.2, 0, TAU); ctx.fill();                            // ear
+  ctx.fillStyle = '#1a1210'; ctx.beginPath(); ctx.arc(22, -17 + up, 1.6, 0, TAU); ctx.fill(); ctx.fillStyle = '#d8a8a0'; ctx.beginPath(); ctx.arc(33, -13 + up, 1.6, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(240,240,240,.6)'; ctx.lineWidth = 0.8; for (const dy of [-2, 1, 4]) { ctx.beginPath(); ctx.moveTo(30, -13 + up); ctx.lineTo(40, -14 + up + dy + (sniff ? Math.sin(t * 20 + dy) : 0)); ctx.stroke(); }
+  ctx.strokeStyle = '#5a4a40'; ctx.lineWidth = 3; for (const lx of [-10, 10]) { ctx.beginPath(); ctx.moveTo(lx, -5); ctx.lineTo(lx + (sniff ? 0 : run * (lx > 0 ? 1 : -1)), 0); ctx.stroke(); }
+  ctx.restore();
+};
+LondonArt.dog = function (ctx, d, t) {
+  const alert = d.state === 'alert', snap = d.state === 'snap' && d.t < 0.35;
+  ctx.save(); ctx.translate(d.x, d.y);
+  const col = '#c8a068', dark = '#8a6a40', hy = alert ? -52 : snap ? -74 : -44, hx = snap ? -14 : -18;
+  ctx.strokeStyle = col; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(22, -22); ctx.quadraticCurveTo(34, -34 + Math.sin(t * (alert ? 20 : 6)) * 5, 30, -46); ctx.stroke();   // tail
+  ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(4, alert || snap ? -24 : -18, 22, 15, alert || snap ? -0.3 : -0.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = dark; ctx.fillRect(-12, -10, 6, 10); ctx.fillRect(10, -8, 7, 8);
+  ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(hx, hy, 13, 11, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(hx - 13, hy + 3, 8, snap ? 3 : 5, 0, 0, TAU); ctx.fill();                                           // muzzle
+  if (snap) { ctx.beginPath(); ctx.ellipse(hx - 12, hy + 10, 8, 3, 0.3, 0, TAU); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(hx - 18, hy + 5, 10, 2); }
+  ctx.fillStyle = dark; ctx.beginPath(); ctx.ellipse(hx + 6, hy - 9, 5, 8, 0.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#1a1210'; ctx.beginPath(); ctx.arc(hx - 5, hy - 3, 1.8, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(hx - 21, hy + 2, 2.2, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#c0392b'; ctx.fillRect(hx - 2, hy + 9, 10, 3);                                                                  // collar
+  ctx.restore();
+  if (alert) { ctx.fillStyle = '#c0392b'; ctx.font = 'bold 28px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', d.x - 18, d.y - 78 - Math.sin(t * 20) * 3); }
+};
+LondonArt.cat = function (ctx, x, y, c, t) {
+  const sleep = c.state === 'asleep', alert = c.state === 'alert', swipe = c.state === 'swipe' && c.t < 0.3, col = '#3a3a40', light = '#f4f0e4';
+  ctx.save(); ctx.translate(x, y);
+  ctx.strokeStyle = col; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(20, -6); ctx.quadraticCurveTo(38, -4 + (alert ? Math.sin(t * 22) * 8 : Math.sin(t * 2) * 3), 40, sleep ? -4 : -22); ctx.stroke();
+  ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(2, sleep ? -11 : -16, 24, sleep ? 11 : 16, 0, 0, TAU); ctx.fill();
+  const hx = sleep ? -18 : -16, hy = sleep ? -14 : -36;
+  ctx.beginPath(); ctx.ellipse(hx, hy, 12, 11, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(hx - 10, hy - 6); ctx.lineTo(hx - 8, hy - 18); ctx.lineTo(hx - 1, hy - 9); ctx.fill(); ctx.beginPath(); ctx.moveTo(hx + 10, hy - 6); ctx.lineTo(hx + 8, hy - 18); ctx.lineTo(hx + 1, hy - 9); ctx.fill();
+  ctx.fillStyle = light; ctx.beginPath(); ctx.ellipse(hx - 3, hy + 4, 5, 4, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(-8, -6, 8, 6, 0, 0, TAU); ctx.fill();
+  if (sleep) { ctx.strokeStyle = light; ctx.lineWidth = 1.4; for (const ex of [-6, 2]) { ctx.beginPath(); ctx.arc(hx + ex, hy - 1, 3, 0.2, Math.PI - 0.2); ctx.stroke(); } }
+  else { ctx.fillStyle = '#c8e048'; for (const ex of [-6, 3]) { ctx.beginPath(); ctx.ellipse(hx + ex, hy - 2, 3, alert ? 3.6 : 2.6, 0, 0, TAU); ctx.fill(); } ctx.fillStyle = '#101010'; for (const ex of [-6, 3]) ctx.fillRect(hx + ex - 0.7, hy - 5, 1.4, 6); }
+  if (swipe) { ctx.strokeStyle = col; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(-14, -20); ctx.lineTo(-46, -52); ctx.stroke(); ctx.fillStyle = light; ctx.beginPath(); ctx.arc(-48, -54, 6, 0, TAU); ctx.fill(); }
+  ctx.restore();
+  if (sleep) { const z = (t * 0.6) % 1; ctx.fillStyle = 'rgba(255,255,255,' + (0.9 - z * 0.9) + ')'; ctx.font = 'bold ' + (13 + z * 8) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('z', x - 20, y - 34 - z * 26); }
+  if (alert) { ctx.fillStyle = '#c0392b'; ctx.font = 'bold 28px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', x - 16, y - 62 - Math.sin(t * 20) * 3); }
+};
+// A web across a gap, its spider at the hub (or on its way to whatever is stuck: st)
+LondonArt.web = function (ctx, w, st, p) {
+  ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1;
+  for (let k = 0; k < 10; k++) { const a = k / 10 * TAU; ctx.beginPath(); ctx.moveTo(w.x, w.y); ctx.lineTo(w.x + Math.cos(a) * w.r, w.y + Math.sin(a) * w.r); ctx.stroke(); }
+  for (let i = 1; i <= 4; i++) { ctx.beginPath(); for (let k = 0; k <= 10; k++) { const a = k / 10 * TAU, rr = w.r * i / 4 * (k % 2 ? 0.94 : 1); k ? ctx.lineTo(w.x + Math.cos(a) * rr, w.y + Math.sin(a) * rr) : ctx.moveTo(w.x + Math.cos(a) * rr, w.y + Math.sin(a) * rr); } ctx.stroke(); }
+  const k = st ? Math.min(0.85, st.t / 4.5) : 0, sx = w.x + (st ? (p.x - w.x) * k : 0), sy = w.y + (st ? (p.y - 8 - w.y) * k : 0);
+  ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 1.4; for (let i = 0; i < 4; i++) for (const sgn of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + sgn * (9 + i), sy - 6 + i * 4); ctx.stroke(); }
+  ctx.fillStyle = '#6a4a2a'; ctx.beginPath(); ctx.ellipse(sx, sy + 3, 6, 7, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#4a3420'; ctx.beginPath(); ctx.arc(sx, sy - 4, 3.6, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(sx - 3, sy + 1, 6, 1.4); ctx.fillRect(sx - 0.7, sy - 1, 1.4, 7);
+};
+
+// ------------------------------------------------------------------ what's in a level, behind the bug
+// People, the things that move (a rival bee, rats, mice, the bus behind the wall), each task spot, the level's own
+// hazards (dog, cat, webs, jam jar, rival beetles), and a glow with the verb over the spot in reach.
+LondonArt.flower = function (ctx, s, floor, t) {
+  const sway = Math.sin(t * 1.5 + s.x) * 1.5, x = s.x + sway, gone = s.done || s.used;
+  const col = { lavender: '#8a6ac8', foxglove: '#c84a9a', rose: '#e04a5a', daisy: '#f4f4ec', purple: '#9a5ac8', pink: '#e87aa8', comfrey: '#5a6ad8', buddleia: '#8a4ac0' }[s.look] || '#e0a040';
+  const c = gone ? mixHex(col, '#c8c0b0', 0.55) : col;
+  if (s.look === 'buddleia') {                                    // a long cone of tiny flowers, leaning out of the bush
+    ctx.save(); ctx.translate(x, s.y); ctx.rotate(0.5 * (s.x % 2 ? 1 : -1));
+    for (let k = 0; k < 9; k++) { const w = 9 - k * 0.8; ell(ctx, (k % 2 ? 2 : -2), 14 - k * 6, w, 4.2, c); if (!gone && k % 3 === 0) plainEll(ctx, (k % 2 ? 2 : -2), 14 - k * 6, 1.6, 1.2, '#f0a030'); }
+    ctx.restore();
+    if (s.used) LondonArt.footprints(ctx, x, s.y);
+    return;
+  }
+  line(ctx, [s.x, floor, x, s.y + 6], '#4a7a30', 2);
+  ell(ctx, s.x - 6, (floor + s.y) / 2, 6, 2.6, '#4a7a30', -0.6); ell(ctx, s.x + 6, (floor + s.y) / 2 + 12, 6, 2.6, '#4a7a30', 0.6);
+  if (s.look === 'lavender' || s.look === 'purple') for (let k = 0; k < 7; k++) ell(ctx, x + (k % 2 ? 2 : -2), s.y + 4 - k * 4, 3.4, 2.6, c);
+  else if (s.look === 'foxglove') for (let k = 0; k < 5; k++) { ell(ctx, x + 4, s.y + 10 - k * 7, 3.4, 4.6, c, 0.4); plainEll(ctx, x + 5.6, s.y + 12 - k * 7, 1.2, 1, 'rgba(255,255,255,.6)'); }
+  else if (s.look === 'daisy') { for (let k = 0; k < 10; k++) ell(ctx, x + Math.cos(k / 10 * TAU) * 8, s.y + Math.sin(k / 10 * TAU) * 3, 4, 1.8, c, k / 10 * TAU); ell(ctx, x, s.y, 3.6, 2.4, '#e8c020'); }
+  else if (s.look === 'comfrey') {                                // deep hanging bells: too deep for a short tongue
+    line(ctx, [x, s.y + 6, x + 10, s.y - 6, x + 16, s.y - 2], '#4a7a30', 1.6); ell(ctx, x - 8, s.y + 14, 9, 4, '#4a7a30', -0.5);
+    for (const [dx, dy] of [[-6, 2], [2, 4], [10, 2], [16, 6]]) { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x + dx - 3, s.y + dy - 6); ctx.lineTo(x + dx + 3, s.y + dy - 6); ctx.lineTo(x + dx + 4.4, s.y + dy + 7); ctx.lineTo(x + dx - 4.4, s.y + dy + 7); ctx.fill(); plainEll(ctx, x + dx, s.y + dy + 7, 4.6, 1.6, mixHex(c, '#ffffff', 0.3)); }
+    if (s.done) plainEll(ctx, x + 2, s.y + 2, 1.8, 1.8, '#2a1a3a');   // the hole she bit
+  } else { ell(ctx, x, s.y, 9, 7, c); for (let k = 0; k < 4; k++) plainEll(ctx, x - 3 + k * 2, s.y - 2 + (k % 2) * 3, 2.4, 1.6, 'rgba(0,0,0,.15)'); }
+  if (!gone && s.look !== 'comfrey') plainEll(ctx, x, s.y - 4, 2, 1.4, 'rgba(255,240,150,.8)');   // nectar's there
+  if (s.used) LondonArt.footprints(ctx, x, s.y);
+  if (s.crab) Game.drawSprite('crabSpider', { x: x + 2, y: s.y - 2, angle: -0.3, open: s.t > 0, flat: true }, 1.3);
+};
+LondonArt.footprints = function (ctx, x, y) { ctx.fillStyle = 'rgba(90,60,30,.85)'; for (const [dx, dy] of [[-6, -3], [-2, 1], [3, -4], [7, 0], [0, 5]]) { ctx.beginPath(); ctx.arc(x + dx, y + dy, 1.5, 0, TAU); ctx.fill(); } };
+LondonArt.spots = function (ctx, g, m) {
+  const L = g.level, t = g.t, p = g.player, x0 = g.cam.x - 220, x1 = g.cam.x + W / (Game.zoom || 1) + 220, see = (x) => x > x0 && x < x1;
+  for (const mv of g.movers) if (mv.kind === 'bus' && mv.x > x0 - 200 && mv.x < x1 + 200) { ctx.save(); ctx.beginPath(); ctx.rect(x0, 0, x1 - x0, 300); ctx.clip(); LondonArt.bus(ctx, mv.x, 392, 2.2, 1, { t }); ctx.restore(); }
+  if (L.cat) LondonArt.cat(ctx, L.cat.x, L.cat.y, g.hz.cat, t);
+  if (L.jar) {                                                                     // the jam-jar trap on the third table
+    const j = L.jar, x = j.x, y = 430;
+    ctx.fillStyle = 'rgba(200,225,235,.55)'; ctx.fillRect(x - 12, y - 34, 24, 34); ctx.fillStyle = '#b02848'; ctx.fillRect(x - 12, y - 12, 24, 12);
+    ctx.fillStyle = '#e8dcc0'; ctx.fillRect(x - 14, y - 38, 28, 6); ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 3, y - 38, 6, 2);
+    ctx.strokeStyle = 'rgba(255,200,220,.5)'; ctx.lineWidth = 1.5; for (let k = 0; k < 3; k++) { const a = t * 2 + k * 2; ctx.beginPath(); ctx.moveTo(x - 8 + k * 8, y - 42); ctx.quadraticCurveTo(x - 8 + k * 8 + Math.sin(a) * 6, y - 56, x - 8 + k * 8, y - 70); ctx.stroke(); }
+  }
+  for (const q of g.people) if (see(q.x)) LondonArt.human(ctx, q, t);
+  if (g.hz.dog) {
+    const d = g.hz.dog; LondonArt.dog(ctx, d, t);
+    plainLine(ctx, [d.x - 12, d.y - (d.state === 'sit' ? 34 : 44), 3008, 474], 'rgba(60,40,30,.8)', 1.6);   // its lead
+  }
+  for (const s of L.spots) {
+    if (!see(s.x)) continue;
+    if (s.kind === 'flower' || s.kind === 'rob') this.flower(ctx, s, L.floor, t);
+    else if (s.kind === 'post') { ctx.fillStyle = s.done ? '#d8c8a0' : '#a08860'; ctx.fillRect(s.x - 10, s.y - 30, 20, 60); if (s.done) { ctx.strokeStyle = '#f0e6c8'; ctx.lineWidth = 1; for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.moveTo(s.x - 8, s.y - 10 + k * 5); ctx.lineTo(s.x + 6, s.y - 12 + k * 5); ctx.stroke(); } } }
+    else if (s.kind === 'fly' && !s.done) Game.drawSprite('flySide', { x: s.x, y: s.y + 6, angle: 0, face: Math.cos(s.ph * 1.7) < 0 ? 1 : -1, flat: true }, 1.8);
+    else if (s.kind === 'giraffe') {
+      const flick = s.doneAt !== undefined && t - s.doneAt < 1.6 ? Math.sin((t - s.doneAt) * 30) * 0.7 : 0, bx = s.x - 34, by = 330;
+      ctx.fillStyle = '#e8c070'; ctx.beginPath(); ctx.moveTo(bx - 16, by); ctx.lineTo(bx + 18, by); ctx.lineTo(s.x + 4, s.y + 14); ctx.lineTo(s.x - 16, s.y + 6); ctx.fill();
+      ctx.fillStyle = '#a8703a'; for (const [dx, dy] of [[-8, -20], [4, -44], [-2, -70], [8, -92], [0, -112]]) { ctx.beginPath(); ctx.ellipse(bx + dx + (by + dy - by) * -0.25, by + dy, 7, 9, 0.3, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = '#e8c070'; ctx.beginPath(); ctx.ellipse(s.x + 8, s.y, 24, 12, 0.25, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#d8a860'; ctx.beginPath(); ctx.ellipse(s.x + 26, s.y + 6, 9, 7, 0.25, 0, TAU); ctx.fill();
+      ctx.save(); ctx.translate(s.x - 12, s.y - 8); ctx.rotate(-0.6 + flick); ctx.fillStyle = '#d8a860'; ctx.beginPath(); ctx.ellipse(-8, 0, 10, 4.4, 0, 0, TAU); ctx.fill(); ctx.restore();
+      for (const dx of [-4, 4]) { plainLine(ctx, [s.x + dx, s.y - 10, s.x + dx - 2, s.y - 24], '#a8703a', 3); plainEll(ctx, s.x + dx - 2, s.y - 25, 3, 3, '#5a3a1a'); }
+      plainEll(ctx, s.x + 10, s.y - 3, 2.2, 2.6, '#1a1210'); plainEll(ctx, s.x + 30, s.y + 4, 1.4, 1, '#5a3a1a');
+    } else if (s.kind === 'jam') {
+      plainEll(ctx, s.x, 429, 22, 4, '#f4f0e4'); ell(ctx, s.x, 422, 13, 8, '#e0b870'); plainEll(ctx, s.x, 417, 11, 4, '#f0d090');
+      if (!s.done) { plainEll(ctx, s.x, 414, 8, 3.4, '#b02848'); plainEll(ctx, s.x - 3, 413, 2.4, 1, 'rgba(255,255,255,.5)'); }
+    } else if (s.kind === 'glass') {
+      ctx.fillStyle = 'rgba(210,235,245,.55)'; ctx.fillRect(s.x - 9, 398, 18, 32);
+      ctx.fillStyle = 'rgba(250,236,150,.9)'; ctx.fillRect(s.x - 9, s.done ? 416 : 404, 18, s.done ? 14 : 26);
+      plainLine(ctx, [s.x + 3, 428, s.x + 10, 386], '#e04a5a', 2);
+      plainEll(ctx, s.x - 2, 404, 5, 2.4, '#f0e060');
+    } else if (s.kind === 'raft1' || s.kind === 'sump') {
+      const big = s.kind === 'sump', y = big ? L.floor - 4 : 399, w = big ? 62 : 34;
+      ctx.fillStyle = 'rgba(80,110,130,.85)'; ctx.beginPath(); ctx.ellipse(s.x, y, w, big ? 7 : 4, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(s.x - w * 0.5, y - 2, w * 0.4, 1.5);
+      if (!big) { ctx.fillStyle = '#5a5a60'; ctx.fillRect(s.x - 5, 70, 10, 50); ctx.fillRect(s.x - 8, 116, 16, 8); const d = (t * 0.9) % 1; plainEll(ctx, s.x, 126 + d * d * 268, 2.4, 3.4, 'rgba(160,200,230,.9)'); }
+      if (s.done) for (let k = 0; k < (big ? 9 : 4); k++) plainEll(ctx, s.x - (big ? 12 : 5) + k * 3, y - 1 + (k % 2), 1.6, 0.9, '#3a2a1a');
+    } else if (s.kind === 'pants') {
+      ctx.fillStyle = '#7a6a5a'; ctx.fillRect(s.x - 164, 290, 8, 270); ctx.fillRect(s.x + 156, 290, 8, 270);
+      ctx.strokeStyle = '#e8e4d8'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(s.x - 160, 296); ctx.quadraticCurveTo(s.x, 312, s.x + 160, 296); ctx.stroke();
+      const sw = Math.sin(t * 1.3) * 2;
+      ctx.fillStyle = '#f4f4f0'; ctx.fillRect(s.x - 110 + sw, 304, 50, 60);                                                          // a shirt
+      ctx.fillStyle = '#e04a5a'; ctx.beginPath(); ctx.moveTo(s.x - 24 + sw, 308); ctx.lineTo(s.x + 24 + sw, 308); ctx.lineTo(s.x + 26 + sw, 352); ctx.lineTo(s.x + 4 + sw, 352); ctx.lineTo(s.x + sw, 332); ctx.lineTo(s.x - 4 + sw, 352); ctx.lineTo(s.x - 26 + sw, 352); ctx.fill();   // the pants
+      ctx.fillStyle = '#fff'; for (const [dx, dy] of [[-12, 320], [8, 316], [14, 336], [-16, 340]]) { ctx.beginPath(); ctx.arc(s.x + dx + sw, dy, 2.4, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = '#3a6ab0'; ctx.fillRect(s.x + 70 + sw, 302, 12, 34); ctx.fillRect(s.x + 96 + sw, 302, 12, 34);                 // socks
+    } else if (s.kind === 'sap') {
+      ctx.fillStyle = 'rgba(210,140,40,.9)'; ctx.beginPath(); ctx.moveTo(s.x - 5, s.y - 60); ctx.quadraticCurveTo(s.x + 8, s.y - 20, s.x - 2, s.y + 6); ctx.quadraticCurveTo(s.x - 10, s.y - 20, s.x - 5, s.y - 60); ctx.fill();
+      plainEll(ctx, s.x - 1, s.y + 4, 5, 4, 'rgba(240,180,70,.95)'); plainEll(ctx, s.x - 2, s.y + 2, 1.6, 1.2, 'rgba(255,255,255,.7)');
+    } else if (s.kind === 'nettle') { const r = rng(5); for (let k = 0; k < 9; k++) { const x = s.x - 50 + k * 12, h = 50 + r() * 30; line(ctx, [x, L.floor, x + 2, L.floor - h], '#3a6a2a', 2); for (let j = 1; j < 4; j++) { ell(ctx, x - 5, L.floor - h * j / 4, 6, 3, '#4a7a30', -0.5); ell(ctx, x + 7, L.floor - h * j / 4 - 4, 6, 3, '#3f7028', 0.5); } } if (s.done) for (let k = 0; k < 6; k++) plainEll(ctx, s.x - 10 + k * 3, s.y + 6, 1.2, 1.2, '#f4f0d8'); }
+    else if (s.kind === 'nest' && m.kind === 'bee') { ctx.fillStyle = '#1a1208'; ctx.beginPath(); ctx.ellipse(s.x, s.y + 6, 16, 12, 0, 0, TAU); ctx.fill(); }
+    else if (s.kind === 'nest') { ell(ctx, s.x, s.y + 10, 24, 30, '#c8c0b0'); ctx.strokeStyle = 'rgba(120,110,95,.6)'; ctx.lineWidth = 1.2; for (let k = 0; k < 7; k++) { ctx.beginPath(); ctx.ellipse(s.x, s.y - 10 + k * 7, 22 - Math.abs(k - 3) * 2, 3, 0, 0, Math.PI); ctx.stroke(); } plainEll(ctx, s.x, s.y + 34, 4, 3, '#2a2418'); }
+    else if (s.kind === 'female') Game.drawSprite('stagBeetleF', { x: s.x + 14, y: s.y + 12, angle: 0, face: -1, flat: true }, 1.4);
+    else if (s.on && s.done) plainEll(ctx, s.x, s.y, 3, 2.4, '#e86060');                                                            // an itchy bite
+  }
+  for (const mv of g.movers) {
+    if (!see(mv.x)) continue;
+    if (mv.kind === 'rival') Game.drawSprite('bumblebee', { x: mv.x, y: mv.y + 12, angle: 0, face: mv.face, flat: true, flying: !(mv.sit > 0), moving: true, pollen: 1 }, 1.8);
+    else if (mv.kind === 'rat') LondonArt.rat(ctx, mv.x, mv.y, mv.face, mv.sniff > 0, t);
+    else if (mv.kind === 'mouse') Game.drawSprite('mouseSide', { x: mv.x, y: mv.y, angle: 0, face: mv.face, flat: true, moving: !(mv.wait > 0) }, 1.2);
+  }
+  for (const w of L.webs || []) if (see(w.x)) LondonArt.web(ctx, w, g.stuck && g.stuck.web === w ? g.stuck : null, p);
+  for (const r of g.rivals || []) if (r.state !== 'gone' && see(r.x)) {
+    ctx.save(); ctx.translate(r.x, r.y - 14); ctx.rotate(r.spin || 0); ctx.translate(-r.x, -(r.y - 14));
+    Game.drawSprite('stagBeetle', { x: r.x, y: r.y, angle: 0, face: -1, flat: true, moving: r.state === 'fight' }, 1.6);
+    ctx.restore();
+  }
+  const s = g.spot, k = 0.5 + 0.5 * Math.sin(t * 6);
+  if (s && !s.done) {
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.9, 0, TAU); ctx.strokeStyle = 'rgba(140,255,120,' + (0.4 + k * 0.4) + ')'; ctx.lineWidth = 3; ctx.stroke();
+    if (s.verb) { ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(30,20,10,.6)'; ctx.strokeText(s.verb + '!', s.x, s.y - s.r - 10 - k * 4); ctx.fillText(s.verb + '!', s.x, s.y - s.r - 10 - k * 4); }
+  }
+};
+
+// ------------------------------------------------------------------ in front of the bug
+// The leaves it hides in, what it carries, the red zones (people looking, the cat's reach, the dog's snap, feet
+// about to land), the train, the rain, dusk and the light, a wrestle's meter, and arrows to hunters off screen.
+LondonArt.front = function (ctx, g, m) {
+  const L = g.level, t = g.t, p = g.player, z = Game.zoom || 1, vw = W / z, vh = H / z, h = g.hz, cy = p.y - m.P.hh / 2;
+  for (const f of g.fronts) if (f) { ctx.globalAlpha = g.hidden ? 0.78 : 0.95; ctx.drawImage(f.c, f.x, f.y); }
+  ctx.globalAlpha = 1;
+  if (p.carry) { plainEll(ctx, p.x + p.face * 5, p.y + 3, p.carry === 'ball' ? 5 : 6, p.carry === 'ball' ? 5 : 3.4, p.carry === 'ball' ? '#7a5a3a' : '#3a3a3a'); if (p.carry === 'ball') plainEll(ctx, p.x + p.face * 4, p.y + 1.6, 1.6, 1.2, 'rgba(255,255,255,.4)'); }
+  const red = (x, y, r, a) => { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = 'rgba(230,40,40,' + a + ')'; ctx.fill(); ctx.strokeStyle = 'rgba(220,40,40,.55)'; ctx.lineWidth = 2; ctx.stroke(); };
+  for (const q of g.people) if (q.looking && Math.abs(q.x - p.x) < vw) LondonArt.zone(ctx, q, t);
+  if (L.cat && h.cat.state !== 'asleep') red(L.cat.x, L.cat.y - 30, m.CAT_R, h.cat.state === 'alert' ? 0.26 : 0.13 + 0.04 * Math.sin(t * 5));
+  if (h.dog) red(h.dog.x, h.dog.y - 44, 130, h.dog.state === 'alert' ? 0.26 : 0.12 + 0.04 * Math.sin(t * 5));
+  if (g.shooed > 0) {   // blown off: streaks of air behind her
+    const dir = g.shooDir || 1;
+    ctx.strokeStyle = 'rgba(255,255,255,' + Math.min(1, 0.3 + g.shooed) + ')'; ctx.lineWidth = 2;
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(p.x - dir * 14, cy + i * 7); ctx.lineTo(p.x - dir * 48, cy + i * 9); ctx.stroke(); }
+  }
+  // the joggers on the path: a red mark where each foot will land, then the leg and its trainer
+  for (const s of g.steps || []) {
+    if (s.t < 0) { ctx.beginPath(); ctx.ellipse(s.x, L.floor - 2, 34, 9, 0, 0, TAU); ctx.fillStyle = 'rgba(230,40,40,' + (0.2 + 0.25 * (1 + s.t / 1.3)) + ')'; ctx.fill(); ctx.strokeStyle = 'rgba(220,40,40,.6)'; ctx.lineWidth = 2; ctx.stroke(); }
+    if (s.t > -0.3) {
+      const off = s.t < 0 ? (-s.t / 0.3) * 170 : 0, y = L.floor - off;
+      ctx.fillStyle = '#e0b088'; ctx.fillRect(s.x - 2, y - 260, 22, 236);
+      ctx.fillStyle = '#f4f4f0'; ctx.fillRect(s.x - 3, y - 44, 24, 24);
+      ctx.fillStyle = '#2f7d9b'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(s.x - 44, y - 26, 70, 24, [14, 8, 6, 12]) : ctx.rect(s.x - 44, y - 26, 70, 24); ctx.fill();
+      ctx.fillStyle = '#f4f4f0'; ctx.fillRect(s.x - 44, y - 6, 70, 5); ctx.fillStyle = '#ffd23f'; ctx.fillRect(s.x - 20, y - 20, 22, 4);
+    }
+  }
+  const r = g.wrestle;
+  if (r) {   // the shoving match: the bar fills as you push him to the edge
+    const x = r.x - 66, y = r.y - 76;
+    ctx.fillStyle = 'rgba(30,20,10,.7)'; ctx.fillRect(x - 3, y - 3, 126, 16);
+    ctx.fillStyle = r.heave ? '#e0a020' : '#4aa84a'; ctx.fillRect(x, y, 120 * clamp(r.m, 0, 1), 10);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(x, y, 120, 10);
+  }
+  if (h.pass > 0) {
+    const tc = this.trainImage(), x = g.cam.x + vw + 100 - h.pass * 2600;
+    ctx.drawImage(tc, x, 150);
+  } else if (h.trainT !== undefined && h.trainT < 3) {   // its lights coming down the tunnel
+    const x = g.cam.x + vw - 10, a = 0.3 + 0.5 * (1 - h.trainT / 3);
+    const gr = ctx.createRadialGradient(x, 470, 4, x, 470, 160); gr.addColorStop(0, 'rgba(255,250,210,' + a + ')'); gr.addColorStop(1, 'rgba(255,250,210,0)');
+    ctx.fillStyle = gr; ctx.fillRect(x - 170, 300, 180, 260);
+  }
+  // weather and light
+  const dark = h.rain && !h.rain.over ? 0.2 : h.cloud > 0 ? 0.2 * (1 - h.cloud / 2.5) : 0;
+  if (dark > 0) { ctx.fillStyle = 'rgba(50,60,90,' + dark + ')'; ctx.fillRect(g.cam.x - 20, g.cam.y - 20, vw + 40, vh + 40); }
+  if (h.rain && !h.rain.over) {
+    ctx.strokeStyle = 'rgba(215,232,255,.65)'; ctx.lineWidth = 1.6; ctx.beginPath();
+    for (let i = 0; i < 70; i++) { const x = g.cam.x + ((i * 97 + t * 260) % (vw + 80)) - 40, y = g.cam.y + ((i * 53 + t * 900) % vh); ctx.moveTo(x, y); ctx.lineTo(x - 5, y + 16); }
+    ctx.stroke();
+  }
+  const dusk = h.dusk || (L.pond ? clamp((p.x - 1500) / 2200, 0, 1) * 0.9 : 0);
+  if (dusk > 0) { ctx.fillStyle = 'rgba(22,18,58,' + 0.4 * dusk + ')'; ctx.fillRect(g.cam.x - 20, g.cam.y - 20, vw + 40, vh + 40); }
+  if (L.lamp && h.dusk > 0.2) {
+    const a = Math.min(1, (h.dusk - 0.2) * 2), gr = ctx.createRadialGradient(L.lamp.x, L.lamp.y, 6, L.lamp.x, L.lamp.y, 240);
+    gr.addColorStop(0, 'rgba(255,236,170,' + 0.75 * a + ')'); gr.addColorStop(0.3, 'rgba(255,226,150,' + 0.3 * a + ')'); gr.addColorStop(1, 'rgba(255,226,150,0)');
+    ctx.fillStyle = gr; ctx.fillRect(L.lamp.x - 240, L.lamp.y - 240, 480, 480);
+  }
+  // a hunter you can't see yet: an arrow at the edge of the view
+  for (const pr of g.preds) if (pr.state !== 'leave' && (pr.x < g.cam.x || pr.x > g.cam.x + vw)) {
+    const left = pr.x < g.cam.x, x = left ? g.cam.x + 24 : g.cam.x + vw - 24, y = clamp(pr.y, g.cam.y + 70, g.cam.y + vh - 40);
+    ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.moveTo(x + (left ? -14 : 14), y); ctx.lineTo(x + (left ? 6 : -6), y - 12); ctx.lineTo(x + (left ? 6 : -6), y + 12); ctx.fill();
+    ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', x + (left ? 18 : -18), y + 6);
+  }
+};
+
+// ------------------------------------------------------------------ the backgrounds
+// Each paints its sky and scenery, then the level's own solids, ledges and hiding places (LondonArt.solids), so
+// the art and the physics match. The level comes from the game that is starting.
+Backgrounds.ldnPark = function (ctx, W, H) {
+  const L = Game.g.level;
+  LondonArt.sky(ctx, W, '#9ac4e8', '#d8e8f0', '#f0f0e0');
+  LondonArt.skyline(ctx, W, 400, 'rgba(150,160,175,.55)', 3);                       // the terraces round the park
+  // the BT Tower, seen over the trees from all across Regent's Park
+  ctx.fillStyle = 'rgba(130,142,160,.75)'; ctx.fillRect(1490, 150, 20, 260); ctx.fillRect(1483, 196, 34, 46); ctx.fillRect(1480, 250, 40, 10); ctx.fillRect(1498, 104, 4, 48);
+  ctx.fillStyle = 'rgba(255,255,255,.25)'; for (let k = 0; k < 5; k++) ctx.fillRect(1483, 200 + k * 9, 34, 3);
+  LondonArt.trees(ctx, W, 470, 'rgba(70,110,60,.6)', 8, 32, 70);
+  LondonArt.trees(ctx, W, 520, 'rgba(60,100,50,.8)', 9, 20, 50);
+  // the Zoo's fence at the far end (a giraffe looks over it: drawn with the level)
+  ctx.fillStyle = '#3f6a3a'; ctx.fillRect(3240, 330, 330, 230);
+  ctx.strokeStyle = 'rgba(20,40,20,.35)'; ctx.lineWidth = 2; for (let x = 3240; x < 3570; x += 22) { ctx.beginPath(); ctx.moveTo(x, 330); ctx.lineTo(x, 560); ctx.stroke(); }
+  ctx.fillStyle = '#f4f0e4'; ctx.fillRect(3262, 372, 74, 34); ctx.fillStyle = '#2f5a2a'; ctx.font = 'bold 22px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('ZOO', 3299, 397);
+  LondonArt.grass(ctx, W, 556, '#5a8a3a', '#6a9a44', 4);
+  ctx.fillStyle = '#7a5a3a'; for (const x of [240, 840, 1500, 2200, 2580, 3120, 3440]) ctx.fillRect(x, 552, 150, 10);   // flower beds along the path
+  ctx.fillStyle = '#6a4a2a'; ctx.fillRect(606, 470, 190, 8); ctx.fillRect(606, 478, 6, 36); ctx.fillRect(790, 478, 6, 36);   // the bench's back
+  LondonArt.solids(ctx, L);
+};
+Backgrounds.ldnPark.noVignette = true;
+
+Backgrounds.ldnCafe = function (ctx, W, H) {
+  const L = Game.g.level;
+  LondonArt.sky(ctx, W, '#7ab0e0', '#c8e0f0', '#f0eada');
+  LondonArt.skyline(ctx, W, 320, '#b8a088', 11);
+  ctx.fillStyle = '#a8644a'; ctx.fillRect(0, 300, W, 260);                          // the garden's back wall, brick
+  ctx.strokeStyle = 'rgba(240,220,200,.35)'; ctx.lineWidth = 1;
+  for (let y = 300; y < 560; y += 12) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.fillStyle = '#8a7a6a'; ctx.fillRect(0, 294, W, 8);
+  ctx.fillStyle = '#8a6a44'; for (let x = 0; x < 720; x += 26) ctx.fillRect(x, 380, 20, 180);   // the wooden fence
+  ctx.fillStyle = '#6a5034'; ctx.fillRect(0, 410, 720, 8); ctx.fillRect(0, 500, 720, 8);
+  // the café's back door and its sign
+  ctx.fillStyle = '#3a4a44'; ctx.fillRect(2100, 380, 110, 180); ctx.fillStyle = 'rgba(255,240,200,.35)'; ctx.fillRect(2112, 394, 86, 70);
+  ctx.fillStyle = '#2f5a4a'; ctx.fillRect(2060, 330, 190, 40); ctx.fillStyle = '#f4f0e4'; ctx.font = 'bold 26px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('CAFÉ', 2155, 359);
+  ctx.fillStyle = '#c8bca8'; ctx.fillRect(0, 556, W, 44);                           // paving
+  ctx.strokeStyle = 'rgba(80,70,60,.3)'; for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 556); ctx.lineTo(x, 600); ctx.stroke(); }
+  for (const s of L.solids) if (s[4] === 'table') { const x = s[0] + 85; ctx.fillStyle = '#e8e4d8'; ctx.beginPath(); ctx.moveTo(x - 110, 320); ctx.quadraticCurveTo(x, 262, x + 110, 320); ctx.fill(); ctx.fillStyle = '#c8501e'; ctx.fillRect(x - 110, 318, 220, 5); ctx.fillStyle = '#6a6a6a'; ctx.fillRect(x - 2, 320, 4, 110); }   // parasols
+  for (const l of L.ledges) { ctx.fillStyle = '#5a4028'; ctx.fillRect(l[0] + (l[0] % 2 ? 0 : 38), l[1] - 50, 6, 50); }   // chair backs
+  LondonArt.solids(ctx, L);
+};
+Backgrounds.ldnCafe.noVignette = true;
+
+Backgrounds.ldnTube = function (ctx, W, H) {
+  const L = Game.g.level, PW = L.solids.find(s => s[4] === 'platform')[2];
+  ctx.fillStyle = '#2a2a30'; ctx.fillRect(0, 0, W, 600);
+  // tiled wall along the platform, then the dark tunnel
+  const g = ctx.createLinearGradient(0, 70, 0, 400); g.addColorStop(0, '#c8c0a8'); g.addColorStop(1, '#a8a088');
+  ctx.fillStyle = g; ctx.fillRect(0, 70, PW, 330);
+  ctx.strokeStyle = 'rgba(80,70,60,.25)'; ctx.lineWidth = 1;
+  for (let y = 70; y < 400; y += 14) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(PW, y); ctx.stroke(); }
+  for (let x = 0; x < PW; x += 28) { ctx.beginPath(); ctx.moveTo(x, 70); ctx.lineTo(x, 400); ctx.stroke(); }
+  ctx.fillStyle = '#7a2a24'; ctx.fillRect(0, 150, PW, 16);                          // a coloured band of tiles
+  // posters: sunny Perth (where the game began), a West End show, the way out
+  const frame = (x, w) => { ctx.fillStyle = '#e8e4d8'; ctx.fillRect(x, 186, w, 128); };
+  frame(300, 230);
+  let sk = ctx.createLinearGradient(0, 196, 0, 304); sk.addColorStop(0, '#5ab0e8'); sk.addColorStop(0.6, '#bfe4f4'); sk.addColorStop(0.61, '#3a9ac8'); sk.addColorStop(0.8, '#f2e2b0'); sk.addColorStop(1, '#e8d49a');
+  ctx.fillStyle = sk; ctx.fillRect(310, 196, 210, 108);
+  ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(486, 222, 16, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#8a6a48'; ctx.beginPath(); ctx.ellipse(352, 286, 14, 9, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(366, 276, 7, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(362, 269, 2.6, 0, TAU); ctx.fill();   // a quokka on the sand
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('Sunny PERTH', 414, 232);
+  ctx.font = 'bold 12px sans-serif'; ctx.fillText('17 hours by plane', 414, 250);
+  frame(1010, 200); ctx.fillStyle = '#2a1a3a'; ctx.fillRect(1020, 196, 180, 108); ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 20px Georgia, serif'; ctx.fillText('BUGS!', 1110, 240); ctx.fillStyle = '#e8e4d8'; ctx.font = '12px sans-serif'; ctx.fillText('the musical', 1110, 260);
+  ctx.fillStyle = '#1e3a6a'; ctx.fillRect(1650, 196, 150, 40); ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 20px sans-serif'; ctx.fillText('WAY OUT →', 1725, 223);
+  const t = ctx.createLinearGradient(PW, 0, W, 0); t.addColorStop(0, '#3a3a40'); t.addColorStop(1, '#141418');
+  ctx.fillStyle = t; ctx.fillRect(PW, 70, W - PW, 490);
+  ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 3; for (let x = PW + 50; x < W; x += 90) { ctx.beginPath(); ctx.moveTo(x, 70); ctx.lineTo(x, 560); ctx.stroke(); }   // tunnel rings
+  ctx.fillStyle = 'rgba(160,200,230,.25)'; for (const x of [2380, 2840, 3420, 3850]) ctx.fillRect(x, 70, 3, 60);   // drips down the tunnel wall
+  // the track bed, rails and sleepers
+  ctx.fillStyle = '#3a3634'; ctx.fillRect(0, 540, W, 60);
+  ctx.fillStyle = '#5a4a3a'; for (let x = 0; x < W; x += 30) ctx.fillRect(x, 548, 18, 8);
+  ctx.fillStyle = '#9a9aa0'; ctx.fillRect(0, 544, W, 3); ctx.fillRect(0, 552, W, 3);
+  LondonArt.solids(ctx, L);
+  ctx.fillStyle = 'rgba(40,36,30,.8)'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+  for (let x = 160; x < PW - 100; x += 380) ctx.fillText('MIND THE GAP', x, 420);  // painted along the platform's edge
+  ctx.fillStyle = '#3a4a6a'; ctx.fillRect(1100, 300, 170, 8); ctx.fillRect(1104, 308, 6, 46); ctx.fillRect(1260, 308, 6, 46);   // the bench's back
+};
+Backgrounds.ldnTube.noVignette = true;
+
+Backgrounds.ldnGarden = function (ctx, W, H) {
+  const L = Game.g.level;
+  LondonArt.sky(ctx, W, '#8ab8e0', '#e0e8e8', '#f4ead0');
+  LondonArt.skyline(ctx, W, 360, '#c09a7a', 21);                                    // the backs of terraced houses
+  ctx.fillStyle = 'rgba(255,255,255,.25)'; for (let x = 30; x < W; x += 140) ctx.fillRect(x, 300, 16, 20);
+  // the house at the end of the garden, with the kitchen window that lights up at dusk
+  ctx.fillStyle = '#b8846a'; ctx.fillRect(2690, 120, 250, 440); ctx.fillStyle = '#7a5a4a'; ctx.beginPath(); ctx.moveTo(2670, 124); ctx.lineTo(2815, 40); ctx.lineTo(2960, 124); ctx.fill();
+  ctx.strokeStyle = 'rgba(240,220,200,.3)'; ctx.lineWidth = 1; for (let y = 130; y < 560; y += 12) { ctx.beginPath(); ctx.moveTo(2690, y); ctx.lineTo(2940, y); ctx.stroke(); }
+  ctx.fillStyle = '#f4f0e4'; ctx.fillRect(2748, 198, 104, 104); ctx.fillStyle = '#ffe9a8'; ctx.fillRect(2756, 206, 88, 88); ctx.fillStyle = '#f4f0e4'; ctx.fillRect(2797, 206, 6, 88); ctx.fillRect(2756, 247, 88, 6);
+  ctx.fillStyle = '#5a6a5a'; ctx.fillRect(2860, 400, 60, 160);
+  ctx.fillStyle = '#8a6a48'; for (let x = 0; x < 2690; x += 30) ctx.fillRect(x, 420, 24, 140); for (let x = 2940; x < W; x += 30) ctx.fillRect(x, 420, 24, 140);   // the fence
+  ctx.fillStyle = '#6a5034'; ctx.fillRect(0, 450, 2690, 8); ctx.fillRect(2940, 450, W - 2940, 8);
+  LondonArt.trees(ctx, W, 470, 'rgba(60,110,60,.55)', 23, 10, 40);
+  for (const x of [1800, 1900]) { ctx.fillStyle = '#b8a070'; ctx.fillRect(x - 3, 250, 6, 310); }   // bean poles (a web between them)
+  LondonArt.leafBlob(ctx, 1770, 430, 160, 120, ['#3f7a38', '#4a8a40', '#2f6a2e'], 77, 60);
+  LondonArt.leafBlob(ctx, 3180, 470, 150, 90, ['#3a5a2a', '#4a6a34', '#6a3a4a'], 78, 50);   // brambles by the nettles
+  LondonArt.grass(ctx, W, 556, '#5e9440', '#6aa04a', 24);
+  LondonArt.solids(ctx, L);
+};
+Backgrounds.ldnGarden.noVignette = true;
+
+Backgrounds.ldnRichmond = function (ctx, W, H) {
+  const L = Game.g.level;
+  LondonArt.sky(ctx, W, '#3a3a6a', '#d88a6a', '#f8c88a');                           // dusk
+  const sun = ctx.createRadialGradient(2300, 470, 10, 2300, 470, 260); sun.addColorStop(0, 'rgba(255,230,170,.9)'); sun.addColorStop(1, 'rgba(255,200,140,0)');
+  ctx.fillStyle = sun; ctx.fillRect(2000, 200, 600, 400);
+  LondonArt.skyline(ctx, W, 470, 'rgba(70,60,90,.45)', 31, [600]);                 // the city far off
+  // old oaks in silhouette, and deer on the skyline
+  const r = rng(32);
+  for (let i = 0; i < 11; i++) { const x = 500 + i * 320 + r() * 80; ctx.fillStyle = 'rgba(40,36,50,.75)'; ctx.fillRect(x - 10, 360, 20, 200); ctx.beginPath(); ctx.ellipse(x, 330, 110, 70, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x - 70, 360, 60, 40, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x + 70, 356, 60, 40, 0, 0, TAU); ctx.fill(); }
+  ctx.fillStyle = 'rgba(40,36,50,.8)';
+  for (const x of [900, 1650, 2560]) { ctx.beginPath(); ctx.ellipse(x, 500, 18, 8, 0, 0, TAU); ctx.fill(); ctx.fillRect(x - 12, 504, 3, 14); ctx.fillRect(x + 10, 504, 3, 14); ctx.fillRect(x + 14, 488, 4, 12); ctx.beginPath(); ctx.ellipse(x + 20, 486, 6, 4, -0.3, 0, TAU); ctx.fill(); plainLine(ctx, [x + 20, 482, x + 18, 472, x + 24, 468], 'rgba(40,36,50,.8)', 1.4); }
+  // the great oak by the start, weeping sap
+  const tg = ctx.createLinearGradient(230, 0, 370, 0); tg.addColorStop(0, '#4a3828'); tg.addColorStop(0.5, '#6a5038'); tg.addColorStop(1, '#3a2a1c');
+  ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(250, 0); ctx.lineTo(350, 0); ctx.lineTo(372, 560); ctx.lineTo(228, 560); ctx.fill();
+  ctx.strokeStyle = 'rgba(20,14,8,.5)'; ctx.lineWidth = 2; for (let k = 0; k < 7; k++) { ctx.beginPath(); ctx.moveTo(258 + k * 14, 10 + (k * 37) % 60); ctx.lineTo(250 + k * 17, 540); ctx.stroke(); }
+  LondonArt.grass(ctx, W, 556, '#6a7a3a', '#7a8a44', 33);
+  // the pond, and the path the joggers use
+  const [p0, p1] = L.pond;
+  ctx.fillStyle = '#3a5a7a'; ctx.beginPath(); ctx.ellipse((p0 + p1) / 2, 566, (p1 - p0) / 2, 16, 0, 0, TAU); ctx.fill(); ctx.fillRect(p0 + 10, 566, p1 - p0 - 20, 34);
+  ctx.fillStyle = 'rgba(255,220,170,.35)'; ctx.fillRect(p0 + 30, 562, 50, 2); ctx.fillRect(p0 + 90, 570, 40, 2);
+  ctx.strokeStyle = '#4a6a2a'; ctx.lineWidth = 2; for (const x of [p0 + 4, p0 + 12, p1 - 14, p1 - 5]) { ctx.beginPath(); ctx.moveTo(x, 566); ctx.lineTo(x + 3, 520); ctx.stroke(); }
+  ctx.fillStyle = '#b8a888'; ctx.fillRect(L.path[0], 554, L.path[1] - L.path[0], 46);
+  ctx.fillStyle = 'rgba(90,80,60,.3)'; for (let i = 0; i < 160; i++) ctx.fillRect(L.path[0] + r() * (L.path[1] - L.path[0]), 556 + r() * 40, 3, 2);
+  ctx.fillStyle = '#3a2a1a'; for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.ellipse(2860 + (i % 4) * 9 + (i > 3 ? 4 : 0), 556 - Math.floor(i / 4) * 5, 5, 3.4, 0, 0, TAU); ctx.fill(); }   // deer droppings
+  LondonArt.solids(ctx, L);
+};
+Backgrounds.ldnRichmond.noVignette = true;

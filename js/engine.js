@@ -749,6 +749,16 @@ const Game = {
     ctx.globalAlpha = 1;
     for (const f of g.fx) {
       ctx.globalAlpha = Math.min(1, f.life * 2);
+      if (f.say) {   // something somebody says: a speech bubble with its tail pointing down at them
+        ctx.font = 'bold 17px sans-serif';
+        const w = ctx.measureText(f.text).width + 22, y = f.y - 14;
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2118'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.roundRect ? ctx.roundRect(f.x - w / 2, y - 16, w, 30, 13) : ctx.rect(f.x - w / 2, y - 16, w, 30); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(f.x - 7, y + 13); ctx.lineTo(f.x, y + 26); ctx.lineTo(f.x + 7, y + 13); ctx.fill();
+        ctx.fillStyle = '#2b2118'; ctx.textAlign = 'center'; ctx.fillText(f.text, f.x, y + 5);
+        ctx.globalAlpha = 1;
+        continue;
+      }
       ctx.fillStyle = f.color || '#fff';
       ctx.font = 'bold 18px sans-serif';
       ctx.fillText(f.text, f.x, f.y - (1 - f.life) * 30);
@@ -786,4 +796,6 @@ const Game = {
   },
 
   pop(x, y, text, color) { this.g.fx.push({ x, y, text, color, life: 1 }); this.burst(x, y + 16, color); },
+  // Something a person or an animal says ("Oi!", "Slurp!"): a speech bubble over (x, y) for a moment
+  say(x, y, text, life) { this.g.fx.push({ x, y, text, say: true, life: life || 1.6 }); },
 };

@@ -212,28 +212,49 @@
     return { goal, act, hold };
   }
 
-  // London (side-on): hide when a hazard is due, else head for the next route point (the one the arrow shows) and
-  // hold or press at its task. Goals are the bug's middle; a walker just walks toward the point's x.
+  // London (side-on): out of the way of whatever is coming (a hunter, a train, rain, a foot, someone's red zone),
+  // else on to the next route point (the one the arrow shows) and hold or press at its task. Goals are the bug's
+  // middle; a walker just walks toward the point's x. The cheeky extras are left to real players.
   function ldn(g, m, p) {
-    const L = g.level, P = m.P, cy = p.y - P.hh / 2, h = g.hz;
+    const L = g.level, P = m.P, cy = p.y - P.hh / 2, h = g.hz, c = { x: p.x, y: cy };
     const hideAt = (x) => {
       let best = null, bd = 1e9;
-      for (const r of L.hides || []) { const c = { x: r[0] + r[2] / 2, y: r[1] + r[3] / 2 }, d = Math.abs(c.x - x); if (d < bd) { bd = d; best = c; } }
+      for (const r of L.hides || []) { const q = { x: r[0] + r[2] / 2, y: r[1] + r[3] / 2 }, d = Math.abs(q.x - x); if (d < bd) { bd = d; best = q; } }
       return best;
     };
     const aim = (pt) => P.walk ? { x: pt.x, y: cy } : pt;
+    if (g.stuck) return { hold: true };                    // in a web: wriggle
+    if (g.wrestle) return { act: true };                   // locked jaws: tap
     const hunted = g.preds.some(pr => pr.state === 'alert' || pr.state === 'chase');
     const train = h.trainT !== undefined && (h.trainT < (kidLike ? 2.6 : 3.2) || h.pass > 0);
-    if (hunted || train) { const c = hideAt(p.x); if (c) return { goal: aim(c), flee: hunted }; }
-    if (h.shoo && h.shoo.t < 1) {
-      const c = hideAt(p.x);
-      if (c && Math.abs(c.x - p.x) < 140) return { goal: c };
-      return { goal: { x: h.shoo.x + (p.x >= h.shoo.x ? 150 : -150), y: Math.max(120, h.shoo.y - 70) } };
+    const rain = (h.cloud > 0 && h.cloud < 1.6) || (h.rain && !h.rain.over);
+    if (hunted || train || rain) { const q = hideAt(p.x); if (q) return { goal: aim(q), flee: hunted }; }
+    // someone has seen you: up and out of the red
+    const seen = (g.people || []).find(q => q.shoo > 0 || ldnInZone(q, c));
+    if (seen) { const e = ldnAt(seen, 'eyes'); return { goal: { x: c.x + (c.x >= e.x ? 150 : -150), y: Math.max(96, e.y - 230) } }; }
+    const w = m.waypoint(g), s = w.spot, here = g.spot;
+    if (P.walk) {
+      // a flight in progress: up and over, then down
+      if (p.flyT > 0 || p.warmT > 0) return { goal: { x: p.x + 220, y: cy + (L.pond && p.x < L.pond[1] + 20 ? -140 : 120) } };
+      // the pond: take off just before it
+      if (L.pond && w.x > L.pond[1] && p.onGround && p.y >= L.floor - 1 && p.x > L.pond[0] - 130 && p.x < L.pond[0] - 20) return { act: true };
+      // the joggers' feet: off a mark that's about to be trodden on, and wait rather than walk onto one
+      const due = (g.steps || []).filter(q => q.t < 0.05);
+      if (p.y >= L.floor - 1 && due.length) {
+        const on = due.find(q => Math.abs(q.x - p.x) < 50);
+        if (on) return { goal: { x: p.x + (p.x >= on.x ? 70 : -70), y: cy } };
+        if (due.some(q => q.x > p.x && q.x - p.x < 112)) return { goal: null };
+      }
+      return { goal: aim(w) };
     }
-    const w = m.waypoint(g), s = w.spot;
-    // A kid sometimes stops at the wrong flower (and meets a crab spider)
-    const here = g.spot;
+    // a kid sometimes stops at the wrong flower (and meets a crab spider)
     if (kidLike && here && here.crab && here !== s && Math.random() < 0.15) return { hold: true };
+    if (m.id === 'ldn_wasp' && g.counts.fly && !g.counts.ball && !here) return { hold: true };   // snip the fly
+    if (s && s.on) {   // a task on a person: not while they're looking, or about to
+      const q = g.people.find(x => x.id === s.on);
+      if (q.look && (q.looking || (!kidLike && q.timer < (s.hold || 0.5) + 0.4 && !(here === s && s.t > 0)))) return Math.hypot(s.x - c.x, s.y - c.y) < 240 ? { goal: { x: c.x + (c.x >= q.x ? 120 : -120), y: Math.max(96, ldnAt(q, 'eyes').y - 230) } } : { goal: s };
+    }
+    if (s && s.off) return { goal: { x: s.x, y: s.y - 70 } };   // a rat on the run: keep over it till it stops
     if (s && here === s && s.verb) return s.hold ? { hold: true } : { goal: s, act: true };
     return { goal: aim(w) };
   }

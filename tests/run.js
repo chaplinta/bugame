@@ -1788,51 +1788,188 @@ test('London: every part’s route is clear of the walls, and no task sits insid
   check(bad.length === 0, bad.join('; '));
 });
 
-test('London: the bee runs on nectar, a crab spider and the train send you back to the safe spot, never below one heart', async (b) => {
+// Everything shown or said in a level: toasts, pops and speech bubbles
+const LDN_SHOWN = `window.shown = []; { const sh = Game.showToast.bind(Game), pop = Game.pop.bind(Game), say = Game.say.bind(Game);
+  Game.showToast = (t) => { if (t) shown.push(t.text); sh(t); }; Game.pop = (x, y, text, c) => { shown.push(text); return pop(x, y, text, c); }; Game.say = (x, y, text, l) => { shown.push(text); return say(x, y, text, l); }; }
+  window.ldnKit = () => { const g = Game.g, L = g.level; g.timers = []; return { g, pl: g.player, m: g.mission, L, at: (id) => L.spots.find(s => s.id === id), who: (id) => g.people.find(q => q.id === id),
+    put: (x, y) => Object.assign(g.player, { x, y, vx: 0, vy: 0, invuln: 0, onGround: true }), calm: () => { for (const q of g.people) { q.state = 'calm'; q.timer = 99; q.shoo = 0; } }, btn: () => document.getElementById('actionBtn').textContent }; };`;
+
+test('London bumblebee: fuel, robbing a deep flower, a rival’s footprints, rain, the dog, a crab spider, the extras', async (b) => {
   const p = await openGame(b);
+  await p.evaluate(LDN_SHOWN);
   await startMission(p, 'ldn_bee', { noNet: true });
   await p.evaluate(LDN_STEP);
   const r = await p.evaluate(() => {
-    const g = Game.g, pl = g.player, out = {};
-    g.timers = [];
-    // let go and she hovers; she stops soon after you let go
-    Object.assign(pl, { x: 700, y: 300, vx: 0, vy: 0 }); g.fuel = 1;
-    lstep(2); out.hover = Math.abs(pl.y - 300);
+    const { g, pl, m, L, at, put } = ldnKit(), out = {}, splats = () => shown.filter(t => t === 'Splat!').length;
+    const rival = g.movers.find(q => q.kind === 'rival'); rival.t = 99;
+    // let go and she hovers; she stops soon after you let go; with no fuel she can't climb
+    put(700, 300); g.fuel = 1; lstep(2); out.hover = Math.abs(pl.y - 300);
     lstep(1, { keys: ['arrowright'] }); const x1 = pl.x; lstep(1); out.stop = [Math.round(x1 - 700), Math.round(pl.x - x1), Math.abs(pl.y - 300) < 2];
-    Object.assign(pl, { x: 700, y: 300, vx: 0, vy: 0 }); g.fuel = 0;
-    lstep(3, { keys: ['arrowup'] }); out.empty = [g.fuel, pl.y];
-    const f = g.level.spots.find(s => s.id === 'f1');
-    Object.assign(pl, { x: f.x, y: f.y + 7, vx: 0, vy: 0 }); lstep(1.3, { held: true }); out.sip = [g.counts.flower, g.fuel];
-    Object.assign(pl, { x: 1010, y: 470 }); lstep(0.1); out.cp = [g.cp, g.home.x];
-    const c = g.level.spots.find(s => s.id === 'f4');
-    pl.invuln = 0; Object.assign(pl, { x: c.x, y: c.y + 7, vx: 0, vy: 0 }); lstep(0.6, { held: true }); out.crab = [g.lives, pl.x, g.seen.has('crab'), c.done];
-    g.lives = 1; pl.invuln = 0; Object.assign(pl, { x: c.x, y: c.y + 7, vx: 0, vy: 0 }); lstep(0.6, { held: true }); out.last = g.lives;
+    put(700, 300); g.fuel = 0; lstep(3, { keys: ['arrowup'] }); out.empty = [g.fuel, pl.y];
+    // an open flower: nectar and pollen; a deep one: robbed, and the tank is full
+    const f1 = at('f1'); put(f1.x, f1.y + 7); g.fuel = 0.2; lstep(1.1, { held: true }); out.sip = [g.counts.flower, +g.fuel.toFixed(2), pl.pollen];
+    const f3 = at('f3'); put(f3.x, f3.y + 7); lstep(0.05); out.robBtn = document.getElementById('actionBtn').textContent; lstep(1.3, { held: true }); out.rob = [g.counts.rob, g.fuel, g.seen.has('rob')];
+    // the rival empties a flower ahead of you: footprints, and it is no use to you any more
+    rival.t = 0; put(100, 300); lstep(6);
+    const used = L.spots.filter(s => s.used); out.rival = [used.length, used.every(s => s.off && s.gone), g.seen.has('scent')];
+    if (used[0]) { put(used[0].x, used[0].y + 7); lstep(0.2); out.usedSpot = g.spot === used[0]; }
+    rival.t = 99; rival.to = null;
+    // a safe spot, then a crab spider sends her back to it
+    put(1010, 470); lstep(0.1); out.cp = [g.cp, g.home.x];
+    const c = at('f4'); put(c.x, c.y + 7); lstep(0.6, { held: true }); out.crab = [g.lives, pl.x, g.seen.has('crab'), c.done];
+    // rain: splats in the open, none under leaves
+    put(1800, 300); lstep(0.1); out.cloud = g.hz.cloud > 0;
+    lstep(2.6); out.raining = !!g.hz.rain;
+    g.fuel = 1; const n0 = splats(); put(1700, 300); lstep(2.5); const n1 = splats();
+    const h = L.hides[0]; put(h[0] + h[2] / 2, h[1] + h[3] / 2 + 7); lstep(2.5); out.rain = [n1 - n0, splats() - n1, g.fuel < 1];
+    g.hz.rain.over = true;
+    // the dog snaps at a bee by its nose, not at one flying high; and the last heart is never lost
+    const d = g.hz.dog; put(d.x, 300); lstep(2); out.dogHigh = [d.state, g.lives];
+    put(d.x - 40, d.y - 60); lstep(0.3); out.dogAlert = d.state; lstep(1.2); out.dogSnap = [g.lives, pl.x];
+    d.state = 'sit'; put(d.x - 40, d.y - 60); lstep(1.6); out.last = g.lives;
+    // the cheeky extras: each one is a star
+    const s0 = m.stars(g), hat = at('hat'); put(hat.x, hat.y + 7); lstep(0.8, { held: true });
+    const gi = at('giraffe'); put(gi.x, gi.y + 7); lstep(0.1, { press: true });
+    out.extras = [s0, g.extras, m.stars(g), shown.includes('Eek! A bee!'), g.seen.has('zoo')];
+    // home needs four flowers and a robbed one
+    const nest = at('nest'); put(nest.x, nest.y + 7); lstep(0.2); out.early = !!g.homeSafe;
+    g.counts.flower = 4; lstep(0.2); out.home = !!g.homeSafe;
     return out;
   });
-  check(r.hover < 2, 'the bee did not hover when let go: ' + r.hover);
-  check(r.stop[0] > 140 && r.stop[1] < 30 && r.stop[2], 'the bee did not fly and then stop: ' + r.stop);
+  check(r.hover < 2 && r.stop[0] > 140 && r.stop[1] < 30 && r.stop[2], 'hovering and stopping: ' + JSON.stringify(r));
   check(r.empty[0] === 0 && r.empty[1] > 300, 'an empty bee still flew: ' + r.empty);
-  check(r.sip[0] === 1 && r.sip[1] > 0.4, 'sipping did not refill her: ' + r.sip);
-  check(r.cp[0] === 1 && r.cp[1] === 1000, 'the safe spot did not move: ' + r.cp);
-  check(r.crab[0] === 2 && r.crab[1] === 1000 && r.crab[2] && !r.crab[3], 'the crab spider did not send her back: ' + r.crab);
-  check(r.last === 1, 'a London part ran out of hearts');
-  await startMission(p, 'ldn_mosquito', { noNet: true });
-  await p.evaluate(LDN_STEP);
-  const t = await p.evaluate(() => {
-    const g = Game.g, pl = g.player, out = {};
-    g.timers = [];
-    Object.assign(pl, { x: 585, y: 260, vx: 0, vy: 0 }); g.hz.trainT = 0.5; lstep(2.5); out.hidden = [g.lives, g.hz.trainT > 20];
-    pl.invuln = 0; Object.assign(pl, { x: 300, y: 380, vx: 0, vy: 0 }); g.hz.trainT = 0.5;
-    const shown = [], show = Game.showToast.bind(Game); Game.showToast = (t) => { if (t) shown.push(t.text); show(t); };
-    lstep(2.5); out.open = [g.lives, shown.some(t => /rush of air/.test(t))];
-    return out;
-  });
-  check(t.hidden[0] === 3 && t.hidden[1], 'the train got the mosquito behind the pillar: ' + t.hidden);
-  check(t.open[0] === 2 && t.open[1], 'the train missed the mosquito in the open: ' + t.open);
+  check(r.sip[0] === 1 && r.sip[1] >= 0.5 && r.sip[2] === 1, 'sipping: ' + r.sip);
+  check(r.robBtn === 'Rob' && r.rob[0] === 1 && r.rob[1] > 0.95 && r.rob[2], 'robbing a deep flower: ' + r.robBtn + ' ' + r.rob);
+  check(r.rival[0] >= 1 && r.rival[1] && r.rival[2] && r.usedSpot === false, 'the rival’s footprints: ' + JSON.stringify([r.rival, r.usedSpot]));
+  check(r.cp[0] === 1 && r.cp[1] === 1000 && r.crab[0] === 2 && r.crab[1] === 1000 && r.crab[2] && !r.crab[3], 'the safe spot and the crab spider: ' + JSON.stringify([r.cp, r.crab]));
+  check(r.cloud && r.raining && r.rain[0] >= 1 && r.rain[1] === 0 && r.rain[2], 'the rain: ' + JSON.stringify([r.cloud, r.raining, r.rain]));
+  check(r.dogHigh[0] === 'sit' && r.dogHigh[1] === 2 && r.dogAlert === 'alert' && r.dogSnap[0] === 1 && r.dogSnap[1] === 2100 && r.last === 1, 'the dog: ' + JSON.stringify([r.dogHigh, r.dogAlert, r.dogSnap, r.last]));
+  check(r.extras[0] === 1 && r.extras[1] === 2 && r.extras[2] === 3 && r.extras[3] && r.extras[4], 'the extras: ' + r.extras);
+  check(!r.early && r.home, 'the nest: ' + r.early + ' ' + r.home);
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
-test('mozzies and the London wasp are shooed away, not swatted: blown a little way off, no heart lost', async (b) => {
+test('London Tube: a first raft with no blood, whole commuters with red zones, a rat to bite, the train’s wind, a web, the big raft', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'ldn_mosquito', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const t = await p.evaluate(() => {
+    const { g, pl, m, L, at, who, put, calm } = ldnKit(), out = {};
+    g.hz.trainT = 99; calm();
+    const r1 = at('raft1'), sump = at('sump');
+    put(r1.x, r1.y + 5); lstep(1.4, { held: true }); out.first = [g.counts.raft1, pl.blood || 0, g.seen.has('first'), m.open(g, sump)];
+    // someone on their phone never looks up: an easy ankle
+    const a1 = at('a1'); put(a1.x, a1.y + 5); lstep(1.4, { held: true }); out.bite = [who('a1').look || 0, g.counts.bite, pl.blood, shown.includes('Ow!')];
+    // someone looking round waves her off if she is in the red: blown away, no heart; outside it, nothing
+    const q = who('a2'), e = ldnAt(q, 'eyes'); q.state = 'look'; q.timer = 2.4; put(e.x + 30, e.y + 5); const x0 = pl.x;
+    lstep(0.3); out.waving = [q.shoo > 0, !!q.wave]; lstep(1.2); out.shooed = [Math.round(Math.abs(pl.x - x0)), g.lives, shown.includes('Shoo!')];
+    q.state = 'look'; q.timer = 2.4; q.shoo = 0; put(q.x - 300, 200); lstep(0.5); out.outside = q.shoo > 0;
+    calm();
+    // a rat can only be bitten while it stops to sniff
+    const rat = g.movers.find(z => z.kind === 'rat'), rs = rat.spot;
+    rat.sniff = 0; rat.run = 5; lstep(0.2); out.running = rs.off;
+    rat.sniff = 4; lstep(0.05); put(rs.x, rs.y + 5); lstep(1.2, { held: true }); out.rat = [g.counts.rat, shown.includes('Squeak!')];
+    // the train: safe behind a pillar; in the open its wind blows her back along the line, and costs no heart
+    const pil = L.hides[0], px = pil[0] + pil[2] / 2; put(px, 260); g.hz.trainT = 0.5; lstep(2.5); out.hidden = [Math.round(Math.abs(pl.x - px)), g.lives];
+    put(1700, 300); g.hz.trainT = 0.5; lstep(2.5); out.open = [Math.round(1700 - pl.x), g.lives, shown.some(t => /rush of air/.test(t))];
+    g.hz.trainT = 99;
+    // a web: wriggle free in time, or the spider gets there first
+    const w = L.webs[0]; put(w.x, w.y + 5); lstep(0.2); out.stuck = [!!g.stuck, m.locked(g)]; lstep(1.5, { held: true }); out.free = [!g.stuck, g.lives];
+    put(w.x, w.y + 5); lstep(5.2); out.spider = [!g.stuck, g.lives];
+    // a cheeky extra, and the big raft at the end
+    const bum = at('bum'); put(bum.x, bum.y + 5); lstep(1.2, { held: true }); out.bum = [g.extras, m.stars(g), shown.includes('YEOWCH!')];
+    out.ready = m.open(g, sump); put(sump.x, sump.y); lstep(1.7, { held: true }); out.won = [!!g.homeSafe, g.counts.sump];
+    return out;
+  });
+  check(t.first[0] === 1 && t.first[1] === 0 && t.first[2] && !t.first[3], 'the first raft: ' + t.first);
+  check(t.bite[0] === 0 && t.bite[1] === 1 && t.bite[2] === 1 && t.bite[3], 'biting an ankle: ' + t.bite);
+  check(t.waving[0] && t.waving[1] && t.shooed[0] > 50 && t.shooed[1] === 3 && t.shooed[2] && !t.outside, 'the red zone: ' + JSON.stringify([t.waving, t.shooed, t.outside]));
+  check(t.running && t.rat[0] === 1 && t.rat[1], 'the rat: ' + JSON.stringify([t.running, t.rat]));
+  check(t.hidden[0] < 40 && t.hidden[1] === 3 && t.open[0] > 150 && t.open[1] === 3 && t.open[2], 'the train: ' + JSON.stringify([t.hidden, t.open]));
+  check(t.stuck[0] && t.stuck[1] && t.free[0] && t.free[1] === 3 && t.spider[0] && t.spider[1] === 2, 'the web: ' + JSON.stringify([t.stuck, t.free, t.spider]));
+  check(t.bum[0] === 1 && t.bum[1] === 2 && t.bum[2] && t.ready && t.won[0] && t.won[1] === 1, 'the extra and the big raft: ' + JSON.stringify([t.bum, t.ready, t.won]));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('London wasp, moth and stag beetle: meatball, jam jar, cat, the light, pond, wrestling, joggers’ feet', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'ldn_wasp', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const w = await p.evaluate(() => {
+    const { g, pl, m, L, at, who, put, calm, btn } = ldnKit(), out = {};
+    calm();
+    const p1 = at('p1'); put(p1.x, p1.y + 6); lstep(1.2, { held: true }); out.post = g.counts.post;
+    // catch the fly, then snip it into a meatball anywhere
+    const fly = at('fly'); lstep(0.05); put(fly.x, fly.y + 6); lstep(0.05, { press: true }); out.fly = g.counts.fly;
+    put(1300, 300); lstep(0.1); out.snipBtn = btn(); lstep(1.2, { held: true }); out.ball = [g.counts.ball, pl.carry, g.seen.has('ball')];
+    // a customer looking round waves her off; under the table she isn't seen
+    const q = who('c3'), e = ldnAt(q, 'eyes'); q.state = 'look'; q.timer = 2.4; put(e.x + 30, e.y + 6); const x0 = pl.x; lstep(1.4); out.shoo = [Math.round(Math.abs(pl.x - x0)), g.lives];
+    q.state = 'look'; q.timer = 2.4; q.shoo = 0; const hd = L.hides[1]; put(hd[0] + 30, hd[1] + 60); lstep(1.2); out.under = [q.shoo > 0, Math.round(Math.abs(pl.x - hd[0] - 30))];
+    calm();
+    // the jam-jar trap tugs at her, and holds her if she goes in
+    const J = L.jar; put(J.x + 70, J.y + 6); lstep(0.6); out.pull = Math.hypot(pl.x - J.x, pl.y - 6 - J.y) < 68;
+    put(J.x + 5, J.y + 6); lstep(0.1); out.jar = [g.lives, g.seen.has('trap')];
+    const jam = at('jam'); put(jam.x, jam.y + 6); lstep(1, { held: true }); out.jam = [g.extras, shown.includes('Oi! My scone!')];
+    const nest = at('nest'); put(nest.x, nest.y + 6); lstep(0.2); out.early = !!g.homeSafe; g.counts.post = 3; lstep(0.2); out.home = [!!g.homeSafe, m.stars(g)];
+    return out;
+  });
+  check(w.post === 1 && w.fly === 1 && w.snipBtn === 'Snip' && w.ball[0] === 1 && w.ball[1] === 'ball' && w.ball[2], 'the wasp’s wood and meatball: ' + JSON.stringify(w));
+  check(w.shoo[0] >= 40 && w.shoo[1] === 3 && !w.under[0] && w.under[1] < 5, 'the customer’s red zone: ' + JSON.stringify([w.shoo, w.under]));
+  check(w.pull && w.jar[0] === 2 && w.jar[1] && w.jam[0] === 1 && w.jam[1] && !w.early && w.home[0] && w.home[1] === 2, 'the jam jar, the jam and the nest: ' + JSON.stringify(w));
+  await startMission(p, 'ldn_moth', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const mo = await p.evaluate(() => {
+    const { g, pl, m, L, at, put } = ldnKit(), out = {}, C = L.cat, cat = g.hz.cat;
+    g.hz.bird1100 = g.hz.bird2350 = true;
+    const b1 = at('b1'); put(b1.x, b1.y + 7); lstep(1, { held: true }); out.sip = g.counts.flower;
+    // the cat: awake, it swipes at a moth inside its red circle; asleep, it doesn't
+    cat.state = 'awake'; cat.t = 0; put(C.x - 40, C.y - 23); lstep(0.3); out.alert = cat.state; lstep(0.8); out.swipe = g.lives;
+    cat.state = 'asleep'; cat.t = 0; put(C.x - 40, C.y - 23); lstep(1.5); out.asleep = [g.lives, cat.state];
+    cat.t = -99;
+    // dusk and the kitchen light: pulled in, bonk, bounced off, no heart lost
+    const Lp = L.lamp; put(Lp.x - 120, Lp.y + 7); lstep(0.1); out.dusk = g.hz.dusk > 0; g.hz.dusk = 1; const l0 = g.lives; lstep(4); out.lamp = [shown.includes('Bonk!'), g.lives - l0, g.seen.has('light')];
+    const pants = at('pants'); put(pants.x, pants.y + 7); lstep(0.8, { held: true }); const nose = at('nose'); put(nose.x, nose.y + 7); lstep(0.8, { held: true });
+    out.extras = [g.extras, shown.includes('You sat on the pants!'), shown.includes('Snrrk! Achoo!')];
+    const web = L.webs[0]; put(web.x, web.y + 7); lstep(0.2); out.stuck = !!g.stuck; lstep(1.5, { held: true }); out.free = !g.stuck;
+    const n = at('nettle'); put(n.x, n.y + 7); lstep(0.3, { held: true }); out.early = n.t || 0; g.counts.flower = 4; lstep(1.7, { held: true }); out.home = [!!g.homeSafe, m.stars(g)];
+    return out;
+  });
+  check(mo.sip === 1 && mo.alert === 'alert' && mo.swipe === 2 && mo.asleep[0] === 2 && mo.asleep[1] === 'asleep', 'the cat: ' + JSON.stringify(mo));
+  check(mo.dusk && mo.lamp[0] && mo.lamp[1] === 0 && mo.lamp[2] && mo.extras[0] === 2 && mo.extras[1] && mo.extras[2], 'the light and the extras: ' + JSON.stringify(mo));
+  check(mo.stuck && mo.free && mo.early === 0 && mo.home[0] && mo.home[1] === 3, 'the web and the nettles: ' + JSON.stringify(mo));
+  await startMission(p, 'ldn_stag', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const st = await p.evaluate(() => {
+    const { g, pl, m, L, at, put, btn } = ldnKit(), out = {};
+    g.jogT = 99; g.hz.magpie = g.hz.fox = true;
+    const sap = at('sap'); put(sap.x, 560); lstep(1.2, { held: true }); out.sap = [g.extras, g.seen.has('sap')];
+    // the pond: too wet to walk, so he is put back on the bank; a flight takes him over
+    put(L.pond[0] + 40, 560); lstep(0.1); out.splash = [Math.round(pl.x - L.pond[0]), shown.includes('Splash!')];
+    put(L.pond[0] - 60, 560); lstep(0.05, { press: true }); lstep(4.4, { keys: ['arrowright', 'arrowup'] }); out.flew = [pl.x > L.pond[1], pl.y];
+    // a rival on his log: do nothing and he tips you off; tap fast and you flip him
+    const r = g.rivals[0]; put(r.x - 80, r.y); lstep(0.3, { keys: ['arrowright'] }); out.locked = [!!g.wrestle, m.locked(g), btn()];
+    lstep(6); out.lost = [!g.wrestle, r.state, pl.x < r.x - 100, g.lives];
+    put(r.x - 80, r.y); lstep(0.3, { keys: ['arrowright'] }); for (let i = 0; i < 40 && g.wrestle; i++) lstep(0.1, { press: true });
+    out.won = [!g.wrestle, r.state, g.counts.won, g.seen.has('wrestle')];
+    // a jogger's foot: on its red mark he is trodden on; beside it he is fine
+    g.steps = [{ x: 2400, t: -0.2, hit: false }]; put(2400, 560); const l0 = g.lives; lstep(0.4); out.trod = l0 - g.lives;
+    g.steps = [{ x: 2400, t: -0.2, hit: false }]; put(2470, 560); const l1 = g.lives; lstep(0.4); out.beside = l1 - g.lives;
+    // the second rival is an extra; then the female, who needs a win first (he has one)
+    const r2 = g.rivals[1]; put(r2.x - 80, r2.y); lstep(0.3, { keys: ['arrowright'] }); for (let i = 0; i < 40 && g.wrestle; i++) lstep(0.1, { press: true });
+    out.second = [g.counts.won, g.extras, m.stars(g)];
+    const f = at('female'); put(f.x - 10, 380); lstep(0.3); out.home = !!g.homeSafe;
+    return out;
+  });
+  check(st.sap[0] === 1 && st.sap[1] && st.splash[0] === -70 && st.splash[1] && st.flew[0] && st.flew[1] <= 560, 'sap and the pond: ' + JSON.stringify(st));
+  check(st.locked[0] && st.locked[1] && st.locked[2] === 'Push' && st.lost[0] && st.lost[1] !== 'lost' && st.lost[2] && st.lost[3] === 3, 'losing a wrestle: ' + JSON.stringify([st.locked, st.lost]));
+  check(st.won[0] && /lost|gone/.test(st.won[1]) && st.won[2] === 1 && st.won[3], 'winning a wrestle: ' + st.won);
+  check(st.trod === 1 && st.beside === 0 && st.second[0] === 2 && st.second[1] === 2 && st.second[2] === 3 && st.home, 'feet, the second rival and the female: ' + JSON.stringify(st));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('mozzies are shooed away, not swatted: blown a little way off, no heart lost, and only in the red zone', async (b) => {
   const p = await openGame(b);
   await p.evaluate(() => {   // everything shown or said: toasts and pops
     window.shown = [];
@@ -1881,31 +2018,13 @@ test('mozzies and the London wasp are shooed away, not swatted: blown a little w
   });
   check(!z.chatting && z.ahead && !z.beside && !z.far && z.swept, 'the red zone is in the wrong place: ' + JSON.stringify(z));
   check(!z.outside && z.started && !z.escaped[0] && z.escaped[1] === 3 && z.escaped[2], 'the zone did not decide the shoo: ' + JSON.stringify(z));
-  // the London wasp among the café tables: the hand waves, she's blown off where she is; under a table it misses
-  await startMission(p, 'ldn_wasp', { noNet: true });
-  await p.evaluate(LDN_STEP);
-  const w = await p.evaluate(() => {
-    const g = Game.g, pl = g.player, out = {};
-    g.timers = [];
-    Object.assign(pl, { x: 1300, y: 560, vx: 0, vy: 0, invuln: 0 });
-    g.hz.next = 0; lstep(0.1); out.started = !!g.hz.shoo;
-    const cp = g.cp, hx = g.home.x, x0 = pl.x;
-    lstep(1); out.hit = [g.shooed > 0, g.lives];
-    lstep(1); out.after = { dx: Math.round(Math.abs(pl.x - x0)), lives: g.lives, cp: g.cp === cp, home: g.home.x === hx };
-    g.hz.shoo = null; g.hz.next = 0; Object.assign(pl, { x: 1085, y: 560, vx: 0, vy: 0, push: 0 });
-    lstep(1.3); out.hidden = [g.shooed, Math.round(Math.abs(pl.x - 1085))];
-    return out;
-  });
-  check(w.started && w.hit[0] && w.hit[1] === 3, 'the wasp was not shooed: ' + JSON.stringify(w));
-  check(w.after.dx > 40 && w.after.lives === 3 && w.after.cp && w.after.home, 'the wasp was shooed wrongly: ' + JSON.stringify(w));
-  check(w.hidden[0] === 0 && w.hidden[1] < 5, 'the wave reached under the table: ' + JSON.stringify(w));
   // nothing shown or said talks of swatting
   const words = await p.evaluate(() => {
     const t = [...shown];
-    for (const id of ['mosquito', 'ldn_wasp']) { const m = Missions[id]; t.push(...m.how, ...m.facts, ...Object.values(m.factText)); }
-    return { swat: t.filter(s => /swat/i.test(s)), shoo: t.filter(s => s === 'Shoo!').length };
+    for (const id of ['mosquito'].concat(Object.keys(Missions).filter(k => k.startsWith('ldn_')))) { const m = Missions[id]; t.push(...m.how, ...m.facts, ...Object.values(m.factText)); }
+    return { swat: t.filter(s => /swat/i.test(s) && !/swat at moths/.test(s)), shoo: t.filter(s => s === 'Shoo!').length };
   });
-  check(words.swat.length === 0 && words.shoo >= 2, 'words: ' + JSON.stringify(words));
+  check(words.swat.length === 0 && words.shoo >= 1, 'words: ' + JSON.stringify(words));
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
