@@ -44,6 +44,13 @@ const Render3D = {
     if (this.ok) this.readyFns.splice(0).forEach((fn) => { try { fn(); } catch (e) { /* see boot */ } });
   },
   mobile() { return navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 900; },
+  // Is this WebGL context drawn by the CPU (SwiftShader, llvmpipe, a basic driver)? Then the 2D drawings are faster.
+  softwareGL(gl) {
+    try {
+      const ext = gl.getExtension('WEBGL_debug_renderer_info'), name = String((ext && gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) || gl.getParameter(gl.RENDERER) || '');
+      return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(name);
+    } catch (e) { return false; }
+  },
 
   boot() {
     if (this.ok || !window.THREE || this.disabled) return;
@@ -55,6 +62,8 @@ const Render3D = {
       // Software GL (a blocked driver, or headless Chromium) is refused: it would be slower than the 2D drawings.
       const strict = Object.assign({ failIfMajorPerformanceCaveat: true }, attrs);
       gl = cv.getContext('webgl2', strict) || cv.getContext('webgl', strict);
+      // Newer browsers hand out a software context even with that flag, so the renderer's name is checked too
+      if (gl && this.softwareGL(gl)) { this.software = true; if (!this.forced) gl = null; }
       if (!gl && this.forced) { gl = cv.getContext('webgl2', attrs) || cv.getContext('webgl', attrs); this.software = !!gl; }
     } catch (e) { gl = null; }
     if (!gl) { this.failed = true; return; }
@@ -591,7 +600,12 @@ const Models = {
     if (!def || typeof SpriteCache === 'undefined') return [];
     const reg = SpriteCache.regs[name], nb = reg.buckets || 8, px = (Game.dpr || 1) * (Game.zoom || 1) * (m.scale || 1), out = [];
     const states = def.warm ? def.warm(p) : [{ moving: false, t: 0 }].concat([0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ moving: true, t: (i + 0.5) / 8 * TAU / 18 })));
-    for (let b = 0; b < nb; b++) for (const s of states) out.push({ name, e: Object.assign({}, p, s, { angle: b * TAU / nb }), t: s.t || 0, px });
+    // the heading the bug starts in first, then the ones either side of it, and so on round
+    const b0 = SpriteCache.bucketOf(reg, p.angle);
+    for (let k = 0; k < nb; k++) {
+      const b = (((b0 + (k % 2 ? (k + 1) / 2 : -k / 2)) % nb) + nb) % nb;
+      for (const s of states) out.push({ name, e: Object.assign({}, p, s, { angle: b * TAU / nb }), t: s.t || 0, px });
+    }
     for (const it of g.items || []) if (this.defs[it.sprite]) out.push({ name: it.sprite, e: it, t: 0, px: px / (m.scale || 1) * (it.scale || 1) });
     return out;
   },

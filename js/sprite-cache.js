@@ -82,12 +82,18 @@ const SpriteCache = {
     const vk = this.keyOf(reg, e, t, threeD);
     if (vk === null) return false;   // this one wants to be drawn live right now
     const key = name + '|' + vk + '|' + bucket + '|' + P, near = name + '|' + (threeD && reg.model.near ? reg.model.near(e) : '') + '|' + bucket + '|' + P;
+    const any = name + '|' + (threeD && reg.model.near ? reg.model.near(e) : '') + '|' + P;
     let ent = this.entries.get(key);
-    // 3D renders are rationed per frame: past the budget, reuse the last look of this heading for a frame
-    if (!ent && threeD && this.frameRenders >= this.FRAME_RENDERS && this.recent.get(near)) ent = this.recent.get(near);
+    // 3D renders are rationed (see canRender): while there's no budget, borrow the last look of this heading, or of
+    // any heading (only the baked light differs), instead of making the frame wait for a new one
+    const wait = !ent && threeD && !this.canRender(), lent = wait && (this.recent.get(near) || this.recentAny.get(any));
+    if (lent) ent = lent;
+    // No look of it at all yet and no budget: its flat drawing stands in for a moment (never for the bug you play),
+    // so a level opens at once instead of freezing while every model is built
+    else if (wait && Sprites[name] && !(typeof Game !== 'undefined' && Game.g && e === Game.g.player)) return false;
     else ent = this.entry(key, () => { if (threeD) this.frameRenders++; return this.render(name, reg, e, t, bucket * TAU / nb, P); });
     if (!ent) return false;
-    if (threeD) this.recent.set(near, ent);
+    if (threeD) { this.recent.set(near, ent); this.recentAny.set(any, ent); }
     const s = scale || 1, b = ent.box;
     if (ent.threeD && reg.model.view === 'side') ctx.rotate(-a);   // side-on bitmaps stay upright; the engine turned by e.angle
     ctx.drawImage(ent.c, b[0] * s, b[1] * s, (b[2] - b[0]) * s, (b[3] - b[1]) * s);
@@ -121,9 +127,19 @@ const SpriteCache = {
     return true;
   },
 
-  // Per-frame budget for 3D renders, and the warm-up queue (filled by Game.start, drained a few ms at a time).
-  FRAME_RENDERS: 2, frameRenders: 0, recent: new Map(), queue: [],
-  beginFrame() { this.frameRenders = 0; if (this.queue.length) this.warmTick(4); },
+  // The budget for 3D renders. Each render's cost is a debt that real time pays off at half speed, so renders never
+  // take more than about a third of the time: a fast renderer makes a new look nearly every frame, a slow one makes
+  // one now and then and the frames between stay smooth. The warm-up queue (filled by Game.start) is drained only
+  // while nobody is steering or holding the button, so the controls never wait for it.
+  FRAME_RENDERS: 2, frameRenders: 0, recent: new Map(), recentAny: new Map(), queue: [], debt: 0, lastFrame: 0,
+  beginFrame() {
+    const now = performance.now(), gone = this.lastFrame ? Math.min(100, now - this.lastFrame) : 16;
+    this.lastFrame = now; this.frameRenders = 0;
+    this.debt = Math.max(0, this.debt - gone * 0.5);
+    const busy = typeof Input !== 'undefined' && (Input.target || Input.keys.size || Input.held);
+    if (this.queue.length && !busy && this.debt <= 0) this.warmTick(4);
+  },
+  canRender() { return this.frameRenders < this.FRAME_RENDERS && this.debt <= 0; },
   warm(list) { this.queue = list || []; },
   warmTick(ms) {
     const t0 = performance.now();
@@ -131,7 +147,9 @@ const SpriteCache = {
   },
 
   render(name, reg, e, t, ang, P) {
+    const t0 = performance.now();
     const ent = this.renderPlain(name, reg, e, t, ang, P);
+    if (ent && ent.threeD) this.debt = Math.min(120, this.debt + performance.now() - t0);   // capped: a burst of first looks at a level's start mustn't hold new ones back for long
     if (ent && e.paint && typeof Paint !== 'undefined') Paint.onBitmap(ent, name, e, P);   // a design of your own on the bitmap
     return ent;
   },

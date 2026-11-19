@@ -271,6 +271,15 @@
           if (o && dist(o, p) < 50 && (!kid || Math.random() < 0.05)) Input.pressed = true;
           return;
         }
+        // Her net is coming down: the perfect player gets out from under it; a kid notices about half the time
+        if (g.net && !g.net.missed) {
+          if (g.net.dodge === undefined) g.net.dodge = !kid || Math.random() < 0.5;
+          if (g.net.dodge) {
+            const d = Math.hypot(p.x - g.net.x, p.y - g.net.y), ux = d > 1 ? (p.x - g.net.x) / d : 1, uy = d > 1 ? (p.y - g.net.y) / d : 0, z = Game.zoom || 1;
+            Input.target = { x: (p.x + ux * 200 - g.cam.x) * z, y: (p.y + uy * 200 - g.cam.y) * z }; Input.held = false;
+            return;
+          }
+        }
         st.next -= dt;
         if (st.next <= 0) {
           st.next = kid ? 0.3 + Math.random() * 0.25 : 0;

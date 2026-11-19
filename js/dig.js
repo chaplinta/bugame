@@ -26,7 +26,7 @@ Bugs.push({ id: 'sugarant', name: 'Sugar Ant', sci: 'Camponotus', place: 'Bull C
 Missions.nest = {
   id: 'nest', bug: 'sugarant', stage: 'Worker', place: 'Under a backyard in Bull Creek', view: 'side',
   world: { w: NEST.cols * NEST.cell, h: NEST.surf + NEST.rows * NEST.cell }, sprite: 'sugarAnt', bg: 'nestSoil', escape: 'Climb',
-  action: 'Build', radius: 10, speed: 120, scale: 1.3, goal: 4,
+  action: 'Build', radius: 10, speed: 150, scale: 1.3, goal: 4,
   home: { x: 960, y: NEST.surf + 3.5 * NEST.cell, r: 30, label: '' },
   facts: [
     'Sugar ants live in nests under the ground all around Perth. They come out mostly at night.',

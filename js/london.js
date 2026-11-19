@@ -13,11 +13,11 @@ Bugs.push({ id: 'london', name: 'London', sci: 'Five real London bugs', place: '
 // How each bug moves. Fliers steer to fly and hover when you let go; the stag beetle walks, climbs bark and flies a
 // short, clumsy way.
 const LDN_PHYS = {
-  bee: { hw: 9, hh: 14, fly: 190, accel: 9, sink: 45 },
-  wasp: { hw: 9, hh: 12, fly: 210, accel: 10, sink: 50 },
-  mosquito: { hw: 7, hh: 10, fly: 160, accel: 9, sink: 35 },
-  moth: { hw: 12, hh: 14, fly: 175, accel: 8, sink: 40 },
-  stag: { hw: 18, hh: 16, walk: 75, grav: 900, climb: 55, flyV: 120, flyLift: 90, flySink: 30, warm: 0.6, flyT: 2.4 },
+  bee: { hw: 9, hh: 14, fly: 215, accel: 14, sink: 45 },
+  wasp: { hw: 9, hh: 12, fly: 240, accel: 16, sink: 50 },
+  mosquito: { hw: 7, hh: 10, fly: 190, accel: 14, sink: 35 },
+  moth: { hw: 12, hh: 14, fly: 200, accel: 12, sink: 40 },
+  stag: { hw: 18, hh: 16, walk: 95, grav: 900, climb: 75, flyV: 150, flyLift: 100, flySink: 30, warm: 0.4, flyT: 2.4 },
 };
 
 // A London part: the shared rules, with each part's own level, tasks, hazards and words in d.
@@ -46,7 +46,7 @@ function ldnPart(d) {
         const z = Game.zoom || 1, tx = Input.target.x / z + g.cam.x, ty = Input.target.y / z + g.cam.y;
         const cx = p.x, cy = p.y - P.hh / 2, d = Math.hypot(tx - cx, ty - cy);
         if (d < 10) { dx = 0; dy = 0; }
-        else { const k = P.walk ? 1 : Math.min(1, d / 60); dx = (tx - cx) / d * k; dy = (ty - cy) / d * k; }
+        else { const k = P.walk ? 1 : Math.min(1, d / 36); dx = (tx - cx) / d * k; dy = (ty - cy) / d * k; }
       }
       const len = Math.hypot(dx, dy); if (len > 1) { dx /= len; dy /= len; }
       if (P.walk && !(p.flyT > 0)) dx = Math.abs(dx) < 0.2 ? 0 : Math.sign(dx);

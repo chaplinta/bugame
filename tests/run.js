@@ -833,11 +833,52 @@ test('discoveries are found, counted and saved to the Bug Book', async (b) => {
   check(/motorbike frog/i.test(text), 'fact not in book');
 });
 
-test('kid with a net: tank escape and 30 s release', async (b) => {
+test('the net girl is rare and random, rests after a visit, and her net can be dodged', async (b) => {
+  const p = await openGame(b);
+  // the odds: about one level in four, 20 to 140 s in; never in a noNet level; never in the two starts after a visit
+  const odds = await p.evaluate(() => {
+    let n = 0, lo = 1e9, hi = 0; Game.netRest = 0;
+    for (let i = 0; i < 4000; i++) { const t = Game.rollNet({}); if (t < 1e8) { n++; lo = Math.min(lo, t); hi = Math.max(hi, t); } }
+    Game.netRest = 2; const rest = [Game.rollNet({}), Game.rollNet({})], left = Game.netRest;
+    return { share: n / 4000, lo, hi, none: Game.rollNet({ noNet: true }), rest, left };
+  });
+  check(odds.share > 0.2 && odds.share < 0.3 && odds.lo >= 20 && odds.hi <= 140 && odds.none > 1e8, 'her odds: ' + JSON.stringify(odds));
+  check(odds.rest.every(t => t > 1e8) && odds.left === 0, 'no rest after a visit: ' + JSON.stringify(odds));
+  await p.evaluate(() => { window.shown = []; const pop = Game.pop.bind(Game); Game.pop = (x, y, text, c) => { shown.push(text); return pop(x, y, text, c); }; });
+  // out from under the net before it lands: she misses and doesn't come back; the next two levels are hers off
+  await startMission(p, 'ant', { noPred: true });
+  await p.evaluate(LDN_STEP);
+  const miss = await p.evaluate(() => {
+    const g = Game.g, pl = g.player; g.timers = []; Game.netRest = 0;
+    pl.x += 400; g.netT = 0; lstep(0.1);
+    const out = { aiming: !!g.net && !g.event, rest: Game.netRest, steer: null };
+    const x0 = pl.x; lstep(0.3, { keys: ['arrowright'] }); out.steer = pl.x - x0 > 20;   // you can still move while it comes down
+    pl.x += 200; lstep(2.5);
+    return Object.assign(out, { event: !!g.event, net: !!g.net, done: g.netDone, missed: shown.includes('Missed!') });
+  });
+  check(miss.aiming && miss.rest === 2 && miss.steer, 'the net did not aim first: ' + JSON.stringify(miss));
+  check(!miss.event && !miss.net && miss.done && miss.missed, 'a dodged net still caught the bug: ' + JSON.stringify(miss));
+  // still under it when it lands: caught, into the tank; getting out is one secret and brings her advice
+  await startMission(p, 'ant', { noPred: true });
+  await p.evaluate(LDN_STEP);
+  const got = await p.evaluate(() => {
+    const g = Game.g, pl = g.player; g.timers = [];
+    pl.x += 400; g.netT = 0; lstep(2);
+    const out = { swoop: !!g.event && g.event.phase === 'swoop' };
+    lstep(3); out.tank = !!g.event && g.event.phase === 'tank'; out.says = g.event && g.event.say;
+    Game.leaveTank('You escaped! Back to the wild.');
+    out.secret = Progress.hasSecret('s_tank'); out.advice = g.toasts.some(t => /always let it go/.test(t.text)); out.fact = 'tank' in g.mission.factText;
+    return out;
+  });
+  check(got.swoop && got.tank && got.says && got.secret && got.advice && !got.fact, 'caught under the net: ' + JSON.stringify(got));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('kid with a net: tank escape and 20 s release', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'termite', { noPred: true });
   await p.evaluate(() => { const g = Game.g; g.player.x += 400; g.player.y -= 300; g.player.carry = 'mud'; g.netT = 0; });
-  await p.waitForFunction(() => Game.g.event && Game.g.event.phase === 'tank', null, { timeout: 5000 });
+  await p.waitForFunction(() => Game.g.event && Game.g.event.phase === 'tank', null, { timeout: 8000 });
   check(await p.textContent('#actionBtn') === 'Crawl', 'escape verb');
   await p.waitForFunction(() => Game.g.event.open, null, { timeout: 10000 });
   await p.evaluate(() => { const o = Game.g.event.open; Game.g.player.x = o.x; Game.g.player.y = o.y; });
@@ -846,8 +887,8 @@ test('kid with a net: tank escape and 30 s release', async (b) => {
   check(await p.evaluate(() => !Game.g.event && Game.g.player.carry === 'mud'), 'did not escape with carry kept');
   await startMission(p, 'snail', { noPred: true });
   await p.evaluate(() => { Game.g.player.x += 400; Game.g.netT = 0; });
-  await p.waitForFunction(() => Game.g.event && Game.g.event.phase === 'tank', null, { timeout: 5000 });
-  await p.evaluate(() => { Game.g.event.t = 29.95; });
+  await p.waitForFunction(() => Game.g.event && Game.g.event.phase === 'tank', null, { timeout: 8000 });
+  await p.evaluate(() => { Game.g.event.t = 19.95; });
   await p.waitForTimeout(200);
   check(await p.evaluate(() => !Game.g.event), 'not released');
 });
@@ -1164,7 +1205,7 @@ test('tank is side-on: gaps only open at the top', async (b) => {
   const p = await openGame(b);
   await startMission(p, 'bee', { noPred: true });
   await p.evaluate(() => { Game.g.player.x += 400; Game.g.netT = 0; });
-  await p.waitForFunction(() => Game.g.event && Game.g.event.phase === 'tank', null, { timeout: 5000 });
+  await p.waitForFunction(() => Game.g.event && Game.g.event.phase === 'tank', null, { timeout: 8000 });
   const ys = await p.evaluate(() => Game.g.event.corners.map(c => c.y));
   check(ys.every(y => y < 150), 'gap not at the top: ' + ys);
 });
@@ -1241,8 +1282,7 @@ test('Bug Book: every fact can be found', async (b) => {
     const out = [];
     for (const [id, m] of Object.entries(Missions)) {
       for (const [k, t] of Object.entries(m.factText)) if (!t) out.push(id + '.' + k + ' is empty');
-      if (m.noNet && 'tank' in m.factText) out.push(id + ' lists the tank fact but has no net');
-      if (!m.noNet && !m.factText.tank) out.push(id + ' has a net but no tank fact');
+      if ('tank' in m.factText) out.push(id + ' lists the tank fact (the net girl is one secret now, not a fact of each level)');
     }
     return out;
   });
@@ -1542,23 +1582,30 @@ test('paint a bug: a pinch zooms and drags the picture without painting, one fin
   p.errors = [];
   p.on('pageerror', (e) => p.errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') p.errors.push(m.text()); });
+  // Paint asks for the full screen; in a headless browser that rescales the raw touch points sent below, so it is
+  // switched off here (the full screen has its own test)
+  await p.addInitScript(() => { Element.prototype.requestFullscreen = () => Promise.resolve(); });
   await p.goto(FILE_URL);
   await p.click('#paintBtn'); await p.waitForTimeout(200);
   const cdp = await ctx.newCDPSession(p);
   const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
-  const box = await p.locator('#paintCanvas').boundingBox(), cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  const box = await p.locator('#paintCanvas').boundingBox(), cx = box.x + box.width / 2, cy = box.y + box.height / 2, perPx = 512 / box.width;   // the picture's own pixels per screen pixel
   const a = (dx, dy) => ({ x: cx + dx, y: cy + dy, id: 1 }), s = (dx, dy) => ({ x: cx + dx, y: cy + dy, id: 2 });
   await touch('touchStart', [a(-40, 0)]);
   await touch('touchStart', [a(-40, 0), s(40, 0)]);
   for (let k = 1; k <= 6; k++) await touch('touchMove', [a(-40 - k * 15, 0), s(40 + k * 15, 0)]);   // fingers spread: zoom in about the middle
+  await p.waitForTimeout(120);   // touch moves are handed to the page on its next frame
   const z1 = await p.evaluate(() => ({ z: PaintUI.view.z, px: Math.round(PaintUI.view.px), dirty: PaintUI.dirty }));
   check(z1.z > 2 && z1.z <= 4 && z1.px === 0 && !z1.dirty, 'the pinch did not zoom cleanly: ' + JSON.stringify(z1));
   for (let k = 1; k <= 5; k++) await touch('touchMove', [a(-130 + k * 20, k * 10), s(130 + k * 20, k * 10)]);   // both fingers move: drag
+  await p.waitForTimeout(120);
   const z2 = await p.evaluate(() => ({ z: PaintUI.view.z, px: Math.round(PaintUI.view.px), py: Math.round(PaintUI.view.py) }));
-  check(Math.abs(z2.z - z1.z) < 0.01 && z2.px === 100 && z2.py === 50, 'the two-finger drag did not move the picture: ' + JSON.stringify(z2));
+  check(Math.abs(z2.z - z1.z) < 0.01 && Math.abs(z2.px - 100 * perPx) <= 1 && Math.abs(z2.py - 50 * perPx) <= 1, 'the two-finger drag did not move the picture: ' + JSON.stringify(z2) + ' at ' + perPx);
   await touch('touchEnd', [s(230, 50)]); await touch('touchEnd', []);
+  await p.waitForTimeout(120);
   check(await p.evaluate(() => PaintUI.pointers.size === 0 && !PaintUI.pinch && !PaintUI.dirty), 'the pinch left a stroke or a finger behind');
   await touch('touchStart', [a(0, 0)]); await touch('touchMove', [a(30, 0)]); await touch('touchEnd', []);
+  await p.waitForTimeout(120);
   check(await p.evaluate(() => PaintUI.dirty), 'one finger did not paint after the pinch');
   check(p.errors.length === 0, p.errors.join('; '));
   await ctx.close();
@@ -1698,10 +1745,10 @@ test('platform physics: the same at any frame rate; sink and land, drop through,
     const k = run(F, bug(200, 300), 2, 1 / 60, 0, -1, { weak: true }); out.weak = k.y;
     const h = run(F, bug(200, 300), 2, 1 / 60, 0, 0, { hover: true }); out.hover = h.y;
     // the stag beetle: walks into the bark and climbs it, then stands on top
-    const st = run(S, bug(520, 500), 3.2, 1 / 60, 1, 0); out.climb = [st.x, st.y, st.onGround];
+    const st = run(S, bug(520, 500), 2.4, 1 / 60, 1, 0); out.climb = [st.x, st.y, st.onGround];
     // Fly: a warm-up on the ground first, then a short flight, then he lands
     const f = run(S, bug(150, 500), 0.5, 1 / 60, 0, 0); Plat.takeOff(S, f);
-    run(S, f, 0.4, 1 / 60, 1, -1); out.warm = [f.warmT > 0, f.flyT, f.x];
+    run(S, f, 0.25, 1 / 60, 1, -1); out.warm = [f.warmT > 0, f.flyT, f.x];
     run(S, f, 0.6, 1 / 60, 1, -1); out.flying = [f.flyT > 0, f.y];
     out.again = Plat.takeOff(S, f);
     run(S, f, 6, 1 / 60, 1, 0); out.landed = [f.flyT, f.onGround];

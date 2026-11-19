@@ -122,7 +122,7 @@ Backgrounds.olyBeach = function (ctx, W, H) {
 Missions.oly_jump = {
   id: 'oly_jump', bug: 'olympics', stage: 'Long jump', place: OLY.place, view: 'side',
   world: { w: JUMP.W, h: JUMP.H }, sprite: 'sandhopper', bg: 'olyBeach',
-  action: 'Jump', radius: 14, speed: 120, scale: 1.2, noNet: true, gentle: true,
+  action: 'Jump', radius: 14, speed: 150, scale: 1.2, noNet: true, gentle: true,
   medals: JUMP.medals, higher: true, unit: ' body lengths',
   home: { x: JUMP.start, y: JUMP.ground - 12, r: 26, label: 'Start' },
   facts: [
@@ -235,11 +235,11 @@ Missions.oly_jump = {
 
 // ---------------------------------------------------------------- 2. Sprint
 // A blue skimmer flies a lap of Herdsman Lake through six gates, darting when the button is ready.
-const SPRINT = { gates: [[600, 300], [1300, 200], [1700, 620], [1300, 1000], [600, 1000], [220, 600]], r: 48, medals: [60, 40, 26] };
+const SPRINT = { gates: [[600, 300], [1300, 200], [1700, 620], [1300, 1000], [600, 1000], [220, 600]], r: 48, medals: [50, 33, 22] };
 
 Missions.oly_sprint = {
   id: 'oly_sprint', bug: 'olympics', stage: 'Sprint', place: OLY.place, world: BIG, sprite: 'dragonfly', bg: 'dragonfly',
-  action: 'Dart', radius: 20, speed: 190, scale: 1.3, noNet: true, gentle: true,
+  action: 'Dart', radius: 20, speed: 230, scale: 1.3, noNet: true, gentle: true,
   medals: SPRINT.medals, unit: ' seconds',
   home: { x: 220, y: 600, r: 50, label: 'Start and finish' },
   facts: [
@@ -268,7 +268,7 @@ Missions.oly_sprint = {
     OLY.tick(g, dt, input);
     p.dart = Math.max(0, p.dart - dt); p.dartCd = Math.max(0, p.dartCd - dt);
     if (input.pressed && p.dartCd <= 0 && !o.finished) { p.dart = 0.6; p.dartCd = 1.5; Sound.play('dart'); Game.fact('dart'); }
-    p.speed = p.dart > 0 ? 340 : 190;
+    p.speed = p.dart > 0 ? 400 : 230;
     setAction('Dart', p.dartCd <= 0 && !o.finished);
     if (g.gate < G.length) {
       const [x, y] = G[g.gate];
@@ -299,11 +299,11 @@ Missions.oly_sprint = {
 
 // ---------------------------------------------------------------- 3. Dung burying
 // A dung beetle on the paddock buries three cow pats: hold Dig at a pat to pull it down the tunnel.
-const DIG = { pats: [[520, 300], [1420, 360], [980, 1000]], need: 6, medals: [90, 62, 45] };
+const DIG = { pats: [[520, 300], [1420, 360], [980, 1000]], need: 3.5, medals: [70, 48, 34] };
 
 Missions.oly_dig = {
   id: 'oly_dig', bug: 'olympics', stage: 'Dung burying', place: OLY.place, world: BIG, sprite: 'dungBeetle', bg: 'paddock',
-  action: 'Dig', radius: 14, speed: 120, scale: 1.7, noNet: true, gentle: true,
+  action: 'Dig', radius: 14, speed: 150, scale: 1.7, noNet: true, gentle: true,
   medals: DIG.medals, unit: ' seconds',
   home: { x: 960, y: 600, r: 50, label: 'Start' },
   facts: [
@@ -363,11 +363,11 @@ Missions.oly_dig = {
 
 // ---------------------------------------------------------------- 4. Carry relay
 // A bull ant carries five loads, each heavier than the last, from the pile to the nest. Heavy loads are slow.
-const LIFT = { loads: [['termite', 'termite', 1], ['deadMoth', 'dead moth', 2], ['deadBeetle', 'dead beetle', 3], ['beetle', 'Christmas beetle', 4], ['caterpillar', 'caterpillar', 5]], pile: { x: 1200, y: 600 }, medals: [110, 75, 50] };
+const LIFT = { loads: [['termite', 'termite', 1], ['deadMoth', 'dead moth', 2], ['deadBeetle', 'dead beetle', 3], ['beetle', 'Christmas beetle', 4], ['caterpillar', 'caterpillar', 5]], pile: { x: 1200, y: 600 }, medals: [90, 62, 41] };
 
 Missions.oly_lift = {
   id: 'oly_lift', bug: 'olympics', stage: 'Carry relay', place: OLY.place, world: BIG, sprite: 'ant', bg: 'ant',
-  action: 'Grab', radius: 16, speed: 150, scale: 1.4, noNet: true, gentle: true,
+  action: 'Grab', radius: 16, speed: 185, scale: 1.4, noNet: true, gentle: true,
   medals: LIFT.medals, unit: ' seconds',
   home: { x: 700, y: 600, r: 50, label: 'Nest' },
   facts: [
@@ -409,7 +409,7 @@ Missions.oly_lift = {
       Sound.play('score'); Game.pop(p.x, p.y - 20, 'Load ' + g.score + '!', '#fff');
       if (g.load < LIFT.loads.length) this.nextLoad(g); else OLY.finish(g, this);
     }
-    p.speed = p.carry ? 150 / (1 + 0.15 * p.carryW) : 150;
+    p.speed = p.carry ? 185 / (1 + 0.15 * p.carryW) : 185;
   },
   // The pile: a patch of bare sand with a sign
   drawBuild(ctx, g) {
@@ -427,11 +427,11 @@ Missions.oly_lift = {
 
 // ---------------------------------------------------------------- 5. Buzz-off
 // A blue-banded bee shakes the pollen out of eight flowers as fast as she can. Shouting works too.
-const BUZZ = { flowers: [[500, 300], [900, 220], [1350, 320], [1650, 650], [1350, 980], [900, 1060], [500, 950], [250, 650]], need: 0.8, medals: [75, 50, 35] };
+const BUZZ = { flowers: [[500, 300], [900, 220], [1350, 320], [1650, 650], [1350, 980], [900, 1060], [500, 950], [250, 650]], need: 0.8, medals: [62, 42, 29] };
 
 Missions.oly_buzz = {
   id: 'oly_buzz', bug: 'olympics', stage: 'Buzz-off', place: OLY.place, world: BIG, sprite: 'bee', bg: 'bee',
-  action: 'Buzz', radius: 16, speed: 175, scale: 1.5, noNet: true, gentle: true, voice: true,
+  action: 'Buzz', radius: 16, speed: 210, scale: 1.5, noNet: true, gentle: true, voice: true,
   medals: BUZZ.medals, unit: ' seconds',
   home: { x: 200, y: 220, r: 46, label: 'Start' },
   facts: [

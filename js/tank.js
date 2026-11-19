@@ -3,19 +3,47 @@
 
 const TANK = { x: 150, y: 90, w: 660, h: 440 };   // inside of the tank, in screen pixels
 const SWOOP_TIME = 3;
+const NET_R = 70;   // the net's hoop on the ground, in world pixels: out from under it and she misses
+const GIRL_SAYS = ['Got you!', 'Ooh, a big one!', 'Mum, look!', 'Hello, you!'];
+const TANK_ADVICE = 'It\u2019s fine to catch a bug to have a look, but always let it go where you found it.';
 const ESCAPE_VERB = { ant: 'Climb', queen: 'Climb', spiderling: 'Jump', spider: 'Jump', nymph: 'Swim' };
 
 Object.assign(Game, {
-  // Count down to the catch, but only when it's fair: away from home, no predator about, nothing scripted running.
+  // Is she about in this level, and when? She turns up in about one level in four, never in the two levels after
+  // a visit, at a random moment 20 to 140 seconds in, so a short level often misses her. The time left is g.netT
+  // (tests set it to 0 to bring her at once); levels marked noNet never have her.
+  netRest: 0,
+  rollNet(mission) {
+    if (mission.noNet) return 1e9;
+    if (this.netRest > 0) { this.netRest--; return 1e9; }
+    return Math.random() < 0.25 ? 20 + Math.random() * 120 : 1e9;
+  },
+
+  // Count down to her visit, but only when it's fair: away from home, no predator about, nothing scripted running.
+  // Then her net's shadow falls where the bug is and the net lands there a moment later (longer for slow bugs).
   netCheck(dt) {
-    const g = this.g, m = g.mission;
+    const g = this.g, m = g.mission, p = g.player;
     if (g.event || g.netDone || g.frozen) return;
+    if (g.net) { this.netAim(dt); return; }
     if (g.netT > 0) { g.netT -= dt; return; }
-    if ((this.inHome() && !m.netInHome) || g.preds.length || (m.locked && m.locked(g)) || g.player.invuln > 0) return;
-    g.event = { phase: 'swoop', t: 0 };
-    g.toasts.unshift({ text: m.id === 'nymph' ? 'Uh oh! A girl with a pond net!' : 'Uh oh! A girl with a bug net!', kind: 'hint' });
+    if ((this.inHome() && !m.netInHome) || g.preds.length || (m.locked && m.locked(g)) || p.invuln > 0) return;
+    g.net = { x: p.x, y: p.y, t: 0, aim: clamp(150 / (p.speed || 150), 1, 1.8) };
+    this.netRest = 2;
+    g.toasts.unshift({ text: (m.id === 'nymph' ? 'Uh oh! A girl with a pond net!' : 'Uh oh! A girl with a bug net!') + ' Get out from under it!', kind: 'hint' });
     g.toastT = 0;
     Sound.play('caught');
+  },
+  // The net is on its way down: still under it when it lands and you're caught; out from under it and she misses.
+  netAim(dt) {
+    const g = this.g, n = g.net, p = g.player, m = g.mission;
+    n.t += dt;
+    if (n.missed) { if (n.t > n.aim + 0.9) { g.net = null; g.netDone = true; } return; }
+    if (n.t < n.aim) return;
+    if (dist(p, n) < NET_R && !(this.inHome() && !m.netInHome)) { g.net = null; g.event = { phase: 'swoop', t: 0.9, at: { x: n.x, y: n.y } }; return; }
+    n.missed = true;
+    g.shake = 0.15; this.burst(n.x, n.y, '#e8dcc0', 12); Sound.play('tap');
+    this.pop(n.x, n.y - 30, 'Missed!', '#fff');
+    g.toasts.unshift({ text: 'She missed! Off she goes.', kind: 'hint' }); g.toastT = 0;
   },
 
   updateEvent(dt) {
@@ -32,7 +60,7 @@ Object.assign(Game, {
       if (ev.t >= SWOOP_TIME) this.enterTank();
       return;
     }
-    if (ev.t > 30) { this.leaveTank('She lets you go. Thanks!'); return; }
+    if (ev.t > 20) { this.leaveTank('She lets you go. Thanks!'); return; }
     ev.dropT = Math.max(0, (ev.dropT || 0) - dt);
     ev.sayT = Math.max(0, (ev.sayT || 0) - dt);
     if (ev.dropT > 0) {
@@ -57,7 +85,7 @@ Object.assign(Game, {
     }
     p.moving = false;
     if (dx || dy) {
-      const len = Math.hypot(dx, dy), sp = clamp(ev.speed, 160, 180);   // slow bugs still reach a corner in time
+      const len = Math.hypot(dx, dy), sp = clamp(ev.speed, 200, 230);   // slow bugs still reach a corner in time
       p.x = clamp(p.x + dx / len * sp * dt, TANK.x + 18, TANK.x + TANK.w - 18);
       p.y = clamp(p.y + dy / len * sp * dt, TANK.y + 18, TANK.y + TANK.h - 18);
       p.angle = Math.atan2(dy, dx);
@@ -123,7 +151,7 @@ Object.assign(Game, {
     ev.dropY1 = ev.water ? TANK.y + TANK.h / 2 : TANK.y + TANK.h - 80;
     p.y = ev.dropY0;
     ev.dropT = 0.7;
-    ev.sayT = 2.4;
+    ev.sayT = 2.4; ev.say = GIRL_SAYS[Math.floor(Math.random() * GIRL_SAYS.length)];
     setAction(ev.verb, false);
     p.angle = -Math.PI / 2;
     p.jump = null; p.hop = 0; p.grab = null; p.sip = false; p.buzz = false;
@@ -143,14 +171,68 @@ Object.assign(Game, {
     Sound.play('win');
     g.toasts.unshift({ text: msg, kind: 'hint' });
     g.toastT = 0;
-    this.fact('tank');
+    // The advice every bug catcher should hear, and one secret for the Bug Book (she's too rare to count per level)
+    g.toasts.push({ text: TANK_ADVICE, kind: 'fact' });
+    if (this.onSecret) this.onSecret('s_tank');
+  },
+
+  // The net itself, in screen space: the handle held by her arm off the top right, and the mesh bag with its hoop
+  netHandle(ctx, nx, ny, nr, lift) {
+    const hx = nx + nr * 0.75, hy = ny - nr * 0.75;
+    const ax = W + 60 - lift * 40, ay = -60 + lift * 20;
+    line(ctx, [hx, hy, ax, ay], '#7a4a22', 12 + lift * 8);
+    plainLine(ctx, [hx, hy, ax, ay], 'rgba(255,220,170,.35)', 3);
+    // Her arm and sleeve coming in from the corner
+    ctx.save(); ctx.translate(ax, ay); ctx.rotate(Math.atan2(hy - ay, hx - ax));
+    ell(ctx, 30, 0, 46, 26, '#f6d2b0');
+    ell(ctx, 80, 0, 40, 34, '#5aa86a');
+    ctx.restore();
+  },
+  netBag(ctx, nx, ny, nr, lift, wob) {
+    ctx.save();
+    ctx.translate(nx, ny);
+    ctx.beginPath(); ctx.arc(0, 0, nr, 0, TAU); ctx.clip();
+    ctx.fillStyle = 'rgba(255,255,255,' + (0.12 + lift * 0.1) + ')'; ctx.fillRect(-nr, -nr, nr * 2, nr * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1 + lift;
+    const step = 10 + lift * 18;
+    ctx.beginPath();
+    for (let i = -nr; i <= nr; i += step) {
+      ctx.moveTo(i + wob, -nr); ctx.lineTo(i - wob, nr);
+      ctx.moveTo(-nr, i - wob); ctx.lineTo(nr, i + wob);
+    }
+    ctx.stroke();
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(nx, ny, nr, 0, TAU);   // the hoop
+    ctx.strokeStyle = '#3a6ab0'; ctx.lineWidth = 7 + lift * 6; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 2; ctx.stroke();
+  },
+
+  // Her net on its way down (g.net): its shadow marks where it will land, the net arcs in from the top right, and
+  // if it lands on nothing it lifts away again. You can still steer: get out from under it.
+  drawNetAim(ctx) {
+    const g = this.g, n = g.net, z = this.zoom || 1, tx = (n.x - g.cam.x) * z, ty = (n.y - g.cam.y) * z, R = NET_R * z;
+    const ease = (v) => v * v * (3 - 2 * v), k = ease(clamp(n.t / n.aim, 0, 1));
+    let nx, ny, nr;
+    if (!n.missed) {
+      softShadow(ctx, W + 200 - k * 420, H * 0.55, 420, 340, 0.3 + k * 0.15);   // her shadow falls across the ground
+      ctx.fillStyle = 'rgba(30,20,10,' + (0.14 + k * 0.22) + ')'; ctx.beginPath(); ctx.arc(tx, ty, R, 0, TAU); ctx.fill();
+      ctx.setLineDash([10, 8]); ctx.lineDashOffset = -g.t * 30;
+      ctx.strokeStyle = 'rgba(192,57,43,.85)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(tx, ty, R, 0, TAU); ctx.stroke();
+      ctx.setLineDash([]);
+      nx = W + 160 + (tx - W - 160) * k; ny = -160 + (ty + 160) * k + Math.sin(k * Math.PI) * 90; nr = 200 - k * (200 - R);
+    } else {
+      const u = ease(clamp((n.t - n.aim - 0.25) / 0.65, 0, 1));
+      nx = tx + (W + 220 - tx) * u; ny = ty - u * 360; nr = R;
+    }
+    this.netHandle(ctx, nx, ny, nr, 0);
+    this.netBag(ctx, nx, ny, nr, 0, n.missed && n.t < n.aim + 0.25 ? Math.sin(n.t * 30) * 2 : 0);
   },
 
   // The catch, in screen space over the world: her shadow and net sweep in on an arc, the net lands,
   // the bug wiggles inside, the net lifts toward you, then everything fades into the tank.
   drawSwoop(ctx) {
-    const g = this.g, p = g.player, t = g.event.t;
-    const z = this.zoom || 1, bx = (p.x - g.cam.x) * z, by = (p.y - g.cam.y) * z;
+    const g = this.g, p = g.player, t = g.event.t, at = g.event.at || p;   // at: where the net came down
+    const z = this.zoom || 1, bx = (at.x - g.cam.x) * z, by = (at.y - g.cam.y) * z, R0 = g.event.at ? NET_R * z : 60;
     const ease = (v) => v * v * (3 - 2 * v);
     // Her shadow falls across the ground
     const sk = ease(clamp(t / 0.9, 0, 1));
@@ -168,22 +250,13 @@ Object.assign(Game, {
     } else {
       lift = ease(clamp((t - 1.8) / 0.9, 0, 1));
       nx = bx + (W / 2 - bx) * lift; ny = by + (H / 2 - by) * lift;
-      nr = 60 + lift * 260;
+      nr = R0 + lift * (320 - R0);
     }
     if (lift > 0) {
       // Darken the world as the net comes up close
       ctx.fillStyle = 'rgba(30,20,10,' + lift * 0.55 + ')'; ctx.fillRect(0, 0, W, H);
     }
-    // Handle, held by her arm off the top right
-    const hx = nx + nr * 0.75, hy = ny - nr * 0.75;
-    const ax = W + 60 - lift * 40, ay = -60 + lift * 20;
-    line(ctx, [hx, hy, ax, ay], '#7a4a22', 12 + lift * 8);
-    plainLine(ctx, [hx, hy, ax, ay], 'rgba(255,220,170,.35)', 3);
-    // Her arm and sleeve coming in from the corner
-    ctx.save(); ctx.translate(ax, ay); ctx.rotate(Math.atan2(hy - ay, hx - ax));
-    ell(ctx, 30, 0, 46, 26, '#f6d2b0');
-    ell(ctx, 80, 0, 40, 34, '#5aa86a');
-    ctx.restore();
+    this.netHandle(ctx, nx, ny, nr, lift);
     // Bug inside the net, big when lifted
     if (lift > 0) {
       const s = 1 + lift * 3.5;
@@ -193,24 +266,7 @@ Object.assign(Game, {
       if (!(typeof SpriteCache !== 'undefined' && SpriteCache.is3D(name) && SpriteCache.draw(ctx, name, o, t, k, (Game.dpr || 1) * k))) { ctx.scale(k, k); Sprites[name](ctx, o, t); }
       ctx.restore();
     }
-    // Mesh bag (closes over the bug after landing)
-    ctx.save();
-    ctx.translate(nx, ny);
-    ctx.beginPath(); ctx.arc(0, 0, nr, 0, TAU); ctx.clip();
-    ctx.fillStyle = 'rgba(255,255,255,' + (0.12 + lift * 0.1) + ')'; ctx.fillRect(-nr, -nr, nr * 2, nr * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1 + lift;
-    const step = 10 + lift * 18, wob = t > 0.9 && t < 1.8 ? Math.sin(t * 30) * 2 : 0;
-    ctx.beginPath();
-    for (let i = -nr; i <= nr; i += step) {
-      ctx.moveTo(i + wob, -nr); ctx.lineTo(i - wob, nr);
-      ctx.moveTo(-nr, i - wob); ctx.lineTo(nr, i + wob);
-    }
-    ctx.stroke();
-    ctx.restore();
-    // Hoop rim
-    ctx.beginPath(); ctx.arc(nx, ny, nr, 0, TAU);
-    ctx.strokeStyle = '#3a6ab0'; ctx.lineWidth = 7 + lift * 6; ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 2; ctx.stroke();
+    this.netBag(ctx, nx, ny, nr, lift, t > 0.9 && t < 1.8 ? Math.sin(t * 30) * 2 : 0);
     if (t > 1 && t < 1.8) {
       ctx.fillStyle = '#fff'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('Wiggle!', bx, by - nr - 14);
@@ -323,10 +379,12 @@ Object.assign(Game, {
       const bx = clamp(fx + 260, 120, W - 110), by = 48;
       ctx.globalAlpha = Math.min(1, ev.sayT * 2);
       ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2118'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.ellipse(bx, by, 95, 34, 0, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.font = 'bold 28px Georgia, serif';
+      const rx = Math.max(95, ctx.measureText(ev.say || 'Got you!').width / 2 + 26);
+      ctx.beginPath(); ctx.ellipse(bx, by, rx, 34, 0, 0, TAU); ctx.fill(); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(bx - 60, by + 22); ctx.lineTo(bx - 110, by + 70); ctx.lineTo(bx - 30, by + 30); ctx.fill();
       ctx.fillStyle = '#c8501e'; ctx.font = 'bold 28px Georgia, serif'; ctx.textAlign = 'center';
-      ctx.fillText('Got you!', bx, by + 10);
+      ctx.fillText(ev.say || 'Got you!', bx, by + 10);
       ctx.globalAlpha = 1;
     }
   },

@@ -450,7 +450,7 @@ Missions.cir_trapeze = {
 // ------------------------------------------------------------------ 3. The tightrope (top-down)
 // A golden orb-weaver gets a line across the ring the way real ones do: silk let out on the wind until it sticks
 // to the far post. Then she walks the line through the gusts, holding on when they blow.
-const ROPE = { half: 300, speed: 110, gustEvery: [4, 7], warn: 0.9, gust: 1.6, fall: 2.6, times: [30, 45] };
+const ROPE = { half: 300, speed: 135, gustEvery: [4, 7], warn: 0.9, gust: 1.6, fall: 2.6, times: [30, 45] };
 
 Missions.cir_rope = {
   id: 'cir_rope', bug: 'circus', stage: 'Tightrope', place: CIR.place,
@@ -580,7 +580,7 @@ Backgrounds.circusPatches = function (ctx, W, H) {
 Missions.cir_vanish = {
   id: 'cir_vanish', bug: 'circus', stage: 'Vanishing', place: CIR.place,
   get world() { return { w: W, h: H }; }, sprite: 'moth', bg: 'circusPatches',
-  action: 'Settle', radius: 14, speed: 150, scale: 1.5, noNet: true, gentle: true,
+  action: 'Settle', radius: 14, speed: 185, scale: 1.5, noNet: true, gentle: true,
   get home() { return { x: Math.round(W / 2), y: CIR.ring.cy + 230, r: 1, label: '' }; },
   facts: [
     'You’re a brown moth. By day, moths that rest on bark pick a spot and turn to line up with the grooves. Scientists found that makes them much harder to see.',

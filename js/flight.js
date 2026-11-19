@@ -306,7 +306,7 @@ Missions.flight = {
     if (!fl) return;
     if (fl.landed) return;
     if (fl.flying) {
-      fl.yaw -= dx * 1.9 * dt;
+      fl.yaw -= dx * 2.4 * dt;
       fl.vy += (-dy * 4 - 2.2) * dt;    // up arrow (or dragging up) climbs a little; otherwise a slow glide down
       fl.vy = clamp(fl.vy, -4, 5);
       const sp = 8;
@@ -336,9 +336,9 @@ Missions.flight = {
       setAction('Sip', true);
       if (working(input)) {
         fl.sipT += work(input, dt);
-        p.progress = fl.sipT / 1.5;
+        p.progress = fl.sipT / 1.1;
         Game.fact('sip');
-        if (fl.sipT >= 1.5) {
+        if (fl.sipT >= 1.1) {
           f.visited = true; g.score++; fl.sipT = 0; fl.landed = null; fl.vy = 4; fl.lift = 0.6;
           Sound.play('score'); Game.pop(W / 2, H / 2 - 40, 'Yum!', '#ffd23f');
           if (f.mesh) f.mesh.userData.ring.visible = false;

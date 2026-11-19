@@ -235,7 +235,7 @@ Object.assign(Missions, {
   sandhopper: {
     id: 'sandhopper', bug: 'sandhopper', stage: 'Adult female', place: 'Port Beach, North Fremantle', view: 'side',
     world: { w: Beach.W, h: Beach.H }, sprite: 'sandhopper', bg: 'beach', escape: 'Hop',
-    action: 'Hop', radius: 14, speed: 120, scale: 1.8, goal: 10,
+    action: 'Hop', radius: 14, speed: 150, scale: 1.8, goal: 10,
     home: { x: Beach.bx, y: Beach.ground(Beach.bx) + Beach.depth - 12, r: 40, label: '' },
     facts: [
       'Sandhoppers live on sandy beaches all around Australia, including Perth.',
@@ -288,7 +288,7 @@ Object.assign(Missions, {
       dx = Math.abs(dx) < 0.15 ? 0 : Math.sign(dx);
       p.angle = 0;
       if (dx) p.face = dx > 0 ? 1 : -1;
-      const sp = p.onGround ? p.speed : p.speed * 0.6;
+      const sp = p.onGround ? p.speed : p.speed * 0.85;
       p.vx *= Math.pow(0.04, dt);
       p.x += (dx * sp + p.vx) * dt;
       if (this.inBurrow(g)) p.x = clamp(p.x, Beach.bx - 14, Beach.bx + 14);
@@ -444,10 +444,9 @@ Object.assign(Missions, {
   },
 });
 
-// Same rules as the first bugs (see the end of missions.js): first stages are gentle, and the tank fact.
+// Same rule as the first bugs (see the end of missions.js): first stages are gentle.
 function finishMissions() {
   for (const bug of Bugs) Missions[bug.stages[0]].gentle = true;
-  for (const id in Missions) tankFact(Missions[id]);
 }
 finishMissions();
 
@@ -630,7 +629,7 @@ Object.assign(Missions, {
   mosquito: {
     id: 'mosquito', bug: 'mosquito', stage: 'Adult female', place: 'A backyard barbecue, Bassendean', view: 'iso',
     world: BIG, sprite: 'mosquito', bg: 'yard', escape: 'Fly',
-    action: 'Bite', radius: 12, speed: 160, scale: 2.4, goal: 3,
+    action: 'Bite', radius: 12, speed: 195, scale: 2.4, goal: 3,
     home: { x: 230, y: 540, r: 60, label: 'Garden bed' },
     facts: [
       'The southern house mosquito lives in backyards all over Perth.',
@@ -765,7 +764,7 @@ Object.assign(Missions, {
       } else if (spot && working(input)) {
         p.biting = spot.pp;
         const w = work(input, dt);
-        p.blood = Math.min(1, p.blood + w * 0.22);
+        p.blood = Math.min(1, p.blood + w * 0.4);   // a full meal in about 2.5 s of biting
         spot.pp.itch = Math.min(1, spot.pp.itch + w * 0.3);
         spot.pp.spotX = (spot.x - spot.pp.x) * spot.pp.face; spot.pp.spotY = spot.y - spot.pp.y;
         p.progress = (p.blood * 10 % 5) / 5 || (p.blood >= 1 ? 1 : 0);
@@ -881,7 +880,7 @@ Object.assign(Missions, {
   skimmerF: {
     id: 'skimmerF', bug: 'dragonfly', stage: 'Adult female', place: 'Herdsman Lake', world: BIG,
     sprite: 'dragonfly', bg: 'dragonfly',
-    action: 'Dart', radius: 20, speed: 190, scale: 1.3, goal: 6,
+    action: 'Dart', radius: 20, speed: 230, scale: 1.3, goal: 6,
     home: { x: 220, y: 600, r: 50, label: 'Reeds' },
     facts: [
       'Female blue skimmers are yellow-brown. Only the males turn powder-blue.',
@@ -927,7 +926,7 @@ Object.assign(Missions, {
     update(g, dt, input) {
       const p = g.player;
       p.dart = Math.max(0, p.dart - dt); p.dartCd = Math.max(0, p.dartCd - dt);
-      p.speed = p.dart > 0 ? 340 : 190;
+      p.speed = p.dart > 0 ? 400 : 230;
       // The male keeps close, just off to one side
       const mm = g.male, ta = g.t * 1.4;
       const tx = p.x + Math.cos(ta) * 70, ty = p.y + Math.sin(ta) * 50;
@@ -984,7 +983,7 @@ Object.assign(Missions, {
   spiderF: {
     id: 'spiderF', bug: 'spider', stage: 'Adult female', place: 'Coastal dunes, Cottesloe', world: BIG,
     sprite: 'femaleSpider', bg: 'spider', escape: 'Jump',
-    action: 'Choose', radius: 15, speed: 105, scale: 1.8, goal: 2,
+    action: 'Choose', radius: 15, speed: 135, scale: 1.8, goal: 2,
     home: { x: 260, y: 1000, r: 44, label: 'Silk retreat' },
     facts: [
       'Female peacock spiders are brown, so they’re hard to spot on the sand.',
@@ -1236,8 +1235,8 @@ Object.assign(Missions, {
         const home = Game.inHome();
         setAction('Spin', home);
         if (home && working(input)) {
-          g.spinT += work(input, dt); p.progress = g.spinT / 2;
-          if (g.spinT >= 2) this.laySac(g);
+          g.spinT += work(input, dt); p.progress = g.spinT / 1.4;
+          if (g.spinT >= 1.4) this.laySac(g);
         }
         return;
       }

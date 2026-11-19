@@ -114,7 +114,7 @@ const Missions = {
   // ---------------------------------------------------------------- Bull ant
   ant: {
     id: 'ant', bug: 'ant', stage: 'Worker', place: 'Banksia woodland, Kings Park', world: BIG,
-    action: 'Sting', radius: 16, speed: 150, scale: 1.4, goal: 12,
+    action: 'Sting', radius: 16, speed: 185, scale: 1.4, goal: 12,
     home: { x: 220, y: 980, r: 50, label: 'Nest' },
     facts: [
       'Almost every kind of bull ant in the world lives only in Australia.',
@@ -210,7 +210,7 @@ const Missions = {
         Game.fact('larvae');
         if (g.score === 3) Game.fact('build');
       }
-      p.speed = p.carry ? 115 : 150;
+      p.speed = p.carry ? 168 : 185;   // a load slows her only a little
     },
     // The nest mound grows and gains entrances with every load.
     drawBuild(ctx, g) {
@@ -232,7 +232,7 @@ const Missions = {
   queen: {
     id: 'queen', bug: 'ant', stage: 'Queen', place: 'Banksia woodland, Kings Park', world: BIG,
     sprite: 'queenAnt', bg: 'ant',
-    action: 'Land', radius: 16, speed: 170, scale: 1.5, goal: 5,
+    action: 'Land', radius: 16, speed: 205, scale: 1.5, goal: 5,
     home: { x: 220, y: 980, r: 46, label: 'Old nest' },
     facts: [
       'A bull ant colony starts with one queen.',
@@ -291,7 +291,7 @@ const Missions = {
           Game.fact('wings');
           g.toasts.push({ text: 'Now hold Dig to dig your nest.', kind: 'hint' });
         }
-        p.speed = 170;
+        p.speed = 205;
       } else if (g.phase === 'dig') {
         const here = Game.inHome();
         setAction('Dig', here);
@@ -299,7 +299,7 @@ const Missions = {
           const w = work(input, dt);
           if (Math.floor((p.digT + w) * 5) !== Math.floor(p.digT * 5)) Sound.play('tap');
           p.digT += w;
-          if (p.digT >= 2) {
+          if (p.digT >= 1.4) {
             g.phase = 'hunt';
             Sound.play('score');
             Game.fact('dig');
@@ -307,8 +307,8 @@ const Missions = {
             g.toasts.push({ text: 'Your eggs need food. Hunt termites and bring them home!', kind: 'hint' });
           }
         }
-        p.progress = Math.min(1, p.digT / 2);
-        p.speed = 140;
+        p.progress = Math.min(1, p.digT / 1.4);
+        p.speed = 170;
       } else {
         setAction('Sting', false);
         if (!p.carry) {
@@ -326,7 +326,7 @@ const Missions = {
           Game.pop(p.x, p.y - 20, '+1', '#fff');
           p.carry = null;
         }
-        p.speed = p.carry ? 110 : 140;
+        p.speed = p.carry ? 155 : 170;
       }
     },
     drawExtra(ctx, g) {
@@ -342,7 +342,7 @@ const Missions = {
           ctx.setLineDash([]);
         }
       } else {
-        const h = g.home, k = g.phase === 'dig' ? Math.min(1, g.player.digT / 2) : 1;
+        const h = g.home, k = g.phase === 'dig' ? Math.min(1, g.player.digT / 1.4) : 1;
         ell(ctx, h.x, h.y, 10 + 22 * k, 8 + 18 * k, '#c9a868');
         ell(ctx, h.x, h.y, 4 + 10 * k, 3 + 9 * k, '#2a1a0c');
       }
@@ -360,7 +360,7 @@ const Missions = {
     },
     hud(g) {
       if (g.phase === 'fly') setHud('Find clear sand and land', '');
-      else if (g.phase === 'dig') setHud('Digging: ' + Math.round(Math.min(1, g.player.digT / 2) * 100) + '%', '');
+      else if (g.phase === 'dig') setHud('Digging: ' + Math.round(Math.min(1, g.player.digT / 1.4) * 100) + '%', '');
       else setHud('Food: ' + g.score + ' / ' + this.goal, g.player.carry ? 'Carrying a termite' : '');
     },
     won(g) { return g.score >= this.goal; },
@@ -369,7 +369,7 @@ const Missions = {
   // -------------------------------------------------------- Blue-banded bee
   bee: {
     id: 'bee', bug: 'bee', stage: 'Adult female', place: 'A backyard with native plants', world: BIG,
-    action: 'Buzz', radius: 16, speed: 175, scale: 1.5, goal: 12, voice: true,   // voice: shouting works the button (js/mic.js)
+    action: 'Buzz', radius: 16, speed: 210, scale: 1.5, goal: 12, voice: true,   // voice: shouting works the button (js/mic.js)
     home: { x: 200, y: 220, r: 46, label: 'Burrow' },
     facts: [
       'Blue-banded bees live alone, not in a hive. Each female digs her own burrow in soil or a clay bank.',
@@ -463,7 +463,7 @@ const Missions = {
         Game.fact('nest');
         if (Math.floor(g.score / 3) > before) Game.fact('cell');
       }
-      p.speed = 175 - p.load * 10;
+      p.speed = 210 - p.load * 7;
     },
     // Burrow cells fill with pollen balls, one cell per 3 loads.
     drawBuild(ctx, g) {
@@ -488,7 +488,7 @@ const Missions = {
   fly: {
     id: 'fly', bug: 'fly', stage: 'Adult female', place: 'A cattle paddock in the Swan Valley', world: BIG,
     sprite: 'bushFly', bg: 'paddock',
-    action: 'Sip', radius: 12, speed: 170, scale: 1.7, goal: 6,
+    action: 'Sip', radius: 12, speed: 205, scale: 1.7, goal: 6,
     home: { x: 220, y: 980, r: 70, label: 'Shady gum tree' },
     facts: [
       'Bush flies are the flies that buzz round your face in an Aussie summer.',
@@ -759,7 +759,7 @@ const Missions = {
   caterpillar: {
     id: 'caterpillar', bug: 'butterfly', stage: 'Caterpillar', place: 'Wildflower heath, Bold Park', world: BIG,
     sprite: 'plCaterpillar', bg: 'heath', escape: 'Crawl',
-    action: 'Munch', radius: 16, speed: 75, scale: 2.2, goal: 12,
+    action: 'Munch', radius: 16, speed: 105, scale: 2.2, goal: 12,
     explore: false,   // a chrysalis has nothing left to explore
     home: { x: 240, y: 960, r: 44, label: 'Silk shelter' },
     facts: [
@@ -865,7 +865,7 @@ const Missions = {
       p.size = 1 + g.score * 0.05;
       p.fat = 1 + g.score * 0.05;
       p.r = 16 * p.size;
-      p.speed = 75 + g.score * 3;
+      p.speed = 105 + g.score * 3;
     },
     drawBuild(ctx, g) { Game.drawSprite('silkShelter', { x: g.home.x, y: g.home.y, angle: 0.2, flat: true }, 1.5); },
     drawExtra(ctx, g) {
@@ -894,7 +894,7 @@ const Missions = {
   butterfly: {
     id: 'butterfly', bug: 'butterfly', stage: 'Butterfly', place: 'Wildflower heath, Bold Park', world: BIG,
     sprite: 'butterfly', bg: 'heath',
-    action: 'Sip', radius: 18, speed: 190, scale: 2, goal: 8,
+    action: 'Sip', radius: 18, speed: 225, scale: 2, goal: 8,
     home: { x: 240, y: 960, r: 44, label: 'Empty chrysalis' },
     facts: [
       'A painted lady butterfly is orange, black and white, with little blue spots on its back wings.',
@@ -1003,7 +1003,7 @@ const Missions = {
   termite: {
     id: 'termite', bug: 'termite', stage: 'Worker', place: 'Woodland, Whiteman Park', world: BIG,
     sprite: 'termiteWorker', bg: 'woodland', escape: 'Crawl',
-    action: 'Chew', radius: 15, speed: 120, scale: 2.2, goal: 8,
+    action: 'Chew', radius: 15, speed: 150, scale: 2.2, goal: 8,
     home: { x: 300, y: 900, r: 60, label: 'Mound' },
     facts: [
       'Termites are not ants. Their closest relatives are cockroaches!',
@@ -1060,10 +1060,10 @@ const Missions = {
           Sound.play('score');
           Game.pop(p.x, p.y - 20, '+1', '#fff');
         }
-        p.speed = 105;
+        p.speed = 135;
         return;
       }
-      p.speed = 120;
+      p.speed = 150;
       // The nearest chip or mud patch within reach; the one you started on is kept while you stay near it, so two
       // things close together never flicker and reset your chewing
       const keep = p.workOn && g.items.includes(p.workOn) && dist(p.workOn, p) < 56;
@@ -1112,7 +1112,7 @@ const Missions = {
   snail: {
     id: 'snail', bug: 'snail', stage: 'Adult', place: 'Bushland near Bibra Lake', world: BIG,
     sprite: 'snail', bg: 'litter', escape: 'Slide',
-    action: 'Graze', radius: 16, speed: 55, scale: 1.6, goal: 10,
+    action: 'Graze', radius: 16, speed: 80, scale: 1.6, goal: 10,
     home: { x: 260, y: 940, r: 55, label: 'Damp hollow' },
     facts: [
       'Snails are not insects. They are molluscs, like octopuses and mussels.',
@@ -1171,8 +1171,8 @@ const Missions = {
         setAction('Graze', true);
         p.progress = 1 - food.amount;
         if (working(input)) {
-          // Each piece of food takes 1.5 s to finish; finishing it counts.
-          food.amount = Math.max(0, food.amount - work(input, dt) / 1.5);
+          // Each piece of food takes 1.1 s to finish; finishing it counts.
+          food.amount = Math.max(0, food.amount - work(input, dt) / 1.1);
           Game.fact('graze');
           if (food.amount <= 0.05) {
             food.amount = 0;
@@ -1204,7 +1204,7 @@ const Missions = {
       }
       p.size = 1 + Math.min(g.score, 12) * 0.06;
       p.r = 14 * p.size;
-      p.speed = p.moist < 0.3 ? 40 : 65;
+      p.speed = p.moist < 0.3 ? 55 : 85;
     },
     drawBuild(ctx, g) {
       for (const s of g.sun) {
@@ -1232,7 +1232,7 @@ const Missions = {
   spiderling: {
     id: 'spiderling', bug: 'spider', stage: 'Spiderling', place: 'Coastal dunes, Cottesloe', world: BIG,
     sprite: 'spiderling', bg: 'spider',
-    action: 'Jump', radius: 12, speed: 95, scale: 1.5, goal: 8,
+    action: 'Jump', radius: 12, speed: 125, scale: 1.5, goal: 8,
     home: { x: 260, y: 1000, r: 40, label: 'Mum’s retreat' },
     facts: [
       'Peacock spiders hatch from eggs in a silk sac. The mother guards the eggs in her silk retreat.',
@@ -1322,7 +1322,7 @@ const Missions = {
   // ----------------------------------------------------- Peacock spider: adult
   spider: {
     id: 'spider', bug: 'spider', stage: 'Adult male', place: 'Coastal dunes, Cottesloe', world: BIG,
-    action: 'Jump', radius: 15, speed: 105, scale: 1.7, goal: 7,
+    action: 'Jump', radius: 15, speed: 135, scale: 1.7, goal: 7,
     home: { x: 260, y: 1000, r: 40, label: 'Silk retreat' },
     facts: [
       'The coastal peacock spider lives in the sand dunes along Perth’s coast. It is about the size of a grain of rice.',
@@ -1530,7 +1530,7 @@ const Missions = {
   nymph: {
     id: 'nymph', bug: 'dragonfly', stage: 'Nymph', place: 'Underwater in Herdsman Lake', world: BIG,
     sprite: 'nymph', bg: 'nymph',
-    action: 'Jet', radius: 15, speed: 85, scale: 1.6, goal: 8,
+    action: 'Jet', radius: 15, speed: 115, scale: 1.6, goal: 8,
     home: { x: 220, y: 1000, r: 60, label: 'Weed bed' },
     reed: { x: 1760, y: 160, r: 50 },
     facts: [
@@ -1632,7 +1632,7 @@ const Missions = {
           Game.fact('jet');
         }
       }
-      p.speed = p.jet > 0 ? 260 : 85;
+      p.speed = p.jet > 0 ? 300 : 115;
     },
     drawBuild(ctx) {
       const r = this.reed;
@@ -1667,7 +1667,7 @@ const Missions = {
   // ------------------------------------------------- Blue skimmer: adult
   dragonfly: {
     id: 'dragonfly', bug: 'dragonfly', stage: 'Adult', place: 'Herdsman Lake', world: BIG,
-    action: 'Dart', radius: 20, speed: 190, scale: 1.3, goal: 25,
+    action: 'Dart', radius: 20, speed: 230, scale: 1.3, goal: 25,
     home: { x: 220, y: 600, r: 50, label: 'Reeds' },
     facts: [
       'Blue skimmers are common around Perth’s lakes and wetlands.',
@@ -1716,7 +1716,7 @@ const Missions = {
         Sound.play('dart');
         Game.fact('wings');
       }
-      p.speed = p.dart > 0 ? 340 : 190;
+      p.speed = p.dart > 0 ? 400 : 230;
       setAction('Dart', p.dartCd <= 0);
       for (const m of g.items) {
         wander(m, dt, m.speed);
@@ -1742,10 +1742,5 @@ const Missions = {
 // A bug's first stage is gentle: getting caught never ends the game.
 for (const bug of Bugs) Missions[bug.stages[0]].gentle = true;
 
-// Levels with the kid-with-a-net event (js/tank.js) list the fact you get by escaping. Levels with no net
-// (noNet: the garden, web, nest and flight) must not, or the Bug Book would show a fact that can never be found.
-function tankFact(m) {
-  if (m.noNet) delete m.factText.tank;
-  else m.factText.tank = 'It\u2019s fine to catch a bug to have a look, but always let it go where you found it.';
-}
-for (const id in Missions) tankFact(Missions[id]);
+// The kid-with-a-net event (js/tank.js) comes too rarely to be a fact of each level: getting out of her tank is one
+// secret (s_tank) in the Bug Book, and her advice is shown when you leave the tank.

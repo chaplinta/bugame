@@ -196,7 +196,7 @@ const REED_SPOTS = [[520, 300], [1500, 260], [1650, 900], [900, 1050], [300, 400
 
 Missions.frog = {
   id: 'frog', bug: 'frog', stage: 'Calling male', place: 'Lake Joondalup, at night', world: BIG, sprite: 'frog', bg: 'lakeNight',
-  action: 'Call', radius: 16, speed: 90, scale: 1.6, goal: 8, voice: true, noNet: true,
+  action: 'Call', radius: 16, speed: 120, scale: 1.6, goal: 8, voice: true, noNet: true,
   home: { x: 260, y: 980, r: 60, label: 'Reeds' },
   facts: [
     'Motorbike frogs live around Perth’s lakes and swamps. The male’s call sounds like a motorbike changing gears.',

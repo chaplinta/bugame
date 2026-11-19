@@ -123,13 +123,15 @@ const Game = {
     this.bindInput();
     let last = performance.now();
     const loop = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      // A slow frame is caught up in steps of at most 1/20 s, so the game keeps its real speed down to 4 frames a
+      // second instead of going into slow motion (a slow phone, or a level's first moments while 3D looks are made).
+      const raw = Math.min(0.25, (now - last) / 1000), sub = Math.max(1, Math.ceil(raw / 0.05 - 1e-6)), dt = raw / sub;
       last = now;
       requestAnimationFrame(loop);   // first, so one bad frame can never stop the game for good
       if (this.running && !(typeof Orient !== 'undefined' && Orient.covered)) {   // held upright: the game waits (js/orient.js)
         try {
-          // Tests can fast-forward (timeScale) and drive a bot every tick (testHook). Normal play: one tick.
-          const n = this.timeScale || 1;
+          // Tests can fast-forward (timeScale) and drive a bot every tick (testHook). Normal play: one tick a step.
+          const n = (this.timeScale || 1) * sub;
           for (let i = 0; i < n && this.running; i++) {
             if (this.testHook) this.testHook(dt);
             this.update(dt);
@@ -223,8 +225,12 @@ const Game = {
     document.getElementById('stage').addEventListener('contextmenu', (e) => e.preventDefault());
 
     const btn = document.getElementById('actionBtn');
-    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); Sound.wake(); Input.pressed = true; Input.held = true; });
-    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(ev, () => { Input.held = false; });
+    // The button keeps its finger: a thumb that slides off the edge is still holding until it lifts
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); Sound.wake(); Input.pressed = true; Input.held = true;
+      try { btn.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
+    });
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) btn.addEventListener(ev, () => { Input.held = false; });
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
   },
 
@@ -240,7 +246,7 @@ const Game = {
       items: [], preds: [], fx: [], timers: [], cam: { x: 0, y: 0 },
       predCfg: null, predT: 0,
       seen: new Set(), learned: [], toasts: [], toastT: 0, hintT: 0,
-      netT: 15 + Math.random() * 20, netDone: !!mission.noNet, event: null, parts: [], shake: 0, flash: 0,   // the kid-with-a-net event (js/tank.js); noNet levels never have it
+      netT: this.rollNet ? this.rollNet(mission) : 1e9, netDone: !!mission.noNet, event: null, net: null, parts: [], shake: 0, flash: 0,   // the kid-with-a-net event (js/tank.js); noNet levels never have it
     };
     g.finds = (mission.discoveries || []).map(d => Object.assign({ found: false, angle: 0 }, d,
       { x: d.fx * World.w, y: d.fy * World.h }));
@@ -641,6 +647,7 @@ const Game = {
     }
     this.drawWorld(ctx);
     if (g.event) this.drawSwoop(ctx);
+    else if (g.net) this.drawNetAim(ctx);
     if (sky) Night.drawSky(ctx);
   },
 

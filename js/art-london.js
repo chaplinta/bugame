@@ -573,3 +573,164 @@ Backgrounds.ldnRichmond.noVignette = true;
 SpriteCache.registerAll(['nutShell', 'oldTicket', 'acorn', 'antler', 'londonIcon']);
 SpriteCache.register('crabSpider', { key(o) { return o.open ? 'o' : 'c'; } });
 SpriteCache.register('stagBeetleF', { key(o) { return 'F' + (o.face < 0 ? 0 : 1); } });
+
+// ------------------------------------------------------------------ the red bus
+// A London double-decker from the side, about 150 x 84 at s = 1, standing on (x, y) at the middle of its wheels and
+// facing `face`. o: { night (lit windows and headlamps), blind (the words on its front), t (for the wheels) }. No
+// operator's markings. Used tiny on the London map, and full size in the levels.
+LondonArt.bus = function (ctx, x, y, s, face, o) {
+  o = o || {};
+  ctx.save(); ctx.translate(x, y); ctx.scale((face < 0 ? -1 : 1) * s, s);
+  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 2, 80, 6, 0, 0, TAU); ctx.fill();
+  const g = ctx.createLinearGradient(0, -84, 0, 0); g.addColorStop(0, '#e63a2e'); g.addColorStop(1, '#a81e18');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-75, -84, 150, 78, [14, 18, 6, 6]) : ctx.rect(-75, -84, 150, 78); ctx.fill();
+  ctx.fillStyle = '#f4f0e4'; ctx.fillRect(-75, -47, 150, 3);                                  // the cream band between the decks
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(-75, -10, 150, 4);                           // the skirt
+  const glass = o.night ? '#ffe9a0' : '#cfe8f4', dark = o.night ? '#c8a850' : '#9cc0d2';
+  for (let k = 0; k < 6; k++) {                                                                // top deck, then the lower one
+    ctx.fillStyle = glass; ctx.fillRect(-68 + k * 22, -78, 18, 22);
+    if (k < 5) { ctx.fillStyle = glass; ctx.fillRect(-68 + k * 22, -40, 18, 20); }
+    if (k % 2 === 0) { ctx.fillStyle = 'rgba(40,30,30,.55)'; ctx.beginPath(); ctx.arc(-59 + k * 22, -62, 5, Math.PI, 0); ctx.fill(); ctx.fillRect(-64 + k * 22, -62, 10, 6); }   // a passenger upstairs
+    ctx.fillStyle = dark; ctx.fillRect(-68 + k * 22, -78, 18, 2);
+  }
+  ctx.fillStyle = '#2a2a2a'; ctx.fillRect(44, -40, 14, 30);                                    // the doors
+  ctx.fillStyle = glass; ctx.fillRect(46, -38, 10, 20);
+  ctx.fillStyle = glass; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(62, -40, 11, 22, 3) : ctx.rect(62, -40, 11, 22); ctx.fill();   // the driver's window
+  ctx.fillStyle = '#1a1a1a'; ctx.fillRect(40, -82, 33, 9);                                     // the blind
+  if (o.blind && s > 0.6) { ctx.save(); ctx.scale(face < 0 ? -1 : 1, 1); ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 7px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(o.blind, (face < 0 ? -1 : 1) * 56.5, -75); ctx.restore(); }
+  if (o.night) { ctx.fillStyle = 'rgba(255,240,170,.9)'; ctx.beginPath(); ctx.ellipse(75, -16, 3, 4, 0, 0, TAU); ctx.fill(); const b = ctx.createLinearGradient(75, 0, 190, 0); b.addColorStop(0, 'rgba(255,240,170,.35)'); b.addColorStop(1, 'rgba(255,240,170,0)'); ctx.fillStyle = b; ctx.beginPath(); ctx.moveTo(76, -18); ctx.lineTo(190, -34); ctx.lineTo(190, 2); ctx.lineTo(76, -12); ctx.fill(); }
+  else { ctx.fillStyle = '#f4f0e4'; ctx.beginPath(); ctx.ellipse(74, -16, 2.4, 3.4, 0, 0, TAU); ctx.fill(); }
+  const spin = (o.t || 0) * 6;
+  for (const wx of [-46, 40]) {
+    ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(wx, -8, 12, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#8a8a88'; ctx.beginPath(); ctx.arc(wx, -8, 5, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#5a5a58'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(wx + Math.cos(spin) * 5, -8 + Math.sin(spin) * 5); ctx.lineTo(wx - Math.cos(spin) * 5, -8 - Math.sin(spin) * 5); ctx.stroke();
+  }
+  ctx.restore();
+};
+
+// ------------------------------------------------------------------ the London map (painted on the map screen, js/ui.js)
+// A storybook map, not to scale: the Thames winding west to east, the parks, a few landmarks, Heathrow in the west
+// (the plane home) and a ring of road the red bus drives round. The pins come from the London bugs in js/london.js.
+const LDN_MAP = {
+  river: [[40, 620], [80, 540, 150, 482, 205, 454], [255, 428, 290, 448, 335, 422], [380, 396, 405, 368, 445, 380], [486, 392, 524, 356, 574, 364], [624, 372, 640, 430, 684, 422], [726, 414, 716, 364, 764, 354], [826, 342, 884, 364, 980, 346]],
+  road: [[300, 318], [400, 300], [505, 292], [612, 302], [668, 342], [642, 452], [520, 470], [400, 462], [316, 408]],
+  heathrow: [70, 322],
+};
+function drawLondonMap(ctx, W, H) {
+  const r = rng(11);
+  let g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#e8e2ce'); g.addColorStop(1, '#ded7c0');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // countryside round the edge, rooftops in the middle
+  for (let i = 0; i < 110; i++) { const a = r() * TAU, k = 0.92 + r() * 0.3; softBlob(ctx, W / 2 + Math.cos(a) * W * 0.56 * k, H / 2 + Math.sin(a) * H * 0.62 * k, 40 + r() * 46, 'rgba(126,164,92,.3)'); }
+  for (let i = 0; i < 620; i++) {
+    const x = r() * W, y = r() * H, d = Math.hypot((x - 500) / 480, (y - 330) / 300);
+    if (d > 0.95 + r() * 0.2) continue;
+    ctx.fillStyle = ['rgba(186,140,112,.34)', 'rgba(168,158,150,.3)', 'rgba(200,168,128,.3)'][i % 3];
+    ctx.fillRect(x, y, 7 + r() * 13, 5 + r() * 9);
+  }
+  // roads: the bus's ring and a few ways out
+  const road = (pts, close, w) => {
+    ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); if (close) ctx.closePath();
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(150,130,100,.5)'; ctx.lineWidth = w + 3; ctx.stroke();
+    ctx.strokeStyle = '#f6f0dc'; ctx.lineWidth = w; ctx.stroke();
+  };
+  for (const pts of [[[400, 300], [380, 180], [440, 60], [470, 0]], [[612, 302], [700, 200], [820, 120], [960, 70]], [[300, 318], [170, 320], [70, 322]], [[642, 452], [760, 520], [900, 600]], [[400, 462], [330, 540], [300, 600]], [[505, 292], [540, 170], [590, 100]]]) road(pts, false, 4);
+  road(LDN_MAP.road, true, 6);
+  // the Thames, widening as it runs east
+  const river = (w, col, from) => {
+    const R = LDN_MAP.river; ctx.beginPath();
+    const s = from ? R[from - 1] : R[0]; ctx.moveTo(s[s.length - 2], s[s.length - 1]);
+    for (let i = from || 1; i < R.length; i++) ctx.bezierCurveTo(...R[i]);
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.stroke();
+  };
+  river(26, 'rgba(120,150,90,.4)'); river(18, '#6aaed2'); river(30, '#6aaed2', 6); river(40, '#6aaed2', 7); river(6, 'rgba(255,255,255,.28)');
+  // parks: green with trees
+  const park = (x, y, rx, ry, n, dense) => {
+    plainEll(ctx, x, y, rx + 5, ry + 5, 'rgba(100,140,70,.35)');
+    ell(ctx, x, y, rx, ry, '#a8cc7a');
+    for (let i = 0; i < n; i++) {
+      const a = r() * TAU, d = Math.sqrt(r()) * 0.86, tx = x + Math.cos(a) * rx * d, ty = y + Math.sin(a) * ry * d;
+      softShadow(ctx, tx + 1.5, ty + 2.5, 6, 4, 0.22);
+      ell(ctx, tx, ty, 4.5 + r() * 2.5, 4 + r() * 2.5, dense ? (r() < 0.5 ? '#4f7a36' : '#628c40') : (r() < 0.5 ? '#6a9a48' : '#84aa56'));
+    }
+  };
+  park(215, 525, 74, 48, 22);            // Richmond Park
+  park(360, 250, 46, 34, 10);            // Regent's Park
+  park(322, 346, 44, 16, 8);             // Hyde Park
+  park(368, 150, 46, 32, 16);            // Hampstead Heath
+  park(446, 104, 30, 22, 26, true);      // Highgate Wood
+  park(592, 96, 56, 30, 10);             // Alexandra Park
+  park(668, 262, 32, 18, 8);             // Victoria Park
+  park(744, 440, 30, 22, 8);             // Greenwich Park
+  park(296, 506, 26, 20, 9);             // Wimbledon Common
+  park(852, 96, 62, 52, 40, true);       // Epping Forest
+  plainEll(ctx, 366, 254, 12, 6, '#7ab8d8');                                                   // the boating lake in Regent's Park
+  for (const [dx, dy] of [[-22, -8], [14, 12]]) { ctx.save(); ctx.translate(215 + dx, 525 + dy); ctx.fillStyle = '#8a5a34'; ctx.fillRect(-5, -3, 9, 5); ctx.fillRect(3, -7, 3, 5); ctx.fillRect(-5, 2, 1.6, 5); ctx.fillRect(2.4, 2, 1.6, 5); ctx.strokeStyle = '#8a5a34'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(5, -7); ctx.lineTo(3, -12); ctx.moveTo(5, -7); ctx.lineTo(8, -11); ctx.stroke(); ctx.restore(); }   // deer
+  // houses with gardens in the south-east
+  for (let i = 0; i < 14; i++) {
+    const x = 660 + (i % 5) * 26 + (i % 2) * 5, y = 486 + Math.floor(i / 5) * 24;
+    ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.fillRect(x + 2, y + 2, 15, 11);
+    ctx.fillStyle = '#e8d8b8'; ctx.fillRect(x, y, 15, 11);
+    ctx.fillStyle = i % 2 ? '#a8563e' : '#7a5648'; ctx.beginPath(); ctx.moveTo(x - 2, y + 1); ctx.lineTo(x + 7.5, y - 7); ctx.lineTo(x + 17, y + 1); ctx.fill();
+    plainEll(ctx, x + 8, y + 16, 8, 3.4, 'rgba(120,170,90,.8)');
+  }
+  // landmarks
+  const tower = (x, y, w, h, top, a, b) => { const gg = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0); gg.addColorStop(0, a); gg.addColorStop(1, b); ctx.fillStyle = gg; ctx.fillRect(x - w / 2, y - h, w, h); if (top) top(); };
+  // Alexandra Palace on its hill: the long front, the rose window, and the mast the first TV pictures came from
+  ctx.save(); ctx.translate(592, 92);
+  softShadow(ctx, 2, 12, 40, 8, 0.25);
+  ctx.fillStyle = '#d8c8a0'; ctx.fillRect(-36, -10, 72, 20); ctx.fillStyle = '#c4b288'; ctx.fillRect(-36, 6, 72, 4);
+  ctx.fillStyle = '#b8a67c'; ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(0, -22); ctx.lineTo(10, -10); ctx.fill();
+  ctx.fillStyle = '#6a8aa8'; ctx.beginPath(); ctx.arc(0, -6, 5, 0, TAU); ctx.fill(); ctx.strokeStyle = '#f0e6c8'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#7a6a50'; for (let k = 0; k < 6; k++) if (k !== 2 && k !== 3) ctx.fillRect(-32 + k * 12, -4, 5, 9);
+  ctx.fillStyle = '#c4b288'; ctx.fillRect(28, -20, 8, 12);
+  ctx.strokeStyle = '#5a5a5a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(29, -20); ctx.lineTo(32, -46); ctx.lineTo(35, -20); ctx.moveTo(30, -29); ctx.lineTo(34, -29); ctx.moveTo(31, -38); ctx.lineTo(33, -38); ctx.stroke();
+  ctx.restore();
+  tower(432, 300, 7, 40, () => { ctx.fillStyle = '#8a98a4'; ctx.fillRect(427, 268, 10, 10); ctx.fillStyle = '#5a6a76'; ctx.fillRect(431.3, 250, 1.4, 12); }, '#c0ccd4', '#7c8a96');   // the BT Tower
+  // St Paul's dome
+  ctx.fillStyle = '#d8d4c4'; ctx.fillRect(538, 326, 22, 12); ctx.fillStyle = '#a8b4bc'; ctx.beginPath(); ctx.arc(549, 326, 9, Math.PI, 0); ctx.fill(); ctx.fillStyle = '#c8a850'; ctx.fillRect(548.3, 311, 1.4, 6);
+  // Big Ben and the wheel
+  tower(446, 372, 6, 26, () => { ctx.fillStyle = '#f4f0dc'; ctx.beginPath(); ctx.arc(446, 351, 2.6, 0, TAU); ctx.fill(); ctx.fillStyle = '#8a7a50'; ctx.beginPath(); ctx.moveTo(442.5, 346); ctx.lineTo(446, 338); ctx.lineTo(449.5, 346); ctx.fill(); }, '#c8b880', '#9a8a58');
+  ctx.strokeStyle = '#f4f4f0'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(470, 398, 11, 0, TAU); ctx.stroke(); for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; plainLine(ctx, [470, 398, 470 + Math.cos(a) * 11, 398 + Math.sin(a) * 11], 'rgba(244,244,240,.8)', 0.7); }
+  // Tower Bridge across the river, and the Shard
+  ctx.fillStyle = '#8a9aa8'; ctx.fillRect(596, 366, 30, 2.4);
+  for (const x of [602, 618]) { ctx.fillStyle = '#c8bca0'; ctx.fillRect(x - 3, 354, 6, 16); ctx.fillStyle = '#5a7a98'; ctx.beginPath(); ctx.moveTo(x - 3.5, 354); ctx.lineTo(x, 347); ctx.lineTo(x + 3.5, 354); ctx.fill(); }
+  ctx.strokeStyle = '#5a9ac8'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(590, 368); ctx.quadraticCurveTo(596, 358, 602, 357); ctx.moveTo(618, 357); ctx.quadraticCurveTo(624, 358, 630, 368); ctx.stroke();
+  g = ctx.createLinearGradient(578, 0, 592, 0); g.addColorStop(0, '#d4e4ec'); g.addColorStop(1, '#8aa4b4'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(578, 410); ctx.lineTo(585, 372); ctx.lineTo(592, 410); ctx.fill();
+  // the City's towers
+  for (let i = 0; i < 6; i++) { const x = 560 + i * 8, h = 14 + ((i * 5) % 4) * 6; tower(x, 344, 6, h, null, '#c8d4dc', '#7a8894'); }
+  // Wembley's arch
+  ctx.strokeStyle = '#f8f8f4'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(232, 222, 16, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke(); plainEll(ctx, 232, 224, 15, 6, '#b8c8a0'); plainEll(ctx, 232, 224, 11, 3.6, '#78a858');
+  // Heathrow: two runways, the terminal and a plane (tap it to fly home: js/ui.js)
+  ctx.save(); ctx.translate(LDN_MAP.heathrow[0], LDN_MAP.heathrow[1]);
+  for (const dy of [-12, 12]) { ctx.fillStyle = '#9a9890'; ctx.fillRect(-46, dy - 3.5, 92, 7); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-42, dy); ctx.lineTo(42, dy); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.fillStyle = '#d8d4c8'; ctx.fillRect(-12, 20, 26, 8);
+  ctx.save(); ctx.rotate(0.38); ctx.scale(1.15, 1.15); Sprites.jetPlane(ctx); ctx.restore();
+  ctx.restore();
+  // labels
+  ctx.textAlign = 'center';
+  const label = (text, x, y, size, col) => {
+    ctx.font = 'italic bold ' + size + 'px Georgia, serif';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,250,235,.75)'; ctx.strokeText(text, x, y);
+    ctx.fillStyle = col || '#4a3a22'; ctx.fillText(text, x, y);
+  };
+  label('London', 110, 64, 34, '#8a2a1e');
+  label('River Thames', 838, 392, 15, '#2a5a7a');
+  label('Heathrow', 70, 368, 13);
+  label('Hampstead Heath', 330, 112, 12, '#3a5a22');
+  label('Epping Forest', 852, 166, 12, '#3a5a22');
+  label('Wembley', 232, 246, 12);
+  label('Greenwich', 800, 446, 12, '#3a5a22');
+  label('The City', 590, 318, 12);
+  ctx.save(); ctx.translate(910, 540);
+  ctx.beginPath(); ctx.arc(0, 0, 22, 0, TAU); ctx.fillStyle = 'rgba(255,250,235,.7)'; ctx.fill(); ctx.strokeStyle = '#7a6040'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(6, 0); ctx.lineTo(0, 18); ctx.lineTo(-6, 0); ctx.closePath(); ctx.fillStyle = '#c8501e'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, 18); ctx.lineTo(6, 0); ctx.lineTo(-6, 0); ctx.fillStyle = '#5a4a32'; ctx.fill();
+  ctx.restore();
+  label('N', 910, 514, 13);
+  storybookFinish(ctx, W, H, 77);
+  ctx.strokeStyle = 'rgba(90,60,30,.35)'; ctx.lineWidth = 6; ctx.strokeRect(0, 0, W, H);
+}

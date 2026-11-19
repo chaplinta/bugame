@@ -64,10 +64,24 @@ function portrait(canvas, sprite, size, o) {
   if (st.paint && typeof Paint !== 'undefined') Paint.drawSprite(ctx, sprite, st, 0.4);
   else Sprites[sprite](ctx, st, 0.4);
 }
-// Every portrait on the page again (the 3D renderer came up, the 3D setting changed, a design was painted).
+// Every portrait on the page again (the 3D renderer came up, the 3D setting changed, a design was painted). Making
+// a 3D picture of every bug at once would freeze the page for a moment (seconds on a slow phone), so they are done
+// a few milliseconds a frame, the screen you're looking at first, and never while a level is being played.
+let portraitQueue = [], portraitBusy = false;
 function redrawPortraits() {
-  for (const el of document.querySelectorAll('canvas[data-sprite]')) portrait(el, el.dataset.sprite, +el.dataset.size || 56, el.dataset.o ? JSON.parse(el.dataset.o) : undefined);
+  const on = (el) => el.closest('.screen.active') ? 0 : 1;
+  portraitQueue = [...document.querySelectorAll('canvas[data-sprite]')].sort((a, b) => on(a) - on(b));
   if (typeof Size !== 'undefined') { Size.extents = {}; Size.redraw(); }   // the life-size picture follows the 3D setting too
+  if (!portraitBusy) { portraitBusy = true; requestAnimationFrame(portraitStep); }
+}
+function portraitStep() {
+  if (typeof Game !== 'undefined' && Game.running) { setTimeout(portraitStep, 400); return; }   // not during play
+  const t0 = performance.now();
+  while (portraitQueue.length && performance.now() - t0 < 6) {
+    const el = portraitQueue.shift();
+    if (el.isConnected) portrait(el, el.dataset.sprite, +el.dataset.size || 56, el.dataset.o ? JSON.parse(el.dataset.o) : undefined);
+  }
+  if (portraitQueue.length) requestAnimationFrame(portraitStep); else portraitBusy = false;
 }
 // Redraw the map pins once the 3D renderer is up (the map is built before three.js has loaded).
 if (typeof Render3D !== 'undefined') Render3D.whenReady(redrawPortraits);
