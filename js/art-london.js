@@ -637,7 +637,7 @@ function drawLondonMap(ctx, W, H) {
     ctx.strokeStyle = 'rgba(150,130,100,.5)'; ctx.lineWidth = w + 3; ctx.stroke();
     ctx.strokeStyle = '#f6f0dc'; ctx.lineWidth = w; ctx.stroke();
   };
-  for (const pts of [[[400, 300], [380, 180], [440, 60], [470, 0]], [[612, 302], [700, 200], [820, 120], [960, 70]], [[300, 318], [170, 320], [70, 322]], [[642, 452], [760, 520], [900, 600]], [[400, 462], [330, 540], [300, 600]], [[505, 292], [540, 170], [590, 100]]]) road(pts, false, 4);
+  for (const pts of [[[400, 300], [380, 180], [440, 60], [470, 0]], [[612, 302], [700, 200], [820, 120], [960, 70]], [[300, 318], [170, 320], [70, 322]], [[642, 452], [760, 520], [900, 600]], [[400, 462], [330, 540], [300, 600]], [[505, 292], [560, 170], [612, 100]]]) road(pts, false, 4);
   road(LDN_MAP.road, true, 6);
   // the Thames, widening as it runs east
   const river = (w, col, from) => {
@@ -658,16 +658,16 @@ function drawLondonMap(ctx, W, H) {
     }
   };
   park(215, 525, 74, 48, 22);            // Richmond Park
-  park(360, 250, 46, 34, 10);            // Regent's Park
+  park(332, 240, 46, 34, 10);            // Regent's Park
   park(322, 346, 44, 16, 8);             // Hyde Park
-  park(368, 150, 46, 32, 16);            // Hampstead Heath
-  park(446, 104, 30, 22, 26, true);      // Highgate Wood
-  park(592, 96, 56, 30, 10);             // Alexandra Park
-  park(668, 262, 32, 18, 8);             // Victoria Park
+  park(286, 146, 44, 30, 16);            // Hampstead Heath
+  park(404, 100, 32, 24, 28, true);      // Highgate Wood
+  park(612, 92, 56, 30, 10);             // Alexandra Park
+  park(706, 300, 32, 18, 8);             // Victoria Park
   park(744, 440, 30, 22, 8);             // Greenwich Park
   park(296, 506, 26, 20, 9);             // Wimbledon Common
   park(852, 96, 62, 52, 40, true);       // Epping Forest
-  plainEll(ctx, 366, 254, 12, 6, '#7ab8d8');                                                   // the boating lake in Regent's Park
+  plainEll(ctx, 338, 244, 12, 6, '#7ab8d8');                                                   // the boating lake in Regent's Park
   for (const [dx, dy] of [[-22, -8], [14, 12]]) { ctx.save(); ctx.translate(215 + dx, 525 + dy); ctx.fillStyle = '#8a5a34'; ctx.fillRect(-5, -3, 9, 5); ctx.fillRect(3, -7, 3, 5); ctx.fillRect(-5, 2, 1.6, 5); ctx.fillRect(2.4, 2, 1.6, 5); ctx.strokeStyle = '#8a5a34'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(5, -7); ctx.lineTo(3, -12); ctx.moveTo(5, -7); ctx.lineTo(8, -11); ctx.stroke(); ctx.restore(); }   // deer
   // houses with gardens in the south-east
   for (let i = 0; i < 14; i++) {
@@ -680,7 +680,7 @@ function drawLondonMap(ctx, W, H) {
   // landmarks
   const tower = (x, y, w, h, top, a, b) => { const gg = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0); gg.addColorStop(0, a); gg.addColorStop(1, b); ctx.fillStyle = gg; ctx.fillRect(x - w / 2, y - h, w, h); if (top) top(); };
   // Alexandra Palace on its hill: the long front, the rose window, and the mast the first TV pictures came from
-  ctx.save(); ctx.translate(592, 92);
+  ctx.save(); ctx.translate(612, 88);
   softShadow(ctx, 2, 12, 40, 8, 0.25);
   ctx.fillStyle = '#d8c8a0'; ctx.fillRect(-36, -10, 72, 20); ctx.fillStyle = '#c4b288'; ctx.fillRect(-36, 6, 72, 4);
   ctx.fillStyle = '#b8a67c'; ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(0, -22); ctx.lineTo(10, -10); ctx.fill();
@@ -720,7 +720,7 @@ function drawLondonMap(ctx, W, H) {
   label('London', 110, 64, 34, '#8a2a1e');
   label('River Thames', 838, 392, 15, '#2a5a7a');
   label('Heathrow', 70, 368, 13);
-  label('Hampstead Heath', 330, 112, 12, '#3a5a22');
+  label('Hampstead Heath', 276, 106, 12, '#3a5a22');
   label('Epping Forest', 852, 166, 12, '#3a5a22');
   label('Wembley', 232, 246, 12);
   label('Greenwich', 800, 446, 12, '#3a5a22');

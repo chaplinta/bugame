@@ -100,22 +100,32 @@ function fillList(el, items) {
 
 const MAP_W = 960, MAP_H = 600;   // the map picture's own size (the game view can be wider than it)
 
+// Two maps share the map screen: Perth, and London (js/london.js) once the plane has taken you there. currentHub
+// says which one you are on (null: Perth), and every "Map" button goes back to that one: buildMap() shows it.
+let currentHub = null, paintedHub;
+
 function drawMap() {
   const c = $('mapCanvas');
   const dpr = window.devicePixelRatio || 1;
   c.width = MAP_W * dpr; c.height = MAP_H * dpr;
   const ctx = c.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawPerthMap(ctx, MAP_W, MAP_H);
+  (currentHub === 'london' ? drawLondonMap : drawPerthMap)(ctx, MAP_W, MAP_H);
+  paintedHub = currentHub;
 }
 
 function buildMap() {
-  const pins = $('pins'), places = $('placeList');
+  const pins = $('pins'), places = $('placeList'), london = currentHub === 'london';
   pins.innerHTML = '';
   places.innerHTML = '';
-  if (typeof Run !== 'undefined') Run.stop();   // back on the map: a London run is over
+  if (paintedHub !== currentHub) drawMap();
+  $('mapWrap').classList.toggle('london', london);
+  $('mapSub').textContent = london ? 'Be a real London animal. Tap a place on the map.' : 'Be a real bug in Perth, WA. Tap a place on the map.';
+  $('plane').setAttribute('aria-label', london ? 'The plane home to Perth' : 'A plane at Perth Airport');
+  $('tourBtn').hidden = $('flyHome').hidden = !london;
+  if (typeof Run !== 'undefined' && !Run.travelling) { Run.stop(); $('secretPop').hidden = true; }   // back on the map: a bus tour is over
   for (const bug of Bugs) {
-    if (!bug.pin) continue;   // London has no pin: you fly there from the airport
+    if (!bug.pin || (bug.hub || null) !== currentHub) continue;   // this map's places only
     const b = document.createElement('button');
     b.className = 'pin';
     // The CSS clamps these, so a pin near the edge stays on the map.
@@ -143,6 +153,7 @@ function buildMap() {
   }
   syncToggles();
   show('map');
+  if (london) LondonBus.start(); else LondonBus.stop();
 }
 
 // ---------------------------------------------------------------- Bug page
@@ -156,7 +167,7 @@ function openBug(bug, missionId) {
   // Default: first unlocked stage not yet finished, else the last stage.
   let pick = missionId;
   if (!pick) {
-    pick = bug.stages[bug.run ? 0 : bug.stages.length - 1];   // a run starts again from the beginning once it's all done
+    pick = bug.stages[bug.stages.length - 1];
     for (let i = 0; i < bug.stages.length; i++) {
       if (Progress.unlocked(bug, i) && !Progress.stars(bug.stages[i])) { pick = bug.stages[i]; break; }
     }
@@ -185,7 +196,7 @@ function selectStage(id) {
   $('stagePlace').textContent = (bug.stages.length > 1 ? '' : m.stage + ' · ') + m.place + (viewTag(m) ? ' · ' + viewTag(m) + ' view' : '') + best;
   $('stageSex').textContent = m.sex || '';
   fillList($('stageFacts'), m.facts);
-  const gentleLine = bug.run ? 'You can\u2019t lose this one. If you get caught you go back to the last safe spot.' : 'You can\u2019t lose this one. If you get caught you just go home.';
+  const gentleLine = bug.hub === 'london' ? 'You can\u2019t lose this one. If you get caught you go back to the last safe spot.' : 'You can\u2019t lose this one. If you get caught you just go home.';
   fillList($('stageHow'), m.gentle ? m.how.concat(gentleLine) : m.how);
   $('sizeBtn').hidden = !(typeof Size !== 'undefined' && Size.of(m));   // Real size (js/size.js), for the stages that are a real bug
 }
@@ -244,48 +255,56 @@ Game.onEnd = (won, g) => {
   $('endExplore').style.display = explore ? '' : 'none';
   $('endExplore').classList.toggle('secondary', !!next);
   $('endAgain').classList.toggle('secondary', !!won && (!!next || explore));   // otherwise Play again is the main button
-  if (won && Run.on) {   // the end of a whole London run: every part's stars and facts
-    $('endTitle').textContent = 'You crossed London!';
-    $('endUnlock').textContent = 'Stars across London: ' + Run.stars + ' / ' + Run.parts * 3 + '.' + (Run.parts === bug.stages.length ? ' Five real London bugs in one day.' : '');
+  if (won && Run.on) {   // the end of the bus tour: every stop's stars and facts
+    $('endTitle').textContent = 'You toured London!';
+    $('endUnlock').textContent = 'Stars on the tour: ' + Run.stars + ' / ' + Run.parts * 3 + '.' + (Run.parts === Run.list.length ? ' Every stop on the bus!' : '');
     fillList($('endFacts'), Run.learned);
-    Run.on = false;
+    Run.stop();
   }
   show('end');
   if (won) Speech.say($('endTitle').textContent + ' ' + m.factText.win);
 };
 
-// A London run (js/london.js): Start on the London page plays every part from the one picked to the end. Between
-// parts a card says where you're going next; Go starts it with three fresh hearts. Only the Start button arms a run,
-// so a part started any other way (Play again, the tests) ends with its own end screen.
+// The bus tour (London): every London level in the bus's order. After each one the London map comes back, the bus
+// drives to the next stop and a card says where you are; Go starts it with fresh hearts. Only the Bus tour button
+// starts one, so a level opened from its pin ends with its own end screen.
 const Run = {
-  on: false, learned: [], stars: 0, parts: 0, nextId: null,
-  arm(bug) { this.on = !!(bug && bug.run); this.learned = []; this.stars = 0; this.parts = 0; this.hide(); },
-  stop() { this.on = false; this.hide(); },
-  hide() { $('runCard').hidden = true; $('actionBtn').style.visibility = ''; },
+  on: false, list: [], at: 0, learned: [], stars: 0, parts: 0, travelling: false,
+  start(list) {
+    this.on = true; this.list = list; this.at = 0; this.learned = []; this.stars = 0; this.parts = 0;
+    this.travel(null, list[0]);
+  },
+  stop() { this.on = false; if (typeof LondonBus !== 'undefined') LondonBus.parked = null; },
   collect(m, g) { for (const f of g.learned) if (!this.learned.includes(f)) this.learned.push(f); this.stars += starsFor(m, g); this.parts++; },
   next(m, g) {
-    if (!this.on || !currentBug || !currentBug.run) return false;
+    if (!this.on || this.list[this.at] !== m.id) return false;
     this.collect(m, g);
-    const nid = currentBug.stages[currentBug.stages.indexOf(m.id) + 1];
-    if (!nid) return false;   // the last part: the end screen shows the whole run
-    this.nextId = nid;
-    const text = (typeof LDN_NEXT !== 'undefined' && LDN_NEXT[nid]) || 'Next: ' + Missions[nid].stage + '!';
-    portrait($('runCard').querySelector('canvas'), Missions[nid].sprite, 96);
-    $('runCard').querySelector('p').textContent = text;
-    $('runCard').hidden = false;
-    $('actionBtn').style.visibility = 'hidden';
-    Sound.play('win');
-    Speech.say(text);
+    if (this.at + 1 >= this.list.length) return false;   // the last stop: the end screen shows the whole tour
+    this.at++;
+    this.travel(m.id, this.list[this.at]);
     return true;
   },
+  bugOf(id) { return Bugs.find(b => b.stages.includes(id)); },
+  // Back on the map: the bus drives from the last stop to the next one, then the card comes up
+  travel(fromId, toId) {
+    this.travelling = true; buildMap(); this.travelling = false;
+    const to = this.bugOf(toId), from = fromId ? this.bugOf(fromId).pin : { x: LDN_MAP.road[0][0], y: LDN_MAP.road[0][1] };
+    LondonBus.drive(from, to.pin, () => {
+      if (!this.on) return;
+      const text = (this.at ? (this.at + 1 === this.list.length ? 'Last stop: ' : 'Next stop: ') : 'First stop: ') + ((typeof LDN_STOP !== 'undefined' && LDN_STOP[toId]) || to.place + '.');
+      mapCard(Missions[toId].sprite, text, () => this.go(), 'Go!', 'Stop the tour');
+      Sound.play('win');
+    });
+  },
   go() {
-    if (!this.nextId) return;
-    $('runCard').hidden = true; $('actionBtn').style.visibility = '';
-    currentMission = Missions[this.nextId]; this.nextId = null;
+    if (!this.on) return;
+    const id = this.list[this.at];
+    currentBug = this.bugOf(id); currentMission = Missions[id];
+    $('secretPop').hidden = true;
+    Sound.play('tap');
     startGame();
   },
 };
-$('runGo').addEventListener('click', () => { Sound.play('tap'); Run.go(); });
 
 // ---------------------------------------------------------------- Bug Book
 
@@ -358,22 +377,33 @@ function buildBook() {
 
 Game.onSecret = (key) => Progress.addSecret(key);
 
-function mapSecret(key, text, draw, go) {
+// A card over the map: a picture (a drawing function, or a sprite's name for its portrait), a line of words, and
+// one or two buttons (go: what the first one does; without it there is only the closing one).
+function mapCard(draw, text, go, goLabel, closeLabel) {
   const pop = $('secretPop');
   const c = pop.querySelector('canvas');
-  const ctx = c.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  c.width = 160 * dpr; c.height = 160 * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, 160, 160);
-  ctx.translate(80, 90);
-  ctx.scale(1.4, 1.4);
-  draw(ctx);
+  if (typeof draw === 'string') portrait(c, draw, 160);
+  else {
+    delete c.dataset.sprite;
+    const ctx = c.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    c.width = 160 * dpr; c.height = 160 * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, 160, 160);
+    ctx.translate(80, 90);
+    ctx.scale(1.4, 1.4);
+    draw(ctx);
+  }
   pop.querySelector('p').textContent = text;
-  $('secretGo').hidden = !go; $('secretGo').onclick = go || null;   // a secret that takes you somewhere (the plane to London)
+  $('secretGo').hidden = !go; $('secretGo').textContent = goLabel || 'Go!'; $('secretGo').onclick = go || null;
+  $('secretClose').textContent = closeLabel || 'Cool!';
   pop.hidden = false;
-  Sound.play('win');
   Speech.say(text);
+}
+// A secret found on the map (go: one that takes you somewhere, like the plane to London)
+function mapSecret(key, text, draw, go, goLabel) {
+  mapCard(draw, text, go, goLabel);
+  Sound.play('win');
   Progress.addSecret(key);
 }
 
@@ -381,31 +411,78 @@ function mapSecret(key, text, draw, go) {
 $('rottnest').addEventListener('click', () => mapSecret('s_quokka',
   'A quokka! Quokkas live on Rottnest Island. In 1696 a Dutch explorer thought they were giant rats, and named the island \u201crat\u2019s nest\u201d.',
   (ctx) => Sprites.quokka(ctx)));
-$('secretClose').addEventListener('click', () => { $('secretPop').hidden = true; Speech.stop(); });
+$('secretClose').addEventListener('click', () => { $('secretPop').hidden = true; Speech.stop(); if (Run.on) Run.stop(); });   // closing the bus's card ends the tour
 
-// Tap the plane at Perth Airport: fly to London (js/london.js), a hidden run of five real London bugs
-$('plane').addEventListener('click', () => mapSecret('s_london',
-  'A plane at Perth Airport! Planes fly non-stop from Perth to London: 14,498 km, in about 17 hours.',
-  (ctx) => { ctx.rotate(-0.5); ctx.scale(2.6, 2.6); Sprites.jetPlane(ctx); }, flyToLondon));
+// The plane. At Perth Airport it is the secret way to London (js/london.js): the first tap says so, and after that
+// a tap just flies. On the London map it sits at Heathrow and flies you home.
+$('plane').addEventListener('click', () => {
+  if (currentHub === 'london') { flyTo(null); return; }
+  if (Progress.hasSecret('s_london')) { flyTo('london'); return; }
+  mapSecret('s_london', 'A plane at Perth Airport! Planes fly non-stop from Perth to London: 14,498 km, in about 17 hours.',
+    (ctx) => { ctx.rotate(-0.5); ctx.scale(2.6, 2.6); Sprites.jetPlane(ctx); }, () => flyTo('london'), 'Fly to London!');
+});
+$('flyHome').addEventListener('click', () => flyTo(null));
+$('tourBtn').addEventListener('click', () => { Sound.play('tap'); Run.start(LDN_TOUR); });
 let planeFlying = false;
-function flyToLondon() {
-  if (planeFlying) return;
+// Take off from this map's airport and land on the other map (hub: 'london', or null for Perth)
+function flyTo(hub) {
+  if (planeFlying || hub === currentHub) return;
   planeFlying = true;
-  $('secretPop').hidden = true; Speech.stop();
+  $('secretPop').hidden = true; Speech.stop(); Run.stop();
   const c = $('parade'), dpr = window.devicePixelRatio || 1;
   c.width = MAP_W * dpr; c.height = MAP_H * dpr; c.hidden = false;
   const ctx = c.getContext('2d'), start = performance.now();
+  // from Perth it heads off north-west over the ocean; from Heathrow, south-east
+  const from = hub === 'london' ? [790, 350] : LDN_MAP.heathrow, to = hub === 'london' ? [30, 20] : [940, 590], rot = Math.atan2(to[1] - from[1], to[0] - from[0]);
   Sound.play('jump');
   const step = (now) => {
     const k = Math.min(1, (now - start) / 1500), e = k * k;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, MAP_W, MAP_H);
-    ctx.save(); ctx.translate(790 - e * 760, 350 - e * 330); ctx.rotate(-2.55); ctx.scale(1.6 + k * 1.4, 1.6 + k * 1.4);
+    ctx.save(); ctx.translate(from[0] + (to[0] - from[0]) * e, from[1] + (to[1] - from[1]) * e); ctx.rotate(rot); ctx.scale(1.6 + k * 1.4, 1.6 + k * 1.4);
     Sprites.jetPlane(ctx); ctx.restore();
     if (k < 1) requestAnimationFrame(step);
-    else { c.hidden = true; planeFlying = false; openBug(Bugs.find(b => b.id === 'london')); }
+    else { c.hidden = true; planeFlying = false; currentHub = hub; buildMap(); }
   };
   requestAnimationFrame(step);
 }
+
+// The red bus on the London map (#mapFx): it drives round its ring of road while you look at the map, and on the
+// bus tour it carries you from one stop to the next and waits there.
+const LondonBus = {
+  raf: 0, trip: null, parked: null,
+  start() { if (!this.raf) this.raf = requestAnimationFrame((n) => this.step(n)); },
+  stop() { cancelAnimationFrame(this.raf); this.raf = 0; this.trip = null; this.parked = null; $('mapFx').hidden = true; },
+  drive(a, b, done) {
+    this.trip = { a, b, t0: performance.now(), ms: clamp(Math.hypot(b.x - a.x, b.y - a.y) / 280, 0.7, 2) * 1000, done };
+    this.parked = null; Sound.play('honk');
+    this.start();
+  },
+  // where the bus is on its ring (it goes round in about 40 seconds)
+  ring(now) {
+    const R = LDN_MAP.road, n = R.length, len = R.map((p, i) => Math.hypot(R[(i + 1) % n][0] - p[0], R[(i + 1) % n][1] - p[1])), total = len.reduce((a, b) => a + b, 0);
+    let d = (now / 1000 * total / 40) % total, i = 0;
+    while (d > len[i]) { d -= len[i]; i++; }
+    const a = R[i], b = R[(i + 1) % n], k = d / len[i];
+    return { x: a[0] + (b[0] - a[0]) * k, y: a[1] + (b[1] - a[1]) * k, face: b[0] >= a[0] ? 1 : -1 };
+  },
+  step(now) {
+    this.raf = 0;
+    if (currentHub !== 'london' || !$('map').classList.contains('active')) { this.stop(); return; }
+    const c = $('mapFx'), dpr = window.devicePixelRatio || 1;
+    if (c.width !== MAP_W * dpr) { c.width = MAP_W * dpr; c.height = MAP_H * dpr; }
+    c.hidden = false;
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, MAP_W, MAP_H);
+    let at;
+    if (this.trip) {
+      const T = this.trip, k = Math.min(1, (now - T.t0) / T.ms), e = k * k * (3 - 2 * k);
+      at = { x: T.a.x + (T.b.x - T.a.x) * e, y: T.a.y + (T.b.y - T.a.y) * e + 34 * e, face: T.b.x >= T.a.x ? 1 : -1 };   // it pulls up just below the pin
+      if (k >= 1) { this.trip = null; this.parked = at; if (T.done) T.done(); }
+    } else at = this.parked || this.ring(now);
+    LondonArt.bus(ctx, at.x, at.y + 8, 0.3, at.face, { t: this.parked ? 0 : now / 1000 });
+    this.raf = requestAnimationFrame((n) => this.step(n));
+  },
+};
 
 // Tap the title lots of times: a parade of bugs marches across the map.
 let titleTaps = 0, titleTimer = 0;
@@ -494,7 +571,7 @@ $('hudSound').addEventListener('click', () => { Settings.sound = !Settings.sound
 
 $('bugBack').addEventListener('click', () => { Speech.stop(); buildMap(); });
 $('readBtn').addEventListener('click', readStage);
-$('bugStart').addEventListener('click', () => { Run.arm(currentBug); startGame(); });
+$('bugStart').addEventListener('click', () => { Run.stop(); startGame(); });   // a level opened from its pin is not a tour
 $('endAgain').addEventListener('click', startGame);
 $('endExplore').addEventListener('click', () => { show('play'); Game.resume(); });
 $('endNext').addEventListener('click', () => {

@@ -15,7 +15,7 @@ function check(cond, msg) { if (!cond) throw new Error(msg); }
 test('map, pins, bug pages, Bug Book load without errors', async (b) => {
   const p = await openGame(b);
   const pins = await p.locator('.pin').count();
-  check(pins === (await p.evaluate(() => Bugs.filter(b => b.pin).length)), 'pin count ' + pins);
+  check(pins === (await p.evaluate(() => Bugs.filter(b => b.pin && !b.hub).length)), 'pin count ' + pins);
   for (let i = 0; i < pins; i++) {
     await p.locator('.pin').nth(i).click();
     check(await p.isVisible('#bug.active'), 'bug page ' + i);
@@ -1772,7 +1772,7 @@ test('London: every part’s route is clear of the walls, and no task sits insid
   const p = await openGame(b);
   const bad = await p.evaluate(() => {
     const out = [];
-    for (const id of Bugs.find(x => x.id === 'london').stages) {
+    for (const id of Bugs.filter(x => x.hub === 'london').map(x => x.stages[0])) {
       const m = Missions[id], L = m.level(), P = m.P;
       for (const s of L.spots) if (L.solids.some(q => Plat.overlaps(s.x, s.y + P.hh / 2, P.hw - 1, P.hh - 1, q))) out.push(id + ' ' + s.id + ' is inside a wall');
       for (const s of L.spots) if (s.need && !L.route.some(r => r[2] === s.id)) out.push(id + ' ' + s.id + ' is not on the route');
@@ -1909,46 +1909,97 @@ test('mozzies and the London wasp are shooed away, not swatted: blown a little w
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
-test('London is hidden until the plane at Perth Airport is found; then one run crosses London, part to part', async (b) => {
+test('London has its own map: hidden until the plane is found, a pin for every level, Back stays in London, the plane flies both ways', async (b) => {
   const p = await openGame(b, { width: 844, height: 390 });
-  const before = await p.evaluate(() => ({ pins: document.querySelectorAll('.pin').length, pinned: Bugs.filter(x => x.pin).length, parade: paradeMarchers().some(m => m.sprite === 'londonIcon' || Missions.ldn_bee && m.sprite === 'bumblebee') }));
-  check(before.pins === before.pinned && !before.parade, 'London shows before the plane is found: ' + JSON.stringify(before));
-  // the plane: a finger-sized button that no pin covers
-  const box = await p.evaluate(() => {
-    const r = document.getElementById('plane').getBoundingClientRect();
+  const before = await p.evaluate(() => { const ldn = Bugs.filter(x => x.hub === 'london').map(x => x.sprite); return { pins: document.querySelectorAll('.pin').length, perth: Bugs.filter(x => x.pin && !x.hub).length, london: ldn.length, parade: paradeMarchers().some(m => ldn.includes(m.sprite)), tour: document.getElementById('tourBtn').hidden && document.getElementById('flyHome').hidden }; });
+  check(before.pins === before.perth && before.london >= 5 && !before.parade && before.tour, 'London shows before the plane is found: ' + JSON.stringify(before));
+  // the plane: a finger-sized button that no pin covers (here at Perth Airport, later at Heathrow)
+  const planeBox = () => p.evaluate(() => {
+    const r = document.getElementById('plane').getBoundingClientRect(), map = document.getElementById('mapWrap').getBoundingClientRect();
     const hit = [...document.querySelectorAll('.pin')].filter(el => { const q = el.getBoundingClientRect(); return q.left < r.right && q.right > r.left && q.top < r.bottom && q.bottom > r.top; }).length;
-    return { w: r.width, h: r.height, hit };
+    const out = [...document.querySelectorAll('.pin')].filter(el => { const q = el.getBoundingClientRect(); return q.left < map.left - 1 || q.right > map.right + 1 || q.top < map.top - 1 || q.bottom > map.bottom + 1; }).length;
+    return { w: r.width, h: r.height, hit, out, x: (r.left + r.width / 2 - map.left) / map.width };
   });
-  check(box.w >= 44 && box.h >= 44 && box.hit === 0, 'the plane button: ' + JSON.stringify(box));
+  let box = await planeBox();
+  check(box.w >= 44 && box.h >= 44 && box.hit === 0 && box.x > 0.7, 'the plane button at Perth Airport: ' + JSON.stringify(box));
   await p.click('#bookBtn');
-  check(!(await p.locator('.bookBug', { hasText: 'London' }).count()), 'the Book shows London before the plane is found');
+  check(!(await p.locator('.bookBug', { hasText: 'Stag Beetle' }).count()), 'the Book shows London before the plane is found');
   await p.click('#bookBack');
   await p.click('#plane');
-  check(await p.isVisible('#secretGo') && /London/.test(await p.textContent('#secretPop p')), 'no Fly to London on the plane');
+  check(await p.isVisible('#secretGo') && /London/.test(await p.textContent('#secretPop p')) && /Fly to London/.test(await p.textContent('#secretGo')), 'no Fly to London on the plane');
   check(await p.evaluate(() => Progress.hasSecret('s_london')), 'the plane secret was not saved');
   await p.click('#secretGo');
-  await p.waitForSelector('#bug.active', { timeout: 5000 });
-  check(/London/.test(await p.textContent('#bug')), 'the London page did not open');
-  check(await p.locator('.stageBtn').count() === 5 && await p.locator('.stageBtn:disabled').count() === 0, 'not every London part is open from the start');
+  await p.waitForFunction(() => currentHub === 'london' && document.getElementById('map').classList.contains('active'), null, { timeout: 6000 });
+  const map = await p.evaluate(() => ({ pins: document.querySelectorAll('.pin').length, sub: document.getElementById('mapSub').textContent, tour: !document.getElementById('tourBtn').hidden && !document.getElementById('flyHome').hidden,
+    rottnest: getComputedStyle(document.getElementById('rottnest')).display, pop: document.getElementById('secretPop').hidden }));
+  check(map.pins === before.london && /London/.test(map.sub) && map.tour && map.rottnest === 'none' && map.pop, 'the London map: ' + JSON.stringify(map));
+  box = await planeBox();
+  check(box.w >= 44 && box.h >= 44 && box.hit === 0 && box.out === 0 && box.x < 0.2, 'the plane at Heathrow, and the pins on the map: ' + JSON.stringify(box));
+  // a level from its pin: its own page and end screen, and every way back lands on the London map
+  await p.evaluate(() => [...document.querySelectorAll('.pin')].find(el => /Stag Beetle/.test(el.getAttribute('aria-label'))).click());
+  check(await p.isVisible('#bug.active') && /Richmond Park/.test(await p.textContent('#bug')), 'the stag beetle page did not open from its pin');
+  await p.click('#bugBack');
+  check(await p.evaluate(() => currentHub === 'london' && document.querySelectorAll('.pin').length) === before.london, 'Back left London');
+  await p.evaluate(() => [...document.querySelectorAll('.pin')].find(el => /Stag Beetle/.test(el.getAttribute('aria-label'))).click());
   await p.click('#bugStart');
   await p.waitForTimeout(300);
-  check(await p.evaluate(() => Game.g.mission.id === 'ldn_bee' && Run.on), 'the run did not start with the bumblebee');
-  const parts = await p.evaluate(() => Bugs.find(x => x.id === 'london').stages);
-  for (let i = 0; i < parts.length; i++) {
-    check(await p.evaluate((id) => Game.g.mission.id === id && Game.g.lives === 3, parts[i]), 'part ' + parts[i] + ' did not start with three hearts');
-    await p.evaluate(() => { Game.g.lives = 2; Game.g.homeSafe = true; });
-    if (i === parts.length - 1) break;
-    await p.waitForSelector('#runCard:not([hidden])', { timeout: 8000 });
-    check(!(await p.isVisible('#end.active')), 'an end screen came between parts');
-    await p.click('#runGo');
-    await p.waitForTimeout(300);
+  check(await p.evaluate(() => Game.g.mission.id === 'ldn_stag' && !Run.on), 'a pin started a tour');
+  await p.keyboard.press('Escape');
+  check(await p.evaluate(() => !Game.running && currentHub === 'london' && document.getElementById('map').classList.contains('active')), 'Escape left London');
+  await p.evaluate(() => { openBug(Bugs.find(x => x.id === 'l_stag')); startGame(); });
+  await forceWin(p);
+  check(/Stag Beetle/.test(await p.textContent('#endTitle')), 'a level from its pin did not end with its own end screen');
+  await p.click('#endMap');
+  check(await p.evaluate(() => currentHub === 'london' && document.querySelectorAll('.pin').length) === before.london, 'the end screen’s Map left London');
+  await p.click('#bookBtn');
+  check(await p.locator('.bookBug', { hasText: 'Stag Beetle' }).count() === 1, 'the Book has no London once the plane is found');
+  await p.click('#bookBack');
+  check(await p.evaluate(() => currentHub === 'london' && paradeMarchers().some(m => m.sprite === 'stagBeetle')), 'the Book’s Map left London, or London is not in the parade');
+  // home again, and now the plane flies straight there
+  await p.click('#flyHome');
+  await p.waitForFunction(() => currentHub === null && document.querySelectorAll('.pin').length > 10, null, { timeout: 6000 });
+  check(await p.evaluate(() => document.getElementById('tourBtn').hidden && getComputedStyle(document.getElementById('rottnest')).display !== 'none'), 'the Perth map kept London’s buttons');
+  await p.click('#plane');
+  check(await p.evaluate(() => document.getElementById('secretPop').hidden), 'the plane asked again');
+  await p.waitForFunction(() => currentHub === 'london', null, { timeout: 6000 });
+  await p.click('#plane');   // at Heathrow: home
+  await p.waitForFunction(() => currentHub === null, null, { timeout: 6000 });
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('the bus tour: the bus drives round the London map, takes you from stop to stop through every level, and adds it all up', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(() => { Progress.addSecret('s_london'); currentHub = 'london'; buildMap(); });
+  await p.waitForTimeout(400);
+  // the bus is on the map, and moving
+  const bus = () => p.evaluate(() => { const c = document.getElementById('mapFx'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0, sx = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 180 && d[i + 1] < 90 && d[i + 3] > 200) { n++; sx += (i / 4) % c.width; } return { hidden: c.hidden, n, x: n ? sx / n : 0 }; });
+  const b1 = await bus(); await p.waitForTimeout(700); const b2 = await bus();
+  check(!b1.hidden && b1.n > 30 && Math.abs(b2.x - b1.x) > 1, 'no red bus driving on the London map: ' + JSON.stringify([b1, b2]));
+  const tour = await p.evaluate(() => LDN_TOUR);
+  check(tour.length >= 5 && tour.length === await p.evaluate(() => Bugs.filter(x => x.hub === 'london').length), 'the tour misses a level: ' + tour);
+  await p.click('#tourBtn');
+  let stars = 0;
+  for (let i = 0; i < tour.length; i++) {
+    await p.waitForSelector('#secretGo', { state: 'visible', timeout: 12000 });
+    const card = await p.evaluate(() => ({ text: document.querySelector('#secretPop p').textContent, map: document.getElementById('map').classList.contains('active'), end: document.getElementById('end').classList.contains('active'), go: document.getElementById('secretGo').textContent }));
+    check((i === 0 ? /^First stop/ : i === tour.length - 1 ? /^Last stop/ : /^Next stop/).test(card.text) && card.map && !card.end && card.go === 'Go!', 'the card at stop ' + i + ': ' + JSON.stringify(card));
+    await p.click('#secretGo');
+    await p.waitForFunction((id) => Game.running && Game.g.mission.id === id, tour[i], { timeout: 5000 });
+    check(await p.evaluate(() => Game.g.lives === 3 && Run.on && currentBug.stages[0] === Game.g.mission.id), 'stop ' + tour[i] + ' did not start fresh');
+    await p.evaluate(() => { Game.g.homeSafe = true; });
+    await p.waitForFunction(() => !Game.running, null, { timeout: 8000 });
+    stars += await p.evaluate((id) => Progress.stars(id), tour[i]);
   }
   await p.waitForSelector('#end.active', { timeout: 8000 });
-  check(/crossed London/.test(await p.textContent('#endTitle')) && /10 \/ 15/.test(await p.textContent('#endUnlock')), 'no end of the run: ' + await p.textContent('#end'));
-  check(await p.evaluate(() => Bugs.find(x => x.id === 'london').stages.every(id => Progress.stars(id) === 2)), 'the parts’ stars were not saved');
-  // the menu stops a run; the Book now has London
-  await p.evaluate(() => buildMap());
-  check(await p.evaluate(() => !Run.on && paradeMarchers().some(m => m.sprite === 'londonIcon')), 'London not in the parade after the plane');
+  const end = await p.evaluate(() => ({ title: document.getElementById('endTitle').textContent, line: document.getElementById('endUnlock').textContent, on: Run.on }));
+  check(/toured London/.test(end.title) && end.line.includes(stars + ' / ' + tour.length * 3) && /Every stop/.test(end.line) && !end.on && stars >= tour.length, 'the end of the tour: ' + JSON.stringify(end) + ' stars ' + stars);
+  // closing the bus's card stops the tour
+  await p.click('#endMap');
+  await p.click('#tourBtn');
+  await p.waitForSelector('#secretGo', { state: 'visible', timeout: 12000 });
+  check(/Stop the tour/.test(await p.textContent('#secretClose')), 'no way to stop the tour');
+  await p.click('#secretClose');
+  check(await p.evaluate(() => !Run.on && document.getElementById('secretPop').hidden), 'the tour went on after Stop');
   check(p.errors.length === 0, p.errors.join('; '));
 });
 

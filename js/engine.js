@@ -56,6 +56,16 @@ const Sound = {
       case 'caught': this.tone(400, 0.5, 'square', 0.08, 100); break;
       case 'win': [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.15, 0, i * 0.12)); break;
       case 'tap': this.tone(500, 0.06, 'sine', 0.1); break;
+      // the cheeky ones
+      case 'honk': this.tone(311, 0.16, 'square', 0.07); this.tone(392, 0.16, 'square', 0.05); this.tone(311, 0.22, 'square', 0.07, 0, 0.2); this.tone(392, 0.22, 'square', 0.05, 0, 0.2); break;
+      case 'burp': this.tone(110, 0.28, 'sawtooth', 0.12, 55); this.tone(165, 0.2, 'square', 0.05, 70, 0.03); break;
+      case 'raspberry': for (let i = 0; i < 7; i++) this.tone(95 - i * 4, 0.045, 'sawtooth', 0.11, 70, i * 0.05); break;
+      case 'boing': this.tone(180, 0.28, 'sine', 0.16, 720); this.tone(360, 0.2, 'triangle', 0.06, 1100, 0.04); break;
+      case 'splat': this.tone(260, 0.1, 'sawtooth', 0.12, 60); this.tone(90, 0.16, 'square', 0.07, 40, 0.05); break;
+      case 'yelp': this.tone(700, 0.1, 'triangle', 0.14, 1300); this.tone(1300, 0.16, 'triangle', 0.1, 600, 0.09); break;
+      case 'oi': this.tone(300, 0.09, 'square', 0.08, 420); this.tone(520, 0.2, 'square', 0.08, 380, 0.1); break;
+      case 'slurp': this.tone(240, 0.22, 'sine', 0.13, 900); this.tone(900, 0.08, 'sine', 0.06, 1400, 0.2); break;
+      case 'munch': this.tone(220, 0.05, 'square', 0.06, 160); this.tone(200, 0.05, 'square', 0.05, 150, 0.09); break;
     }
   },
 };

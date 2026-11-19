@@ -337,8 +337,7 @@ html.turn body { overflow: hidden; }
 #plane:focus-visible { outline: 3px solid #ffd23f; }
 #plane:active { transform: translate(-50%, -50%); }
 .secretButtons { margin-top: 8px; }
-#runCard { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(90%, 420px); text-align: center; z-index: 6; }
-#runCard canvas { width: 96px; height: 96px; }
-#runCard p { font-size: 1.3rem; font-weight: bold; line-height: 1.35; margin: 8px 0 12px; }
-#runCard[hidden] { display: none; }
-#runGo { font-size: 1.5rem; padding: 12px 40px; }
+/* The London map shares the map screen (js/ui.js): the plane sits at Heathrow, Rottnest is far away, the bus drives on #mapFx */
+#mapFx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#mapWrap.london #rottnest { display: none; }
+#mapWrap.london #plane { left: calc(70 / 960 * 100%); top: calc(322 / 600 * 100%); }

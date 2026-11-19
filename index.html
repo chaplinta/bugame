@@ -26,12 +26,13 @@
         <button class="toggle" data-setting="mic" aria-pressed="false">Shout to buzz</button>
       </div>
     </header>
-    <p class="sub">Be a real bug in Perth, WA. Tap a place on the map.</p>
+    <p class="sub" id="mapSub">Be a real bug in Perth, WA. Tap a place on the map.</p>
     <p id="crashNote" class="crashNote" hidden>Oops, that level hit a bug of its own. Try it again or pick another place.</p>
     <p id="mediaNote" class="crashNote" hidden></p>
     <div id="mapWrap">
       <canvas id="mapCanvas"></canvas>
       <canvas id="parade" hidden></canvas>
+      <canvas id="mapFx" hidden></canvas>
       <div id="pins"></div>
       <button id="rottnest" aria-label="Rottnest Island"></button>
       <button id="plane" aria-label="A plane at Perth Airport"></button>
@@ -43,10 +44,12 @@
     </div>
     <div id="placeList"></div>
     <div class="buttons">
+      <button id="tourBtn" hidden>Bus tour</button>
       <button id="bookBtn">Bug Book</button>
       <button id="treeBtn">Family tree</button>
       <button id="paintBtn">Paint a bug</button>
       <button id="quizBtn">Bug quiz</button>
+      <button id="flyHome" class="secondary" hidden>Fly home to Perth</button>
       <button id="installBtn" class="secondary" hidden>Install app</button>
     </div>
     <p class="version">Version 3.15.1 · released 18 November 2026</p>
@@ -87,7 +90,6 @@
         <span id="hudLives"></span>
       </div>
       <div id="toast" aria-live="polite"></div>
-      <div id="runCard" class="panel" hidden><canvas></canvas><p></p><button id="runGo">Go!</button></div>
       <button id="actionBtn"></button>
       <div id="tools" hidden></div>
     </div>

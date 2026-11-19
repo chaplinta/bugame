@@ -1,14 +1,10 @@
 'use strict';
-// London: a hidden run across one late-July day in London, in five parts, a different real London bug in each:
-// a buff-tailed bumblebee in Regent's Park in the morning, a common wasp in a café garden at midday, the Underground
-// mosquito in the Tube, a Jersey tiger moth in a south-east London garden in the afternoon, and a stag beetle in
-// Richmond Park at dusk. Found by tapping the plane at Perth Airport on the Perth map (js/ui.js). Side-on: steer to
-// fly (or walk, for the stag beetle), with the physics in js/platform.js and the art in js/art-london.js. Every fact
-// is sourced in docs/facts.md (London); the pretend parts are listed there too.
-
-Bugs.push({ id: 'london', name: 'London', sci: 'Five real London bugs', place: 'London, England', sprite: 'londonIcon',
-  hub: 'london', kind: 'sandbox', run: true, free: true,   // free: every part is open from the start
-  stages: ['ldn_bee', 'ldn_wasp', 'ldn_mosquito', 'ldn_moth', 'ldn_stag'] });
+// London: the game's second map, found by tapping the plane at Perth Airport (js/ui.js). Each place on the London
+// map is one side-on level with a real London animal: a buff-tailed bumblebee in Regent's Park, a common wasp in a
+// café garden, the Underground mosquito in the Tube, a Jersey tiger moth in a south-east London garden, a stag
+// beetle in Richmond Park. The bus tour plays them all in a row. Steer to fly (or walk), with the physics in
+// js/platform.js and the art in js/art-london.js. Every fact is sourced in docs/facts.md (London); the pretend
+// parts are listed there too.
 
 // How each bug moves. Fliers steer to fly and hover when you let go; the stag beetle walks, climbs bark and flies a
 // short, clumsy way.
@@ -479,11 +475,26 @@ Object.assign(Missions, {
   }),
 });
 
-// The run: what the card between parts says
-const LDN_NEXT = {
-  ldn_wasp: 'Next stop: a café garden. Now you’re a common wasp!',
-  ldn_mosquito: 'Next stop: down in the Tube. Now you’re an Underground mosquito!',
-  ldn_moth: 'Next stop: a garden in south-east London. Now you’re a Jersey tiger moth!',
-  ldn_stag: 'Last stop: Richmond Park at dusk. Now you’re a stag beetle!',
+// London's places: one pin on the London map and one Bug Book section a level, in the order the bus tour plays
+// them. pin: on the 960 x 600 map painted by drawLondonMap (js/art-london.js).
+const LDN_BUGS = [
+  { id: 'l_bee', stage: 'ldn_bee', name: 'Buff-tailed Bumblebee', sci: 'Bombus terrestris', place: 'Regent\u2019s Park', pin: { x: 330, y: 236 } },
+  { id: 'l_wasp', stage: 'ldn_wasp', name: 'Common Wasp', sci: 'Vespula vulgaris', place: 'A caf\u00e9 garden, Islington', pin: { x: 640, y: 232 } },
+  { id: 'l_mosquito', stage: 'ldn_mosquito', name: 'Underground Mosquito', sci: 'Culex pipiens form molestus', place: 'The Tube', pin: { x: 478, y: 360 } },
+  { id: 'l_moth', stage: 'ldn_moth', name: 'Jersey Tiger Moth', sci: 'Euplagia quadripunctaria', place: 'A garden in south-east London', pin: { x: 704, y: 506 } },
+  { id: 'l_stag', stage: 'ldn_stag', name: 'Stag Beetle', sci: 'Lucanus cervus', place: 'Richmond Park', pin: { x: 215, y: 522 } },
+];
+for (const b of LDN_BUGS) {
+  Bugs.push({ id: b.id, name: b.name, sci: b.sci, place: b.place, sprite: Missions[b.stage].sprite, pin: b.pin, hub: 'london', kind: 'sandbox', stages: [b.stage] });
+  Missions[b.stage].bug = b.id;
+}
+const LDN_TOUR = LDN_BUGS.map(b => b.stage);
+// What the bus's card says at each stop
+const LDN_STOP = {
+  ldn_bee: 'Regent\u2019s Park. You\u2019re a buff-tailed bumblebee!',
+  ldn_wasp: 'a caf\u00e9 garden. Now you\u2019re a common wasp!',
+  ldn_mosquito: 'down in the Tube. Now you\u2019re an Underground mosquito!',
+  ldn_moth: 'a garden in south-east London. Now you\u2019re a Jersey tiger moth!',
+  ldn_stag: 'Richmond Park at dusk. Now you\u2019re a stag beetle!',
 };
 finishMissions();
