@@ -5,9 +5,13 @@
 // Everything steps at a fixed 1/120 s, so a fast fall never passes through a ledge and the game behaves the same at
 // any frame rate (and at a test's 8x speed).
 //
-// A level: { w, floor, solids: [[x, y, w, h, kind]], ledges: [[x, y, w]], hides: [[x, y, w, h]], ... }
-// Fliers steer to fly: { hw, hh, fly, accel, sink }. A walker (the stag beetle) walks, climbs bark and flies a little:
-// { hw, hh, walk, grav, climb, flyV, flyLift, flySink, warm, flyT }.
+// A level: { w, floor, solids: [[x, y, w, h, kind]], ledges: [[x, y, w]], ramps: [[x0, y0, x1, y1]], hides: [[x, y, w, h]], ... }
+// A ramp is a sloping top (x0 < x1) you walk up and down, and land on from above; like a ledge, it is nothing from
+// below, so a level puts something solid under its high end.
+// Fliers steer to fly: { hw, hh, fly, accel, sink }. A walker walks: { hw, hh, walk, grav } and may climb bark it
+// walks into (climb), fly a short way after a warm-up (the stag beetle: flyV, flyLift, flySink, warm, flyT), jump
+// (the fox: jump, set off by Plat.jump) or curl into a ball that rolls down ramps and flies off their ends (the pill
+// woodlouse, while p.rolled: roll is its top speed, rollG the pull of a slope).
 
 const Plat = {
   STEP: 1 / 120,
@@ -58,10 +62,24 @@ const Plat = {
       if (p.warmT <= 0) { p.flyT = P.flyT; p.vy = -P.flyLift; }
       return;
     }
+    if (p.rolled) {   // a ball: no steering; a slope pulls it along, flat ground slows it, the air leaves it be
+      if (p.onGround) {
+        if (p.slope) p.vx = clamp(p.vx + p.slope * P.rollG * h, -P.roll, P.roll);
+        else p.vx *= Math.pow(0.33, h);
+      }
+      p.vy = Math.min(700, p.vy + P.grav * h);
+      return;
+    }
     p.vx = dx * P.walk;
+    if (p.push) { p.vx += p.push * 0.08; p.push *= Math.pow(0.02, h); if (Math.abs(p.push) < 5) p.push = 0; }   // shoved back
     if (p.climbing) p.vy = -P.climb;
-    else p.vy = Math.min(600, p.vy + P.grav * h);
+    else p.vy = Math.min(P.jump ? 900 : 600, p.vy + P.grav * h);
   },
+
+  // A jump (the fox): only off the ground
+  jump(P, p) { if (!p.onGround) return false; p.vy = -P.jump; p.onGround = false; return true; },
+  // Where a ramp's top is at x (null: not over it)
+  rampY(r, x) { return x < r[0] || x > r[2] ? null : r[1] + (r[3] - r[1]) * (x - r[0]) / (r[2] - r[0]); },
 
   // Take off (the walker's Fly). Only from a standing start.
   takeOff(P, p) { if (p.flyT > 0 || p.warmT > 0) return false; p.warmT = P.warm; return true; },
@@ -74,7 +92,7 @@ const Plat = {
     for (const s of L.solids) if (this.overlaps(p.x, p.y, hw, hh, s)) {
       const right = p.vx > 0 || (p.vx === 0 && p.x < s[0] + s[2] / 2);
       p.x = right ? s[0] - hw : s[0] + s[2] + hw; p.wall = right ? 1 : -1;
-      if (P.walk && s[4] === 'bark' && p.vx * p.wall > 0) p.climbing = true;
+      if (P.climb && s[4] === 'bark' && p.vx * p.wall > 0 && !p.rolled) p.climbing = true;
       p.vx = 0;
     }
     p.x = clamp(p.x, hw, L.w - hw);
@@ -88,6 +106,22 @@ const Plat = {
     }
     if (p.vy >= 0 && !drop) {
       for (const l of L.ledges || []) if (p.x + hw * 0.4 > l[0] && p.x - hw * 0.4 < l[0] + l[2] && y0 <= l[1] + 0.5 && p.y >= l[1]) { p.y = l[1]; p.vy = 0; p.onGround = true; }
+    }
+    // Ramps: land on one from above, and follow it up and down once on it. Rolling off the end of one that points
+    // up throws a ball into the air.
+    const was = p.ramp; p.ramp = null; p.slope = 0;
+    if (L.ramps && p.vy >= 0) {
+      for (const r of L.ramps) {
+        const ry = this.rampY(r, p.x); if (ry === null) continue;
+        const ry0 = this.rampY(r, clamp(p.x - p.vx * h, r[0], r[2]));
+        if ((y0 <= ry0 + 0.5 && p.y >= ry) || (was === r && p.y >= ry - 8) || (p.onGround && p.y >= ry && p.y - ry < 10)) {
+          p.y = ry; p.vy = 0; p.onGround = true; p.ramp = r; p.slope = (r[3] - r[1]) / (r[2] - r[0]);
+        }
+      }
+      if (was && !p.ramp && p.rolled) {
+        const sl = (was[3] - was[1]) / (was[2] - was[0]);
+        if (p.vx * sl < 0) { p.vy = p.vx * sl; p.onGround = false; }   // going up it: launched
+      }
     }
     if (p.y >= L.floor) { p.y = L.floor; p.vy = Math.min(0, p.vy); p.onGround = true; }
     if (p.y - hh < 0) { p.y = hh; p.vy = Math.max(0, p.vy); }

@@ -683,12 +683,12 @@ test('real size: the bug is drawn life-size with a ruler, the coin match is save
   await p.click('#sizeBtn');
   const bf = await p.evaluate(() => { const r = document.getElementById('sizeCanvas').getBoundingClientRect(); return { h: r.height, want: 50 * Size.pxPerMm() }; });
   check(Math.abs(bf.h - bf.want) <= 2, 'the butterfly is not 50 mm across: ' + JSON.stringify(bf));
-  // every stage that is a real bug has a size, the garden and hand pages hide the button, the trapeze is the peacock spider
+  // every stage that is a real bug has a size, the garden and hand pages hide the button (and the fox's: too big for a screen), the trapeze is the peacock spider
   const cover = await p.evaluate(() => {
     const need = Object.keys(PAINT_BUGS).concat(['queenAnt', 'babyHopper', 'plCaterpillar', 'chrysalis', 'nymph', 'spiderling', 'femaleSpider', 'clickBeetle', 'hornBeetle', 'moth', 'waterStrider', 'queenSugar']);
     return { missing: need.filter(n => !SIZES[n]), noSize: Object.values(Missions).filter(m => !Size.of(m)).map(m => m.id), trapeze: Size.sprite(Missions.cir_trapeze), badText: Object.values(SIZES).filter(S => !/\d+(\.\d+)? mm/.test(S.what)).length };
   });
-  check(cover.missing.length === 0 && cover.noSize.join() === 'garden,hand' && cover.trapeze === 'spider' && cover.badText === 0, 'sizes: ' + JSON.stringify(cover));
+  check(cover.missing.length === 0 && cover.noSize.join() === 'garden,hand,ldn_fox' && cover.trapeze === 'spider' && cover.badText === 0, 'sizes: ' + JSON.stringify(cover));
   await p.evaluate(() => { openBug(Bugs.find(b => b.id === 'garden')); });
   check(!(await p.isVisible('#sizeBtn')), 'the garden page shows Real size');
   await p.evaluate(() => { openBug(Bugs.find(b => b.id === 'olympics'), 'oly_gym'); });
@@ -2029,6 +2029,163 @@ test('mozzies are shooed away, not swatted: blown a little way off, no heart los
     return { swat: t.filter(s => /swat/i.test(s)), shoo: t.filter(s => s === 'Shoo!').length };
   });
   check(words.swat.length === 0 && words.shoo >= 1, 'words: ' + JSON.stringify(words));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('platform physics: ramps to walk up, a ball that rolls down one and flies off its end, the fox’s jump', async (b) => {
+  const p = await openGame(b);
+  const r = await p.evaluate(() => {
+    const L = { w: 4000, floor: 560, solids: [[900, 440, 150, 120, 'bark'], [2540, 420, 130, 140, 'bark']], ledges: [], ramps: [[1050, 440, 1340, 560], [2670, 420, 2960, 540], [2960, 540, 3030, 510]] };
+    const W = LDN_PHYS.louse, F = LDN_PHYS.fox, bug = (x, y, o) => Object.assign({ x, y, vx: 0, vy: 0, acc: 0, flyT: 0, warmT: 0 }, o);
+    const run = (P, q, sec, dx, each) => { for (let i = 0; i < sec * 60; i++) { Plat.move(L, P, q, 1 / 60, dx, 0, {}); if (each) each(q); } return q; };
+    const out = {};
+    // walking: up the slope from its foot, onto the log it leans on
+    const up = run(W, bug(1420, 560), 5.5, -1); out.up = [Math.round(up.x) < 1040, up.y === 440, up.onGround];
+    // a ball: no steering on the flat; down the slope it gathers speed, and rolls on along the flat
+    const flat = run(W, bug(300, 560, { rolled: true }), 1, 1); out.flat = flat.x === 300;
+    let top = 0; const ball = run(W, bug(1062, 444, { rolled: true }), 6, 0, (q) => { top = Math.max(top, q.vx); }); out.roll = [Math.round(top), ball.x > 1500, Math.abs(ball.vx) < 5, ball.y === 560];
+    // the second slope kicks up at its end: the ball is thrown over what lies beyond
+    let high = 560, air = 0; const jump = run(W, bug(2682, 424, { rolled: true }), 3, 0, (q) => { if (q.x > 3030 && !q.onGround) { air = Math.max(air, q.x); high = Math.min(high, q.y); } }); out.jump = [Math.round(air), Math.round(high), jump.x > 3160];
+    // walking off the same lip just drops
+    const drop = run(W, bug(2900, 515), 3, 1, null); out.drop = drop.x > 3030;
+    // the fox: jumps onto a wall as high as her shoulder and a bit, not from mid-air
+    const fx = bug(100, 560, { onGround: true }); Plat.jump(F, fx); let apex = 560; run(F, fx, 1.2, 0, (q) => { apex = Math.min(apex, q.y); }); out.fox = [Math.round(560 - apex), Plat.jump(F, Object.assign(fx, { onGround: false }))];
+    return out;
+  });
+  check(r.up[0] && r.up[1] && r.up[2], 'walking up the ramp: ' + JSON.stringify(r.up));
+  check(r.flat && r.roll[0] >= 300 && r.roll[0] <= LDN_ROLL && r.roll[1] && r.roll[2] && r.roll[3], 'the rolling ball: ' + JSON.stringify(r));
+  check(r.jump[0] > 3150 && r.jump[1] < 510 && r.jump[2] && r.drop, 'the ramp’s jump: ' + JSON.stringify(r));
+  check(r.fox[0] > 110 && r.fox[0] < 160 && r.fox[1] === false, 'the fox’s jump: ' + JSON.stringify(r.fox));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+const LDN_ROLL = 360;   // the ball's top speed (LDN_PHYS.louse.roll)
+
+test('the Ally Pally wasp: shiver first, land on the thrower and his dart scores 1, the board only between throws, smoke, the drink, back to sleep', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'ldn_darts', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const r = await p.evaluate(() => {
+    const { g, pl, m, L, at, put, calm, btn } = ldnKit(), out = {}, O = g.oche;
+    calm(); g.jetT = 1.5;
+    out.words = [ldnScoreWords(180), ldnScoreWords(100), ldnScoreWords(41), ldnScoreWords(7), ldnScoreWords(0)];
+    // too cold to fly until she has shivered
+    const x0 = pl.x; lstep(0.4, { keys: ['arrowright'] }); out.cold = [btn(), pl.x === x0, m.locked(g)];
+    lstep(1.7, { held: true }); out.warm = [g.counts.warm, g.seen.has('shiver')];
+    lstep(0.4, { keys: ['arrowright'] }); out.flies = pl.x > x0 + 20;
+    const sl = at('sleep'); put(sl.x, 150); lstep(0.2); out.early = btn();
+    // on the thrower's shoulder: his next dart goes in the 1
+    O.ph = 'wait'; O.t = 9; O.n = 0; O.total = 0; O.darts = []; lstep(0.05);
+    const ms = at('miss'); put(ms.x, ms.y + 7); lstep(1, { held: true }); out.miss = [g.counts.miss, O.wild];
+    O.t = 0; lstep(1.5); out.wild = [O.darts.length, O.total, shown.includes('1!')];
+    // the board: not while darts fly (one whooshes past her), free once he has thrown three
+    const bd = at('board'); out.off = bd.off; put(bd.x, bd.y + 7); lstep(1.25); out.whoosh = [shown.includes('Whoosh!'), g.lives, pl.x < bd.x - 20];
+    put(1400, 300); g.shooed = 0; lstep(1.4); lstep(0.8); out.call = [O.ph, shown.includes('ONE HUNDRED AND TWENTY-ONE!'), shown.includes('Ooooh!')];
+    out.open = !bd.off; put(bd.x, bd.y + 7); lstep(1.2, { held: true }); out.board = g.counts.board;
+    // stage smoke blows her back, and costs nothing
+    g.jetT = 0.1; put(L.jets[0] - 10, 300); g.shooed = 0; lstep(0.3); out.jet = [pl.x < L.jets[0] - 30, g.lives]; g.jetT = 1.5; g.shooed = 0;
+    // the extras: the caller's bald head, the trophy
+    calm(); const rf = at('ref'); put(rf.x, rf.y + 7); lstep(0.8, { held: true }); out.ref = [g.extras, shown.includes('Get off my head!')];
+    const tr = at('trophy'); put(tr.x, tr.y + 7); lstep(0.8, { held: true }); out.trophy = g.extras;
+    const sp = at('sip'); put(sp.x, sp.y + 7); lstep(1.2, { held: true }); out.sip = [g.counts.sip, shown.includes('Oi! That’s my drink!')];
+    put(sl.x, 150); lstep(0.2); out.sleepBtn = btn(); lstep(1.7, { held: true }); out.home = [!!g.homeSafe, m.stars(g)];
+    return out;
+  });
+  check(r.words.join('|') === 'ONE HUNDRED AND EIGHTY|ONE HUNDRED|FORTY-ONE|SEVEN|NO SCORE', 'the caller’s words: ' + r.words);
+  check(r.cold[0] === 'Shiver' && r.cold[1] && r.cold[2] && r.warm[0] === 1 && r.warm[1] && r.flies && r.early !== 'Sleep', 'shivering first: ' + JSON.stringify(r));
+  check(r.miss[0] === 1 && r.miss[1] && r.wild[0] === 1 && r.wild[1] === 1 && r.wild[2], 'landing on the thrower: ' + JSON.stringify(r));
+  check(r.off && r.whoosh[0] && r.whoosh[1] === 3 && r.whoosh[2] && r.call[0] === 'fetch' && r.call[1] && r.call[2] && r.open && r.board === 1, 'the board and the darts: ' + JSON.stringify(r));
+  check(r.jet[0] && r.jet[1] === 3 && r.ref[0] === 1 && r.ref[1] && r.trophy === 2 && r.sip[0] === 1 && r.sip[1] && r.sleepBtn === 'Sleep' && r.home[0] && r.home[1] === 3, 'smoke, extras, drink and sleep: ' + JSON.stringify(r));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('the pill woodlouse: Roll and uncurl, the sun dries her, two moults, bowling the ants, the spider’s stone, the puddle jump', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'ldn_louse', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const r = await p.evaluate(() => {
+    const { g, pl, m, L, at, put, btn } = ldnKit(), out = {}, F = L.floor, A = L.ants, S = g.spider;
+    g.hz.centipede = true; S.state = 'in'; S.t = 99;
+    // Roll: a ball doesn't walk; steering uncurls it after a moment
+    lstep(0.1); out.btn = btn(); lstep(0.05, { press: true }); out.rolled = [pl.rolled, btn(), g.seen.has('roll')];
+    const x0 = pl.x; lstep(0.3, { keys: ['arrowright'] }); out.ball = pl.rolled && Math.abs(pl.x - x0) < 2; lstep(0.6, { keys: ['arrowright'] }); out.uncurl = [!pl.rolled, pl.x > x0 + 5];
+    // food, and the poo
+    const f1 = at('f1'); put(f1.x, F); lstep(1, { held: true }); out.food = g.counts.food;
+    const poo = at('poo'); put(poo.x, F); lstep(1, { held: true }); out.poo = [g.extras, g.seen.has('poo')];
+    // the sun dries her, more slowly rolled up; under the leaves she gets damp again; bone dry costs a heart
+    g.damp = 1; put(560, F); lstep(1); const d1 = 1 - g.damp; pl.rolled = true; pl.rollT = 0; g.damp = 1; lstep(1); const d2 = 1 - g.damp; out.dry = [d1 > 0.1, d2 > 0 && d2 < d1 / 2, g.seen.has('dry')];
+    pl.rolled = false; g.damp = 0.3; const h = L.hides[0]; put(h[0] + 60, F); lstep(1); out.leaves = [g.hidden, g.damp > 0.7];
+    g.damp = 0.03; put(560, F); lstep(0.5); out.dried = [g.lives, g.damp];
+    // two moults: the back half, then the front
+    const m1 = at('m1'), m2 = at('m2'); put(m2.x, F); lstep(0.2); out.m2early = btn() !== 'Moult';
+    put(m1.x, F); lstep(1.4, { held: true }); out.moult = [g.counts.moult, pl.moult, shown.includes('Half a new suit!')];
+    put(m2.x, F); lstep(1.4, { held: true }); out.moult2 = [g.counts.moult, pl.moult];
+    // down the slope as a ball, right through the ants
+    const r1 = L.ramps[0], on = (q, dx) => put(q[0] + dx, q[1] + dx * (q[3] - q[1]) / (q[2] - q[0]));
+    on(r1, 14); lstep(0.05); lstep(0.05, { press: true }); out.curl = pl.rolled; lstep(4.5); out.bowl = [pl.x > A[1], g.strikes >= 3, shown.includes('Strike!'), shown.includes('Wheee!')];
+    // walking into them: nipped and shoved back out; curled up among them, they give up
+    g.antsOff = 0; for (const a of g.ants) { a.fly = false; a.y = F; } g.ants[0].x = A[0] + 60; g.ants[0].v = 0; pl.rolled = false; put(A[0] - 30, F); lstep(0.05); put(A[0] + 60, F); const l0 = g.lives; lstep(0.1);
+    out.nip = [shown.includes('Nip!'), Math.round(pl.x) === A[0] - 70, g.lives === l0];
+    g.ants[0].x = A[0] + 60; put(A[0] + 60, F); pl.rolled = true; pl.rollT = 1; lstep(2.5); out.giveUp = [g.antsOff > 0, shown.includes('The ants give up!'), g.lives === l0];
+    // the spider's stone: safe while it is in, caught when it is out
+    pl.rolled = false; put(L.lair[0] + 60, F); lstep(0.3); const l1 = g.lives; S.state = 'out'; S.t = 2; lstep(0.1); out.spider = [l1 === l0, g.lives < l1 || g.lives === 1]; S.state = 'in'; S.t = 99;
+    // the puddle: walking in is a splash and back to the log; the ramp throws a ball clean over
+    put(L.puddle[0] + 40, F); lstep(0.1); out.splash = [Math.round(pl.x), shown.includes('Splash!')];
+    const n0 = shown.filter(x => x === 'Splash!').length; on(L.ramps[1], 14); pl.rolled = true; pl.rollT = 0; lstep(3.2); out.jump = [pl.x > L.puddle[1], shown.includes('What a jump!'), shown.filter(x => x === 'Splash!').length === n0];
+    // the dew drop, and home only with three meals and both moults
+    pl.rolled = false; const dew = at('dew'); put(dew.x, F); const e0 = g.extras; lstep(1.2, { held: true }); out.dew = [g.extras - e0, g.seen.has('drink')];
+    const cr = at('crack'); put(cr.x, F); lstep(0.2); out.early = !!g.homeSafe; g.counts.food = 3; lstep(0.2); out.home = [!!g.homeSafe, m.stars(g)];
+    return out;
+  });
+  check(r.btn === 'Roll' && r.rolled[0] && r.rolled[1] === 'Unroll' && r.rolled[2] && r.ball && r.uncurl[0] && r.uncurl[1], 'Roll and uncurl: ' + JSON.stringify(r));
+  check(r.food === 1 && r.poo[0] === 1 && r.poo[1] && r.dry[0] && r.dry[1] && r.dry[2] && r.leaves[0] && r.leaves[1] && r.dried[0] === 2 && r.dried[1] === 1, 'food, poo and the sun: ' + JSON.stringify(r));
+  check(r.m2early && r.moult[0] === 1 && r.moult[1] === 1 && r.moult[2] && r.moult2[0] === 2 && r.moult2[1] === 2, 'the two moults: ' + JSON.stringify(r));
+  check(r.curl && r.bowl.every(Boolean) && r.nip.every(Boolean) && r.giveUp.every(Boolean), 'the ants: ' + JSON.stringify(r));
+  check(r.spider[0] && r.spider[1] && r.splash[0] === 2500 && r.splash[1] && r.jump.every(Boolean), 'the spider and the puddle: ' + JSON.stringify(r));
+  check(r.dew[0] === 1 && r.dew[1] && !r.early && r.home[0] && r.home[1] === 3, 'the dew and the crack: ' + JSON.stringify(r));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('the fox: jump, stand still for a worm and pounce, the daddy-long-legs, the mouse, the road, the cat, the welly and the gnome', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'ldn_fox', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const r = await p.evaluate(() => {
+    const { g, pl, m, L, at, put, btn } = ldnKit(), out = {}, F = L.floor, R = L.road, C = L.cat, cat = g.hz.cat;
+    for (const ln of R.lanes) ln.t = 99;
+    lstep(0.1); out.btn = btn(); lstep(0.05, { press: true }); lstep(0.25); out.jump = [pl.y < F - 60, !pl.onGround]; lstep(1);
+    // a worm: trot up and it stays down; stand still and up it comes; trot off and it's gone; Pounce is a leap
+    const w1 = at('w1'); put(w1.x - 190, F); lstep(0.45, { keys: ['arrowright'] }); out.down = !w1.up && w1.off;
+    put(w1.x - 100, F); lstep(0.9); out.up = [w1.up, btn(), shown.includes('A worm!'), g.seen.has('listen')];
+    lstep(0.6, { keys: ['arrowleft'] }); out.gone = [!w1.up, shown.includes('Gone!')];
+    put(w1.x - 100, F); lstep(0.9); lstep(0.05, { press: true }); out.leap = [!!g.pounce, m.locked(g), g.counts.snack || 0]; lstep(0.2); out.air = pl.y < F - 20; lstep(0.5);
+    out.worm = [g.counts.snack, Math.abs(pl.x - w1.x) < 20, shown.includes('Slurp! A worm'), pl.y === F];
+    // the daddy-long-legs: out of reach from the ground, snapped up with a jump
+    const fl = at('fly'); put(fl.ax, F); lstep(0.4); out.ground = !fl.done; lstep(0.05, { press: true }); lstep(0.6); out.fly = [fl.done, g.counts.snack];
+    // the mouse: listen for longer, a much higher leap, and then she carries it
+    const mo = at('mouse'); put(mo.x - 110, F); lstep(0.7); out.quiet = !mo.up; lstep(0.5); out.squeak = [mo.up, shown.includes('Squeak!')];
+    lstep(0.05, { press: true }); lstep(0.33); const top = pl.y; lstep(0.6); out.mouse = [g.counts.mouse, top < F - 110, pl.carry];
+    // the road: safe on the island as the bus goes by; in a lane, back to the kerb
+    put(R.island[0] + 20, F); R.lanes[0].t = 0.3; R.lanes[1].t = 0.3; R.lanes[0].kind = 'bus'; lstep(0.6); out.island = g.lives;
+    put(R.lanes[0].x + 30, F); R.lanes[0].t = 0.3; lstep(0.4); out.car = g.lives; R.lanes[0].t = 99; R.lanes[1].t = 99;
+    // the cat on the wall: awake, it sends her back; asleep, she walks past
+    cat.state = 'awake'; cat.t = 9; put(C.x - 60, C.y); const x0 = pl.x; lstep(0.8); out.hiss = [shown.includes('Hssss!'), g.lives, pl.x < x0 - 30, g.seen.has('cat')];
+    lstep(1); cat.state = 'asleep'; cat.t = 9; g.shooed = 0; put(C.x - 60, C.y); lstep(0.7, { keys: ['arrowright'] }); out.asleep = pl.x > C.x + 30;
+    // the extras
+    const we = at('welly'); put(we.x, F); lstep(0.1); out.wellyBtn = btn(); lstep(0.05, { press: true }); lstep(0.05); out.welly = [g.extras, shown.includes('Oi! My welly!'), pl.welly, g.seen.has('shoes')];
+    const gn = at('gnome'); put(gn.x, F); lstep(1, { held: true }); out.gnome = [g.extras, g.seen.has('mark')];
+    // home, with three snacks and the mouse
+    const den = at('den'); put(den.x, F); lstep(0.2); out.early = !!g.homeSafe; g.counts.snack = 3; lstep(0.2); out.home = [!!g.homeSafe, m.stars(g), pl.carry];
+    return out;
+  });
+  check(r.btn === 'Jump' && r.jump[0] && r.jump[1], 'the jump: ' + JSON.stringify(r));
+  check(r.down && r.up[0] && r.up[1] === 'Pounce' && r.up[2] && r.up[3] && r.gone[0] && r.gone[1], 'listening for a worm: ' + JSON.stringify(r));
+  check(r.leap[0] && r.leap[1] && r.leap[2] === 0 && r.air && r.worm[0] === 1 && r.worm[1] && r.worm[2] && r.worm[3], 'the pounce: ' + JSON.stringify(r));
+  check(r.ground && r.fly[0] && r.fly[1] === 2 && r.quiet && r.squeak[0] && r.squeak[1] && r.mouse[0] === 1 && r.mouse[1] && r.mouse[2] === 'mouse', 'the daddy-long-legs and the mouse: ' + JSON.stringify(r));
+  check(r.island === 3 && r.car === 2 && r.hiss[0] && r.hiss[1] === 2 && r.hiss[2] && r.hiss[3] && r.asleep, 'the road and the cat: ' + JSON.stringify(r));
+  check(r.wellyBtn === 'Nick' && r.welly[0] === 1 && r.welly[1] && r.welly[2] && r.welly[3] && r.gnome[0] === 2 && r.gnome[1] && !r.early && r.home[0] && r.home[1] === 3 && r.home[2] === null, 'extras and home: ' + JSON.stringify(r));
   check(p.errors.length === 0, p.errors.join('; '));
 });
 

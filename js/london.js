@@ -18,6 +18,9 @@ const LDN_PHYS = {
   mosquito: { hw: 7, hh: 10, fly: 190, accel: 14, sink: 35 },
   moth: { hw: 12, hh: 14, fly: 200, accel: 12, sink: 40 },
   stag: { hw: 18, hh: 16, walk: 95, grav: 900, climb: 75, flyV: 150, flyLift: 100, flySink: 30, warm: 0.4, flyT: 2.4 },
+  queen: { hw: 10, hh: 13, fly: 230, accel: 15, sink: 50 },                                    // the darts wasp (js/london2.js)
+  louse: { hw: 13, hh: 13, walk: 80, grav: 900, climb: 65, roll: 360, rollG: 700 },            // the pill woodlouse: walks, climbs, rolls
+  fox: { hw: 22, hh: 30, walk: 200, grav: 1500, jump: 640 },                                   // the fox: trots and jumps
 };
 
 // ------------------------------------------------------------------ people
@@ -121,6 +124,7 @@ function ldnPart(d) {
       if (Math.abs(p.vx) > 8) p.face = p.vx > 0 ? 1 : -1;
       p.angle = 0;
       p.flying = P.walk ? (p.flyT > 0 || p.warmT > 0) : !p.onGround;
+      p.air = !!P.walk && !p.onGround && !p.climbing;
       p.moving = P.walk ? (p.onGround && Math.abs(p.vx) > 5) || p.climbing : p.flying;
       p.landed = !p.flying;
       g.look += (p.face - g.look) * Math.min(1, dt * 2);
@@ -132,17 +136,22 @@ function ldnPart(d) {
     ready(g, s) { for (const k in s.need || {}) if ((g.counts[k] || 0) < s.need[k]) return false; return true; },
     met(g, kind) { const L = g.level; return (g.counts[kind] || 0) >= ((L.need || {})[kind] || 99); },
     open(g, s) { return !s.done && !s.off && this.ready(g, s); },
+    // The task she is at: of those in reach, the one she is deepest into (a still one before one that moves)
     spotHere(g) {
-      const p = g.player, cy = p.y - this.P.hh / 2, near = (s) => Math.hypot(s.x - p.x, s.y - cy) < s.r;
-      return g.level.spots.find(s => this.open(g, s) && !s.moving && near(s)) || g.level.spots.find(s => this.open(g, s) && s.moving && near(s));
+      const p = g.player, cy = p.y - this.P.hh / 2, far = (s) => Math.hypot(s.x - p.x, s.y - cy) / s.r;
+      let best = null, bk = 9;
+      for (const s of g.level.spots) if (this.open(g, s)) { const k = far(s) + (s.moving ? 1 : 0); if (far(s) < 1 && k < bk) { bk = k; best = s; } }
+      return best;
     },
     // The next place the arrow points to (and the test bot heads for): along the route, skipping what's done or
     // gone; if the next task still needs something (four flowers before the nest), the nearest place to get it
     waypoint(g) {
       const L = g.level, p = g.player;
+      // one she has gone well past, with enough of its kind still ahead, can be left behind
+      const spare = (s) => p.x > s.x + 300 && L.spots.filter(q => q !== s && q.kind === s.kind && !q.done && !q.gone && !q.crab && q.x > p.x).length >= ((L.need || {})[s.kind] || 99) - (g.counts[s.kind] || 0);
       while (g.wp < L.route.length) {
         const r = L.route[g.wp], s = r[2] && L.spots.find(q => q.id === r[2]);
-        if (s ? s.done || s.gone || (!s.goal && !s.extra && this.met(g, s.kind)) : p.x >= r[0] - 40) g.wp++; else break;
+        if (s ? s.done || s.gone || (!s.goal && !s.extra && (this.met(g, s.kind) || spare(s))) : p.x >= r[0] - 40) g.wp++; else break;
       }
       const r = L.route[Math.min(g.wp, L.route.length - 1)], s = r[2] && L.spots.find(q => q.id === r[2]);
       if (s && !this.ready(g, s)) {
@@ -167,11 +176,13 @@ function ldnPart(d) {
       }
       if (g.people.length) ldnPeople(g, dt, this);
       for (const mv of g.movers) mv.update(g, dt);
+      for (const s of L.spots) if (s.on && s.follow) { const at = ldnAt(g.people.find(x => x.id === s.on), s.part); s.x = at.x; s.y = at.y; }
       for (const s of L.spots) if (s.moving) { s.ph = (s.ph || 0) + dt; s.x = s.ax + Math.cos(s.ph * 1.7) * 26; s.y = s.ay + Math.sin(s.ph * 2.3) * 16; }
       if (L.webs && ldnWebs(g, dt, input, this)) { if (this.hazards) this.hazards(g, dt); return; }   // stuck in a web: wriggle
       const s = g.homeSafe || (this.busy && this.busy(g)) ? null : this.spotHere(g);
       g.spot = s;
       if (this.busy && this.busy(g)) { /* the level has the button (a wrestle) */ }
+      else if (P.walk && !s && this.idle) this.idle(g, input);   // the walker's own move: Roll, Jump
       else if (P.walk && !s) {
         setAction('Fly', p.onGround && !(p.flyT > 0) && !(p.warmT > 0));
         if (input.pressed && p.onGround && Plat.takeOff(P, p)) { Sound.play('buzz'); Game.fact('dusk'); Game.pop(p.x, p.y - 34, 'Bzzz…', '#fff'); }
@@ -191,12 +202,13 @@ function ldnPart(d) {
       if (this.hazards) this.hazards(g, dt);
       if (this.tick) this.tick(g, dt, input);
     },
-    complete(g, s) {
+    complete(g, s) { this.finish(g, s); },   // a level may put something first (the fox's leap)
+    finish(g, s) {
       s.done = true; s.t = 0; s.doneAt = g.t;
       g.counts[s.kind] = (g.counts[s.kind] || 0) + 1;
       Sound.play(s.goal ? 'win' : 'score');
       if (s.pop) Game.pop(s.x, s.y - 30, s.pop, '#ffd23f');
-      if (s.say) { const who = s.on || s.by, q = who && g.people.find(x => x.id === who), at = q ? ldnAt(q, 'head') : s; Game.say(at.x, at.y - 34, s.say); Sound.play(s.sound || 'oi'); }
+      if (s.say) { const who = s.on || s.by, q = who && g.people.find(x => x.id === who), at = q ? ldnAt(q, 'head') : s.sayAt ? { x: s.sayAt[0], y: s.sayAt[1] } : s; Game.say(at.x, at.y - 34, s.say); Sound.play(s.sound || 'oi'); }
       if (s.fact) Game.fact(s.fact);
       if (s.extra) { g.extras++; Game.pop(s.x, s.y - 56, 'Cheeky! ★', '#ffd23f'); Game.burst(s.x, s.y, '#ffd23f', 18); }
       if (this.done) this.done(g, s);
@@ -810,11 +822,6 @@ const LDN_BUGS = [
   { id: 'l_moth', stage: 'ldn_moth', name: 'Jersey Tiger Moth', sci: 'Euplagia quadripunctaria', place: 'A garden in south-east London', pin: { x: 704, y: 506 } },
   { id: 'l_stag', stage: 'ldn_stag', name: 'Stag Beetle', sci: 'Lucanus cervus', place: 'Richmond Park', pin: { x: 215, y: 522 } },
 ];
-for (const b of LDN_BUGS) {
-  Bugs.push({ id: b.id, name: b.name, sci: b.sci, place: b.place, sprite: Missions[b.stage].sprite, pin: b.pin, hub: 'london', kind: 'sandbox', stages: [b.stage] });
-  Missions[b.stage].bug = b.id;
-}
-const LDN_TOUR = LDN_BUGS.map(b => b.stage);
 // What the bus's card says at each stop
 const LDN_STOP = {
   ldn_bee: 'Regent’s Park. You’re a buff-tailed bumblebee!',
@@ -823,4 +830,4 @@ const LDN_STOP = {
   ldn_moth: 'a garden in south-east London. Now you’re a Jersey tiger moth!',
   ldn_stag: 'Richmond Park at dusk. Now you’re a stag beetle!',
 };
-finishMissions();
+// The rest of London's places are in js/london2.js, which also puts them all on the map (LDN_TOUR is filled there).

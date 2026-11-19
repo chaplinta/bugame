@@ -186,24 +186,6 @@ Object.assign(Sprites, {
     ctx.restore();
   },
 
-  // Red fox, side-on, trotting (feet at the origin)
-  fox(ctx, o, t) {
-    sideOn(ctx, o, 14);
-    const step = o.moving ? Math.sin(t * 10) : 0;
-    for (const [x, k, col] of [[8, step, '#2a1a12'], [-9, -step, '#2a1a12'], [6, -step, '#3a2418'], [-11, step, '#3a2418']]) line(ctx, [x, 4, x + k * 2.5, 14], col, 2.2);
-    ctx.beginPath(); ctx.moveTo(-14, -1); ctx.quadraticCurveTo(-26, -6, -34, 2); ctx.quadraticCurveTo(-26, 6, -14, 3); ctx.closePath(); ctx.fillStyle = '#c8602a'; ctx.fill();   // brush
-    plainEll(ctx, -32, 2, 3, 2.4, '#f4f0e8');                               // white tip
-    ell(ctx, -2, 0, 15, 6.4, '#d0682e', 0, 'hair');
-    plainEll(ctx, 3, 3.6, 7, 2.4, '#f0e6d4');
-    ell(ctx, 14, -5, 5.4, 4.6, '#d0682e', 0, 'hair');
-    ctx.beginPath(); ctx.moveTo(17, -5); ctx.lineTo(24, -2.6); ctx.lineTo(17, -0.6); ctx.fillStyle = '#d0682e'; ctx.fill();   // muzzle
-    plainEll(ctx, 23.6, -2.6, 1, 0.8, '#151010');
-    plainEll(ctx, 18.4, -1.8, 2.6, 1.2, '#f0e6d4');
-    for (const dx of [11, 14]) { ctx.beginPath(); ctx.moveTo(dx, -8.6); ctx.lineTo(dx + 1.6, -14); ctx.lineTo(dx + 3.2, -8.6); ctx.fillStyle = '#b8521e'; ctx.fill(); }
-    plainEll(ctx, 16.4, -6.2, 0.9, 0.7, '#1a1208');
-    ctx.restore();
-  },
-
   // London's portrait on the bug page: a red double-decker bus seen from the side (no operator's markings)
   londonIcon(ctx) {
     ctx.save(); ctx.translate(-22, -15);
@@ -372,7 +354,7 @@ const LondonArt = {
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, hh);
       ctx.fillStyle = 'rgba(255,255,255,.12)'; for (let k = 0; k < hh; k += 24) ctx.fillRect(0, k, w, 2);
     } else {
-      const cols = kind === 'ivy' ? ['#2a5a2a', '#3a6a34', '#1e4a22'] : kind === 'bracken' ? ['#5a7a2a', '#6a8a34', '#4a6a22', '#8a7a2a'] : kind === 'buddleia' ? ['#5a7a52', '#6a8a5e', '#4a6a46', '#7a9a6a'] : ['#2f6a2e', '#3f7a38', '#285a28'];
+      const cols = kind === 'litter' ? ['#8a5a2a', '#a8703a', '#6a4422', '#b88a3a', '#7a4a1e'] : kind === 'ivy' ? ['#2a5a2a', '#3a6a34', '#1e4a22'] : kind === 'bracken' ? ['#5a7a2a', '#6a8a34', '#4a6a22', '#8a7a2a'] : kind === 'buddleia' ? ['#5a7a52', '#6a8a5e', '#4a6a46', '#7a9a6a'] : ['#2f6a2e', '#3f7a38', '#285a28'];
       this.leafBlob(ctx, -6, -4, w + 12, hh + 6, cols, Math.round(x + y), Math.round(w * hh / 260));
     }
     return { c, x: x - pad, y: y - pad };
@@ -421,6 +403,7 @@ SpriteCache.register('stagBeetleF', { key(o) { return 'F' + (o.face < 0 ? 0 : 1)
 // A London double-decker from the side, about 150 x 84 at s = 1, standing on (x, y) at the middle of its wheels and
 // facing `face`. o: { night (lit windows and headlamps), blind (the words on its front), t (for the wheels) }. No
 // operator's markings. Used tiny on the London map, and full size in the levels.
+LondonArt.more = {};   // each later level's own drawing: { spots(ctx, g, m, see), front(ctx, g, m) }, by mission id
 LondonArt.bus = function (ctx, x, y, s, face, o) {
   o = o || {};
   ctx.save(); ctx.translate(x, y); ctx.scale((face < 0 ? -1 : 1) * s, s);
@@ -585,18 +568,23 @@ function drawLondonMap(ctx, W, H) {
 // come from q.seed. Body points for tasks (ankle, neck, bum, nose...) are LDN_BODY in js/london.js.
 LondonArt.human = function (ctx, q, t) {
   const r = rng((q.seed || 1) * 7 + 3), pick = (a) => a[Math.floor(r() * a.length)];
-  const skin = pick(['#f2cfae', '#e0b088', '#b98054', '#8a5a3a', '#f6d8bc']), top = pick(['#3a6ab0', '#c8501e', '#2f7d5b', '#8a4a9a', '#d8a020', '#5a5a66', '#c03a5a']);
+  let top;
+  const skin = pick(['#f2cfae', '#e0b088', '#b98054', '#8a5a3a', '#f6d8bc']); top = pick(['#3a6ab0', '#c8501e', '#2f7d5b', '#8a4a9a', '#d8a020', '#5a5a66', '#c03a5a']);
   const bot = pick(['#2a3a5a', '#3a3a3a', '#6a4a3a', '#4a5a3a', '#7a7a88']), hair = pick(['#2a1a10', '#5a3a1e', '#c8a060', '#1a1a1a', '#8a8a8a', '#a8502a']), shoe = pick(['#1a1a1a', '#5a3a2a', '#e8e8e8', '#c8281e']);
+  if (q.shirt) top = q.shirt;
   const limb = (pts, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]); ctx.stroke(); };
   const box = (x, y, w, h, col, rad) => { ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, rad || 0) : ctx.rect(x, y, w, h); ctx.fill(); };
   const dot = (x, y, rx, ry, col, rot) => { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, TAU); ctx.fill(); };
   const foot = (x, y) => box(x - 7, y - 10, 24, 10, shoe, 5);
   const head = (x, y, down) => {
     dot(x, y, 15, 16, skin);
-    ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(x - 1, y - 2, 16, Math.PI * 0.82, Math.PI * 1.96); ctx.fill();
+    if (q.bald) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.ellipse(x - 2, y - 10, 6, 3, -0.3, 0, TAU); ctx.fill(); ctx.fillStyle = hair; ctx.fillRect(x - 15, y - 1, 5, 7); }
+    else { ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(x - 1, y - 2, 16, Math.PI * 0.82, Math.PI * 1.96); ctx.fill(); }
     dot(x + 14, y + 3 + (down ? 3 : 0), 3.4, 2.6, skin);                                             // nose
     dot(x + 8, y - 1 + (down ? 3 : 0), 1.8, q.sleepy ? 0.5 : 2.2, '#2a1a10');                        // eye
     ctx.strokeStyle = '#8a4a3a'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(x + 8, y + 7, 3.4, 0.2, Math.PI - 0.6); ctx.stroke();
+    if (q.hat === 'viking') { ctx.fillStyle = '#9aa0a8'; ctx.beginPath(); ctx.arc(x, y - 5, 16, Math.PI, 0); ctx.fill(); ctx.fillRect(x - 17, y - 7, 34, 4); ctx.fillStyle = '#f0e8d0'; for (const k of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + k * 12, y - 12); ctx.quadraticCurveTo(x + k * 26, y - 16, x + k * 22, y - 32); ctx.quadraticCurveTo(x + k * 18, y - 20, x + k * 9, y - 17); ctx.fill(); } }
+    if (q.hat === 'crown') { ctx.fillStyle = '#e8c030'; ctx.beginPath(); ctx.moveTo(x - 14, y - 10); ctx.lineTo(x - 14, y - 26); ctx.lineTo(x - 7, y - 18); ctx.lineTo(x, y - 28); ctx.lineTo(x + 7, y - 18); ctx.lineTo(x + 14, y - 26); ctx.lineTo(x + 14, y - 10); ctx.fill(); }
     if (q.hat === 'flowers') { dot(x, y - 11, 25, 5, '#e8d49a'); box(x - 12, y - 24, 24, 14, '#e8d49a', 7); for (const [dx, dy, c] of [[-7, -17, '#e04a5a'], [2, -19, '#8a6ac8'], [9, -16, '#f4f4ec'], [-1, -13, '#e87aa8']]) dot(x + dx, y + dy, 3.2, 3.2, c); }
   };
   ctx.save(); ctx.translate(q.x, q.y); ctx.scale(q.face < 0 ? -1 : 1, 1);
@@ -605,7 +593,9 @@ LondonArt.human = function (ctx, q, t) {
     limb([30, -48, 31, -16], bot, 13); limb([31, -17, 31, -11], skin, 9); foot(31, 0);
     limb([0, -52, 30, -50], bot, 15);
     box(-15, -116, 30, 70, top, 10);
-    if (q.wave) { limb([2, -108, 16, -134, 18 + wave * 12, -160], top, 10); dot(18 + wave * 12, -164, 6, 7, skin); }
+    const foam = (x, y) => { ctx.save(); ctx.translate(x, y); ctx.fillStyle = '#e03a3a'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-12, -22, 24, 26, 7) : ctx.rect(-12, -22, 24, 26); ctx.fill(); ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-5, -52, 10, 34, 5) : ctx.rect(-5, -52, 10, 34); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.save(); ctx.scale(q.face < 0 ? -1 : 1, 1); ctx.fillText('180', 0, -4); ctx.restore(); ctx.restore(); };
+    if (q.wave) { limb([2, -108, 16, -134, 18 + wave * 12, -160], top, 10); dot(18 + wave * 12, -164, 6, 7, skin); if (q.prop === 'foam') foam(18 + wave * 12, -168); }
+    else if (q.prop === 'foam') { limb([2, -106, 14, -100, 22, -126], top, 10); foam(22, -132 + Math.sin(t * 3 + q.seed) * 3); }
     else if (q.prop === 'phone') { limb([2, -106, 12, -88, 26, -100], top, 10); box(24, -116, 7, 13, '#1a1a1a', 2); box(25, -114, 5, 9, '#9ad0f0', 1); }
     else if (q.prop === 'book') { limb([2, -106, 12, -84, 24, -74], top, 10); box(18, -84, 18, 12, '#b8402a', 2); box(20, -82, 14, 8, '#f4ecd8', 1); }
     else { limb([2, -106, 14, -84, 26, -64], top, 10); dot(27, -62, 5, 5, skin); if (q.prop === 'cup') { box(27, -78, 10, 12, '#f4f0e4', 2); ctx.strokeStyle = '#f4f0e4'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(38, -72, 4, -1.2, 1.2); ctx.stroke(); } }
@@ -629,10 +619,20 @@ LondonArt.human = function (ctx, q, t) {
     const z = (t * 0.6) % 1; ctx.fillStyle = 'rgba(255,255,255,' + (0.9 - z * 0.9) + ')'; ctx.font = 'bold ' + (14 + z * 8) + 'px sans-serif';
     ctx.save(); ctx.translate(-30, -92 - z * 30); ctx.scale(q.face < 0 ? -1 : 1, 1); ctx.fillText('z', 0, 0); ctx.restore();
   } else {
-    limb([-5, -84, -5, -14], mixHex(bot, '#000000', 0.2), 14); limb([5, -84, 5, -17], bot, 14); limb([5, -17, 5, -11], skin, 9); foot(-5, 0); foot(5, 0);
+    const sw = q.walk ? Math.sin(t * 11) * 13 : 0;
+    limb([-5, -84, -5 - sw, -14], mixHex(bot, '#000000', 0.2), 14); limb([5, -84, 5 + sw, -17], bot, 14); limb([5 + sw, -17, 5 + sw, -11], skin, 9); foot(-5 - sw, 0); foot(5 + sw, 0);
     box(-17, -148, 34, 70, top, 11);
+    const dart = (x, y, a) => { ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillStyle = '#c8ccd0'; ctx.fillRect(-2, -1, 12, 2); ctx.fillStyle = '#e03a3a'; ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(-9, -4); ctx.lineTo(-7, 0); ctx.lineTo(-9, 4); ctx.fill(); ctx.restore(); };
     if (q.prop === 'guitar') { dot(4, -104, 20, 15, '#b8743a', -0.3); dot(4, -104, 6, 5, '#3a2414', -0.3); limb([16, -112, 40, -134], '#7a4a22', 5); }
     if (q.wave) { limb([0, -138, 16, -160, 18 + wave * 12, -190], top, 10); dot(18 + wave * 12, -194, 6, 7, skin); }
+    else if (q.reach) { limb([0, -138, 22, -150, 44, -164], top, 10); dot(46, -166, 5, 5, skin); }
+    else if (q.prop === 'throw') {   // q.throwing: 0 waiting, 0..1 drawing the dart back by his eye, 2 let go
+      const k = q.throwing || 0;
+      if (k >= 2) { limb([0, -138, 20, -146, 38, -150], top, 10); dot(40, -151, 5, 5, skin); }
+      else { const bx = 20 - k * 12, by = -160 - k * 4; limb([0, -138, 16, -132, bx, by], top, 10); dot(bx + 1, by - 2, 5, 5, skin); if (!q.walk) dart(bx + 6, by - 4, -0.08); }
+    }
+    else if (q.prop === 'darts') { limb([0, -138, 8, -116, 16, -104], top, 10); dot(17, -102, 5, 5, skin); dart(20, -106, -1.2); dart(23, -104, -1.0); }
+    else if (q.prop === 'mic') { limb([0, -138, 12, -124, 14, -150], top, 10); dot(14, -152, 5, 5, skin); box(11, -166, 6, 12, '#2a2a2a', 3); dot(14, -168, 5, 5, '#6a6a70'); }
     else if (q.prop === 'phone') { limb([0, -138, 8, -116, 22, -134], top, 10); box(20, -152, 8, 14, '#1a1a1a', 2); box(21, -150, 6, 10, '#9ad0f0', 1); }
     else if (q.prop === 'paper') { limb([0, -138, 10, -120, 22, -124], top, 10); box(18, -156, 26, 40, '#f0ead8', 2); ctx.fillStyle = 'rgba(60,60,60,.5)'; for (let k = 0; k < 5; k++) ctx.fillRect(21, -150 + k * 7, 20, 2); }
     else if (q.prop === 'guitar') { limb([0, -138, 10, -122, 8, -106], top, 10); dot(8, -104, 5, 5, skin); }
@@ -810,10 +810,11 @@ LondonArt.spots = function (ctx, g, m) {
     Game.drawSprite('stagBeetle', { x: r.x, y: r.y, angle: 0, face: -1, flat: true, moving: r.state === 'fight' }, 1.6);
     ctx.restore();
   }
+  const more = LondonArt.more[m.id]; if (more && more.spots) more.spots(ctx, g, m, see);   // a level's own things (js/art-london2.js)
   const s = g.spot, k = 0.5 + 0.5 * Math.sin(t * 6);
   if (s && !s.done) {
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.9, 0, TAU); ctx.strokeStyle = 'rgba(140,255,120,' + (0.4 + k * 0.4) + ')'; ctx.lineWidth = 3; ctx.stroke();
-    if (s.verb) { ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(30,20,10,.6)'; ctx.strokeText(s.verb + '!', s.x, s.y - s.r - 10 - k * 4); ctx.fillText(s.verb + '!', s.x, s.y - s.r - 10 - k * 4); }
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.ring || s.r * 0.9, 0, TAU); ctx.strokeStyle = 'rgba(140,255,120,' + (0.4 + k * 0.4) + ')'; ctx.lineWidth = 3; ctx.stroke();
+    if (s.verb) { ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(30,20,10,.6)'; const up = (s.ring || s.r) + 10 + k * 4; ctx.strokeText(s.verb + '!', s.x, s.y - up); ctx.fillText(s.verb + '!', s.x, s.y - up); }
   }
 };
 
@@ -829,6 +830,7 @@ LondonArt.front = function (ctx, g, m) {
   for (const q of g.people) if (q.looking && Math.abs(q.x - p.x) < vw) LondonArt.zone(ctx, q, t);
   if (L.cat && h.cat.state !== 'asleep') red(L.cat.x, L.cat.y - 30, m.CAT_R, h.cat.state === 'alert' ? 0.26 : 0.13 + 0.04 * Math.sin(t * 5));
   if (h.dog) red(h.dog.x, h.dog.y - 44, 130, h.dog.state === 'alert' ? 0.26 : 0.12 + 0.04 * Math.sin(t * 5));
+  const more = LondonArt.more[m.id]; if (more && more.front) more.front(ctx, g, m);
   if (g.shooed > 0) {   // blown off: streaks of air behind her
     const dir = g.shooDir || 1;
     ctx.strokeStyle = 'rgba(255,255,255,' + Math.min(1, 0.3 + g.shooed) + ')'; ctx.lineWidth = 2;

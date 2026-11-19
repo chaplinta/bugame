@@ -78,6 +78,6 @@ function serve(dir) {
 const MISSIONS = ['ant', 'queen', 'bee', 'fly', 'caterpillar', 'butterfly', 'termite', 'snail', 'spiderling', 'spider', 'nymph', 'dragonfly', 'sandhopper', 'mosquito', 'flight', 'skimmerF', 'spiderF', 'nest', 'frog',
   'oly_jump', 'oly_sprint', 'oly_dig', 'oly_lift', 'oly_buzz', 'oly_gym',
   'cir_strong', 'cir_trapeze', 'cir_rope', 'cir_vanish', 'cir_water',
-  'ldn_bee', 'ldn_wasp', 'ldn_mosquito', 'ldn_moth', 'ldn_stag'];
+  'ldn_bee', 'ldn_wasp', 'ldn_mosquito', 'ldn_moth', 'ldn_stag', 'ldn_darts', 'ldn_louse', 'ldn_fox'];
 
 module.exports = { launch, launchMedia, openGame, startMission, forceWin, settle, serve, ROOT, FILE_URL, MISSIONS };

@@ -42,8 +42,8 @@ function show(id) {
 }
 
 // Small bugs need a bigger icon to match the others.
-const ICON_SCALE = { bushFly: 2.2, termiteWorker: 1.6, butterfly: 1.3, mosquito: 2.4, sandhopper: 1.5, bumblebee: 1.7, commonWasp: 1.7, ugMosquito: 2.6, tigerMoth: 1.5, stagBeetle: 1.1, londonIcon: 1.1 };
-const SIDE_VIEW = { sandhopper: true, bumblebee: true, commonWasp: true, ugMosquito: true, tigerMoth: true, stagBeetle: true, londonIcon: true };   // drawn from the side, so not turned to face up
+const ICON_SCALE = { bushFly: 2.2, termiteWorker: 1.6, butterfly: 1.3, mosquito: 2.4, sandhopper: 1.5, bumblebee: 1.7, commonWasp: 1.7, ugMosquito: 2.6, tigerMoth: 1.5, stagBeetle: 1.1, londonIcon: 1.1, queenWasp: 1.9, pillLouse: 3, fox: 0.9 };
+const SIDE_VIEW = { sandhopper: true, bumblebee: true, commonWasp: true, ugMosquito: true, tigerMoth: true, stagBeetle: true, londonIcon: true, queenWasp: true, pillLouse: true, fox: true };   // drawn from the side, so not turned to face up
 // A bug from a hidden place (London, js/london.js) shows up in the Bug Book and the parade only once it's found
 function known(bug) { return !bug.hub || Progress.hasSecret('s_' + bug.hub); }
 

@@ -156,3 +156,79 @@ for (const [name, male] of [['stagBeetle', true], ['stagBeetleF', false]]) {
     },
   });
 }
+
+// The queen wasp at the darts (js/london2.js) is the common wasp, drawn bigger
+Models.define('queenWasp', Models.defs.commonWasp);
+
+Models.define('pillLouse', {
+  // Pill woodlouse: a slate-grey dome of overlapping plates on fourteen short legs; rolled up, a ball of the same
+  // plates. o.moult === 1: the back half is new and pale.
+  view: 'side',
+  variant(o) { return (o.rolled ? 'b' : 'w') + (o.moult === 1 ? '1' : ''); },
+  key(o, t) { return (o.face < 0 ? 'L' : 'R') + (o.rolled ? 'b' + ((Math.floor((o.spin || 0) / TAU * 8) % 8) + 8) % 8 : o.moving ? 'm' + SpriteCache.phase(t, 16, 4) : 'x') + (o.moult === 1 ? '1' : ''); },
+  build(M, o) {
+    const g = new THREE.Group(), slate = M.chitin('#4c4f58', { coat: 0.5 }), pale = M.chitin('#b4ae9e', { coat: 0.3 }), dark = M.chitin('#22232a');
+    if (o.rolled) {
+      const ball = new THREE.Group(); ball.position.set(0, 0, 5.6); g.add(ball); g.userData.ball = ball;
+      M.ellipsoid(ball, 5.3, 4.8, 5.3, slate, [0, 0, 0]);
+      if (o.moult === 1) M.ellipsoid(ball, 2.9, 4.9, 5.35, pale, [-2.6, 0, 0]);
+      for (let k = 0; k < 4; k++) M.ellipsoid(ball, 0.3, 4.9, 5.5, dark, [0, 0, 0], [0, k / 4 * Math.PI, 0]);   // the joins between the plates
+      return g;
+    }
+    const legs = [];
+    for (let k = 0; k < 7; k++) for (const s of [-1, 1]) legs.push(M.seg(g, [-4.5 + k * 1.5, s * 1.8, 1.6], [-4.5 + k * 1.5, s * 3, 0.2], 0.28, M.chitin('#62656c')));
+    g.userData.feet = legs;
+    for (let k = 0; k < 9; k++) {
+      const x = -5.8 + k * 1.45, h = 5.4 * Math.sqrt(Math.max(0.04, 1 - Math.pow((x - 0.2) / 6.9, 2)));
+      M.ellipsoid(g, 1.25, 0.6 + h * 0.72, h * 0.58, o.moult === 1 && k < 5 ? pale : slate, [x, 0, 1 + h * 0.42]);
+    }
+    for (const s of [-1, 1]) { M.ellipsoid(g, 0.5, 0.5, 0.5, M.eye({ color: '#101014' }), [5.9, s * 1.6, 2.4]); M.antenna(g, [6.3, s * 0.9, 2.2], s * 0.5, 1.8, s * 0.2, 2.2, 3, M.chitin('#3a3c44'), 0.3, { rise: 0.3, droop: -0.5 }); }
+    return g;
+  },
+  pose(root, o, t) {
+    const u = root.userData;
+    if (u.ball) u.ball.rotation.y = -(((Math.floor((o.spin || 0) / TAU * 8) % 8) + 8) % 8) / 8 * TAU;
+    else if (u.feet) { const ph = o.moving ? (SpriteCache.phase(t, 16, 4) + 0.5) / 4 * TAU : 0; u.feet.forEach((f, i) => { f.rotation.y = o.moving ? Math.sin(ph + Math.floor(i / 2) * 1.1) * 0.35 : 0; }); }
+  },
+});
+
+Models.define('fox', {
+  // Red fox: orange coat, white chest and tail tip, black socks. o.air: stretched out in a leap; o.listen: head up
+  view: 'side',
+  key(o, t) { return (o.face < 0 ? 'L' : 'R') + (o.air ? 'a' : o.moving ? 'm' + SpriteCache.phase(t, 12, 4) : o.listen ? 's' : 'x'); },
+  build(M) {
+    const g = new THREE.Group(), coat = M.fur('#d0682e'), white = M.fur('#f0e6d4'), sock = M.fur('#2a1a12');
+    const legs = [];
+    for (const [x, s] of [[8, -1], [8, 1], [-9, -1], [-9, 1]]) {
+      const hip = new THREE.Group(); hip.position.set(x, s * 2.6, 10); g.add(hip);
+      M.seg(hip, [0, 0, 1], [0, 0, -5], 1.3, coat, { full: true }); M.seg(hip, [0, 0, -4], [0.6, 0, -9.4], 1.05, sock, { full: true });
+      legs.push({ hip, front: x > 0, s });
+    }
+    g.userData.legs = legs;
+    M.ellipsoid(g, 15, 5.6, 6.2, coat, [-2, 0, 14]);
+    M.pile(g, [-2, 0, 14], 14.8, 5.5, 6.1, 240, 1.7, '#d87838', 91, { lean: 0.6, thick: 0.16 });
+    M.ellipsoid(g, 8, 4.6, 3, white, [4, 0, 10.4]);
+    const tail = new THREE.Group(); tail.position.set(-14, 0, 14); g.add(tail); g.userData.tail = tail;
+    M.ellipsoid(tail, 10, 3.2, 3.4, M.fur('#c8602a'), [-9, 0, -1.6]);
+    M.pile(tail, [-9, 0, -1.6], 9.8, 3.1, 3.3, 120, 2, '#d87838', 92, { lean: 0.7, thick: 0.18 });
+    M.ellipsoid(tail, 3.4, 2.5, 2.7, white, [-17.6, 0, -2]);
+    const head = new THREE.Group(); head.position.set(14, 0, 19); g.add(head); g.userData.head = head;
+    M.ellipsoid(head, 5.2, 4.4, 4.5, coat, [0, 0, 0]);
+    M.pile(head, [0, 0, 0], 5.1, 4.3, 4.4, 70, 1.1, '#d87838', 93, { lean: 0.4, thick: 0.14 });
+    M.seg(head, [3, 0, -0.6], [9.6, 0, -2.4], 2, coat, { cone: 0.9 });
+    M.ellipsoid(head, 3.4, 1.9, 1.2, white, [4.6, 0, -2.6]);
+    M.ellipsoid(head, 1, 0.9, 0.8, M.gloss('#151010'), [9.8, 0, -2.2]);
+    for (const s of [-1, 1]) {
+      M.seg(head, [-1.6, s * 2.4, 3], [-0.6, s * 3, 9], 1.8, M.fur('#b8521e'), { cone: 0.2 });
+      M.seg(head, [-1.3, s * 2.6, 6.4], [-0.6, s * 3, 9.2], 0.9, sock, { cone: 0.2 });
+      M.ellipsoid(head, 0.8, 0.7, 0.8, M.eye({ color: '#1a1208' }), [2.6, s * 3.2, 0.6]);
+    }
+    return g;
+  },
+  pose(root, o, t) {
+    const u = root.userData, sw = o.moving && !o.air ? Math.sin((SpriteCache.phase(t, 12, 4) + 0.5) / 4 * TAU) : 0;
+    for (const l of u.legs) l.hip.rotation.y = o.air ? (l.front ? -1.05 : 1.05) : sw * 0.5 * (l.front ? 1 : -1) * l.s;
+    u.head.position.z = 19 + (o.listen && !o.moving && !o.air ? 2.2 : 0);
+    u.tail.rotation.y = o.air ? -0.25 : 0.15;
+  },
+});

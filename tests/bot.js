@@ -223,6 +223,8 @@
       return best;
     };
     const aim = (pt) => P.walk ? { x: pt.x, y: cy } : pt;
+    if (m.id === 'ldn_darts' && !g.counts.warm) return { hold: true };   // shiver to warm up
+    if (g.pounce) return { goal: null };                   // the fox, in mid-leap
     if (g.stuck) return { hold: true };                    // in a web: wriggle
     if (g.wrestle) return { act: true };                   // locked jaws: tap
     const hunted = g.preds.some(pr => pr.state === 'alert' || pr.state === 'chase');
@@ -233,6 +235,36 @@
     const seen = (g.people || []).find(q => q.shoo > 0 || ldnInZone(q, c));
     if (seen) { const e = ldnAt(seen, 'eyes'); return { goal: { x: c.x + (c.x >= e.x ? 150 : -150), y: Math.max(96, e.y - 230) } }; }
     const w = m.waypoint(g), s = w.spot, here = g.spot;
+    if (m.id === 'ldn_louse') {
+      const S = g.spider, lair = L.lair, A = L.ants;
+      if (p.rolled && (Math.abs(p.vx) > 12 || !p.onGround)) return { goal: null };            // a ball on its way: let it roll
+      if (s && here === s && s.verb) return s.hold ? { hold: true } : { goal: aim(s), act: true };
+      // the top of a slope to go down: curl up
+      const r = L.ramps.find(q => q[3] > q[1] && p.x > q[0] - 6 && p.x < q[0] + 46 && Math.abs(p.y - Plat.rampY(q, clamp(p.x, q[0], q[2]))) < 4 && w.x > q[2]);
+      if (r && !p.rolled) return p.x < r[0] + 10 ? { goal: { x: r[0] + 40, y: cy } } : { goal: null, act: true };
+      // among the ants: a ball, till they give up
+      if (p.x > A[0] - 12 && p.x < A[1] + 12 && p.y > L.floor - 30 && !(g.antsOff > 0)) return p.rolled ? { goal: null } : { goal: null, act: true };
+      // the spider's stone: only go under with time to get through
+      if (w.x > lair[0] && p.x > lair[0] - 90 && p.x < lair[0] - 4 && !(S.state === 'in' && S.t + 0.8 > (lair[1] + 20 - p.x) / P.walk + (kidLike ? 0 : 0.4))) return { goal: p.x > lair[0] - 30 ? { x: lair[0] - 50, y: cy } : null };
+      return { goal: aim(w) };
+    }
+    if (m.id === 'ldn_fox') {
+      const R = L.road, cat = h.cat;
+      if (s && s.prey) {   // creep close, stand still and listen, then pounce
+        const d = Math.abs(s.x - p.x);
+        if (s.up) return { goal: null, act: here === s };
+        if (d < 150 && d > 40) return { goal: null };
+        return { goal: { x: s.x + (p.x < s.x ? -100 : 100), y: cy } };
+      }
+      if (s && s.id === 'fly') return Math.abs(s.ax - p.x) < 26 ? { goal: null, act: p.onGround } : { goal: { x: s.ax, y: cy } };   // jump at the daddy-long-legs
+      // the road: wait on the kerb or the island while anything is coming
+      const ln = R.lanes.find(q => w.x > q.x && p.x > q.x - 186 && p.x < q.x - 98);
+      if (ln && ln.t < 1.9 && ln.t > -0.35) return { goal: null };
+      // the cat's wall: only when it's asleep, with time to get over
+      if (w.x > L.cat.x && p.x > L.cat.x - 240 && p.x < L.cat.x - 125 && p.y >= L.floor - 1 && !(cat.state === 'asleep' && cat.t > (kidLike ? 1.6 : 2.2))) return { goal: null };
+      if (p.wall && p.onGround) return { goal: aim(w), act: true };   // up and over
+      return { goal: aim(w) };
+    }
     if (P.walk) {
       // a flight in progress: up and over, then down
       if (p.flyT > 0 || p.warmT > 0) return { goal: { x: p.x + 220, y: cy + (L.pond && p.x < L.pond[1] + 20 ? -140 : 120) } };
@@ -254,7 +286,8 @@
       const q = g.people.find(x => x.id === s.on);
       if (q.look && (q.looking || (!kidLike && q.timer < (s.hold || 0.5) + 0.4 && !(here === s && s.t > 0)))) return Math.hypot(s.x - c.x, s.y - c.y) < 240 ? { goal: { x: c.x + (c.x >= q.x ? 120 : -120), y: Math.max(96, ldnAt(q, 'eyes').y - 230) } } : { goal: s };
     }
-    if (s && s.off) return { goal: { x: s.x, y: s.y - 70 } };   // a rat on the run: keep over it till it stops
+    if (L.jets) for (const jx of L.jets) if (w.x > jx && p.x < jx && p.x > jx - 150 && (g.jetT > 3 || g.jetT < 1.2)) return { goal: { x: jx - 100, y: cy } };   // stage smoke: wait
+    if (s && s.off) return { goal: { x: s.x, y: s.y - 70 } };   // a rat on the run (or a board with darts on the way): keep over it
     if (s && here === s && s.verb) return s.hold ? { hold: true } : { goal: s, act: true };
     return { goal: aim(w) };
   }
