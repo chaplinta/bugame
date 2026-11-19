@@ -114,7 +114,7 @@ const Missions = {
   // ---------------------------------------------------------------- Bull ant
   ant: {
     id: 'ant', bug: 'ant', stage: 'Worker', place: 'Banksia woodland, Kings Park', world: BIG,
-    action: 'Sting', radius: 16, speed: 185, scale: 1.4, goal: 12,
+    action: 'Sting', radius: 16, speed: 185, scale: 1.4, goal: 8,
     home: { x: 220, y: 980, r: 50, label: 'Nest' },
     facts: [
       'Almost every kind of bull ant in the world lives only in Australia.',
@@ -124,7 +124,7 @@ const Missions = {
     how: [
       'Move with the arrow keys, or touch and drag. Explore the bush!',
       'Pick up dead insects and termites and carry them to the nest.',
-      'Caterpillars are too big. Get close and press Sting first.',
+      'Caterpillars are too big. Get close and press Sting first. A caterpillar is a big meal: it counts as two!',
       'Every load makes your nest bigger. Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
@@ -141,6 +141,8 @@ const Missions = {
       larvae: 'The insects go to the larvae (baby ants). Adult bull ants drink nectar and sweet juices instead.',
       build: 'As the colony grows, the workers dig more tunnels and chambers, and pile up soil around the entrances.',
       echidna: 'Echidnas dig into ant nests and lick up ants with a long, sticky tongue.',
+      bubble: 'Echidnas blow snot bubbles to keep cool! The bubbles burst and wet the tip of the nose.',
+      scat: 'Echidna poo! It’s a dry sausage, full of soil and the hard bits of ants and termites.',
       d_cone: 'A banksia cone! Many banksias keep their seeds locked in cones until a bushfire opens them.',
       d_dig: 'A quenda dig! Quendas are small bandicoots that dig cone-shaped holes to find insects and fungi. They live in Kings Park.',
       d_feather: 'A black cockatoo feather! Carnaby’s black cockatoos eat banksia seeds. They are endangered.',
@@ -174,16 +176,26 @@ const Missions = {
       p.stingT = Math.max(0, (p.stingT || 0) - dt);
       for (const it of g.items) {
         if (it.kind === 'dead') continue;
-        if (it.stunned) { it.stunT -= dt; it.moving = false; if (it.stunT <= 0) it.stunned = false; }
+        if (it.stunned) { it.stunT -= dt; it.moving = false; if (it.stunT > 6.8) it.angle = it.stungA + Math.sin(g.t * 42) * 0.7 * (it.stunT - 6.8); if (it.stunT <= 0) it.stunned = false; }   // it thrashes, then lies still
         else wander(it, dt, it.speed);
       }
+      // The echidna: every so often a snot bubble swells on its nose and pops; where it rests it leaves a dropping
+      const e = g.preds.find(pr => pr.sprite === 'echidna');
+      if (e) {
+        e.snotT = (e.snotT === undefined ? 4 : e.snotT) - dt;
+        if (e.snotT < -1.6) { e.snotT = 7 + Math.random() * 5; if (dist(e, p) < 420) { Sound.play('tap'); Game.pop(e.x + Math.cos(e.angle) * 40, e.y + Math.sin(e.angle) * 40 - 12, 'Pop!', '#cfe6ff'); Game.fact('bubble'); } }
+        e.scatT = (e.scatT === undefined ? 12 : e.scatT) - dt;
+        if (e.scatT <= 0 && e.state !== 'chase') { e.scatT = 22 + Math.random() * 10; g.scats = (g.scats || []).concat({ x: e.x - Math.cos(e.angle) * 30, y: e.y - Math.sin(e.angle) * 30, a: e.angle + 0.4 }).slice(-4); }
+      }
+      const sc = (g.scats || []).find(q => !q.seen && dist(q, p) < 30);
+      if (sc) { sc.seen = true; Sound.play('raspberry'); Game.pop(sc.x, sc.y - 18, 'Echidna poo!', '#fff'); Game.fact('scat'); }
       const near = nearest(g.items.filter(i => i.kind === 'caterpillar' && !i.stunned), p, 48);
       setAction('Sting', !!near && !p.carry);
       if (input.pressed) {
         p.stingT = 0.3;
         Sound.play('sting');
         if (near) {
-          near.stunned = true; near.stunT = 8;
+          near.stunned = true; near.stunT = 8; near.stungA = near.angle || 0;
           Game.pop(near.x, near.y - 14, 'Stung!', '#ffd23f');
           Game.fact('sting');
         }
@@ -194,6 +206,7 @@ const Missions = {
           if (it.kind !== 'caterpillar' || it.stunned) {
             p.carry = it.sprite;
             p.carryName = it.name || it.kind;
+            p.big = it.kind === 'caterpillar';
             g.items.splice(g.items.indexOf(it), 1);
             Sound.play('pick');
             Game.fact(it.kind === 'dead' ? 'scavenge' : 'carry');
@@ -203,14 +216,23 @@ const Missions = {
           }
         }
       } else if (Game.inHome()) {
-        g.score++;
+        const was = g.score;
+        g.score += p.big ? 2 : 1;
         Sound.play('score');
-        Game.pop(p.x, p.y - 20, '+1', '#fff');
-        p.carry = null;
+        Game.pop(p.x, p.y - 20, p.big ? '+2  A big meal!' : '+1', p.big ? '#ffd23f' : '#fff');
+        p.carry = null; p.big = false;
         Game.fact('larvae');
-        if (g.score === 3) Game.fact('build');
+        if (was < 3 && g.score >= 3) Game.fact('build');
       }
       p.speed = p.carry ? 168 : 185;   // a load slows her only a little
+    },
+    drawExtra(ctx, g) {
+      for (const q of g.scats || []) { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.a); ell(ctx, 0, 0, 11, 4.4, '#5a4630'); ell(ctx, -4, -0.6, 2, 1.2, '#2a1c10'); ell(ctx, 3, 0.8, 1.6, 1, '#8a6a40'); ctx.restore(); }
+      const e = g.preds.find(pr => pr.sprite === 'echidna');
+      if (e && e.snotT < 0) {   // the bubble on its nose
+        const k = Math.min(1, -e.snotT / 1.6), x = e.x + Math.cos(e.angle) * (e.r + 12), y = e.y + Math.sin(e.angle) * (e.r + 12);
+        ctx.beginPath(); ctx.arc(x, y, 2 + k * 8, 0, TAU); ctx.fillStyle = 'rgba(210,235,255,.45)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1; ctx.stroke();
+      }
     },
     // The nest mound grows and gains entrances with every load.
     drawBuild(ctx, g) {
@@ -224,7 +246,7 @@ const Missions = {
     },
     onCaught(g) { g.player.carry = null; },
     goalPoint(g) { return g.player.carry ? g.home : null; },
-    hud(g) { setHud('Food: ' + g.score + ' / ' + this.goal, g.player.carry ? 'Carrying a ' + g.player.carryName : ''); },
+    hud(g) { setHud('Food: ' + Math.min(g.score, this.goal) + ' / ' + this.goal, g.player.carry ? 'Carrying a ' + g.player.carryName : ''); },
     won(g) { return g.score >= this.goal; },
   },
 
@@ -287,7 +309,8 @@ const Missions = {
           g.dropped = { x: p.x - 18, y: p.y + 10 };
           g.home = { x: patch.x, y: patch.y, r: 40, label: 'New nest' };
           p.x = patch.x; p.y = patch.y;
-          Sound.play('pick');
+          Sound.play('pick'); Sound.play('tap');
+          Game.pop(g.dropped.x, g.dropped.y - 22, 'Snap! Off come the wings', '#fff');
           Game.fact('wings');
           g.toasts.push({ text: 'Now hold Dig to dig your nest.', kind: 'hint' });
         }
@@ -369,7 +392,7 @@ const Missions = {
   // -------------------------------------------------------- Blue-banded bee
   bee: {
     id: 'bee', bug: 'bee', stage: 'Adult female', place: 'A backyard with native plants', world: BIG,
-    action: 'Buzz', radius: 16, speed: 210, scale: 1.5, goal: 12, voice: true,   // voice: shouting works the button (js/mic.js)
+    action: 'Buzz', radius: 16, speed: 210, scale: 1.5, goal: 9, voice: true,   // voice: shouting works the button (js/mic.js)
     home: { x: 200, y: 220, r: 46, label: 'Burrow' },
     facts: [
       'Blue-banded bees live alone, not in a hive. Each female digs her own burrow in soil or a clay bank.',
@@ -380,7 +403,8 @@ const Missions = {
       'Fly with the arrow keys, or touch and drag. Explore the whole yard!',
       'Land on a blue Dianella or yellow Hibbertia flower and hold or tap Buzz.',
       'Or turn on Shout to buzz on the map, and shout BUZZ at the flower!',
-      'You can carry 3 loads. Every 3 loads fills a new cell in your burrow.',
+      'You can carry 3 loads. Every 3 loads fills a new cell in your burrow. Fill three cells.',
+      'If a spotty cuckoo bee sneaks up to your burrow, fly at her to chase her off.',
       'Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
@@ -395,6 +419,8 @@ const Missions = {
       hibbertia: 'Hibbertia (guinea flower) is another buzz-pollinated flower. Bees spread its pollen from flower to flower.',
       paw: 'Kangaroo paws are pollinated mainly by birds like honeyeaters. Pollen rubs onto the bird’s head as it drinks nectar.',
       buzz: 'A bee’s buzz comes from its flight muscles shaking very fast. Yours comes from your voice box!',
+      headbang: 'A blue-banded bee shakes pollen loose by banging her head on the flower, up to 350 times a second!',
+      cuckoo: 'A cuckoo bee! She never builds a nest. She sneaks her egg into a blue-banded bee’s burrow instead.',
       nest: 'She mixes pollen with nectar into a food ball, lays an egg on it, and seals the cell.',
       cell: 'A full cell! The egg in it will hatch into a larva that eats the food ball, then turns into a new bee.',
       beeEater: 'Rainbow bee-eaters fly to Perth in spring. They catch bees in the air, then rub them on a branch to get rid of the sting.',
@@ -449,6 +475,7 @@ const Missions = {
               p.load++; f.pollen = false; f.regrow = 12; p.buzzT = 0;
               Sound.play('pick');
               Game.pop(f.x, f.y - 20, 'Pollen!', '#f39c12');
+              if (g.score + p.load >= 2) Game.fact('headbang');
             }
           } else if (p.stillT > 1.5) Game.hint(typeof Mic !== 'undefined' && Mic.active ? 'Shout BUZZ to shake the pollen out!' : 'Hold or tap Buzz to shake the pollen out!');
         }
@@ -464,10 +491,41 @@ const Missions = {
         if (Math.floor(g.score / 3) > before) Game.fact('cell');
       }
       p.speed = 210 - p.load * 7;
+      // A cuckoo bee sneaks towards the burrow once a cell is full: fly at her and she's off. If she gets in, a load is lost.
+      const h = g.home;
+      if (!g.cuckoo && !g.cuckooDone && g.score >= 3 && g.score < this.goal && dist(p, h) > 380) {
+        const a = Math.atan2(p.y - h.y, p.x - h.x) + 2.4;
+        g.cuckoo = { x: clamp(h.x + Math.cos(a) * 330, 30, World.w - 30), y: clamp(h.y + Math.sin(a) * 330, 30, World.h - 30), state: 'sneak', t: 0 };
+        Sound.play('caught'); Game.fact('cuckoo');
+        g.toasts.unshift({ text: 'A cuckoo bee is sneaking up on your burrow! Fly at her to chase her off.', kind: 'hint' }); g.toastT = 0;
+      }
+      const c = g.cuckoo;
+      if (c) {
+        c.t += dt;
+        if (c.state === 'sneak') {
+          const d = dist(c, h) || 1;
+          c.angle = Math.atan2(h.y - c.y, h.x - c.x); c.x += (h.x - c.x) / d * 14 * dt; c.y += (h.y - c.y) / d * 14 * dt + Math.sin(c.t * 5) * 0.3;
+          if (dist(c, p) < 46) { c.state = 'flee'; c.t = 0; g.cuckooDone = true; Sound.play('buzz'); Sound.play('score'); Game.pop(c.x, c.y - 24, 'Shoo! Off she goes', '#ffd23f'); }
+          else if (d < 24) { c.state = 'flee'; c.t = 0; g.cuckooDone = true; g.score = Math.max(0, g.score - 1); Sound.play('caught'); Game.pop(h.x, h.y - 30, 'She got in! One load lost', '#fff'); }
+        } else {
+          c.angle = Math.atan2(c.y - h.y, c.x - h.x); c.x += Math.cos(c.angle) * 260 * dt; c.y += Math.sin(c.angle) * 260 * dt;
+          if (c.t > 4) g.cuckoo = null;
+        }
+      }
+    },
+    drawExtra(ctx, g) {
+      const c = g.cuckoo; if (!c) return;
+      // a cuckoo bee: stout and black, with pale blue spots
+      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.angle || 0); ctx.scale(1.5, 1.5);
+      const b = Math.sin(g.t * 70) * 0.5;
+      for (const s of [-1, 1]) { ctx.save(); ctx.rotate(s * (0.9 + b * 0.4)); ell(ctx, -4, 0, 10, 3.4, 'rgba(210,225,240,.5)'); ctx.restore(); }
+      ell(ctx, -5, 0, 7.4, 4.8, '#16161c'); ell(ctx, 3, 0, 4.4, 4, '#1c1c24'); ell(ctx, 8, 0, 3, 3, '#16161c');
+      for (const [x, y] of [[-8, -2.6], [-8, 2.6], [-4, -3.2], [-4, 3.2], [-0.5, -2.6], [-0.5, 2.6], [3.6, -2.2], [3.6, 2.2]]) ell(ctx, x, y, 1.2, 1.1, '#8fd0f0');
+      ctx.restore();
     },
     // Burrow cells fill with pollen balls, one cell per 3 loads.
     drawBuild(ctx, g) {
-      const h = g.home, cells = 4;
+      const h = g.home, cells = 3;
       for (let i = 0; i < cells; i++) {
         const a = -0.3 + i * 0.55, x = h.x + Math.cos(a) * (h.r + 34), y = h.y + Math.sin(a) * (h.r + 34);
         const fill = clamp(g.score - i * 3, 0, 3) / 3;
@@ -480,7 +538,7 @@ const Missions = {
     },
     onCaught(g) { g.player.load = 0; },
     goalPoint(g) { return g.player.load >= 3 ? g.home : null; },
-    hud(g) { setHud('Cells filled: ' + Math.min(4, Math.floor(g.score / 3)) + ' / 4', 'Carrying ' + g.player.load + ' / 3'); },
+    hud(g) { setHud('Cells filled: ' + Math.min(3, Math.floor(g.score / 3)) + ' / 3', 'Carrying ' + g.player.load + ' / 3'); },
     won(g) { return g.score >= this.goal; },
   },
 
@@ -521,6 +579,7 @@ const Missions = {
       hop: 'Kangaroos can’t move their back legs one at a time on land. They hop with both together.',
       tail: 'When a kangaroo grazes slowly, its tail works like a fifth leg.',
       wagtailRide: 'Willie wagtails ride on cows and sheep, snapping up the flies they stir up.',
+      burp: 'Pardon! Cows burp up lots of a gas called methane. Nearly all of it comes out as burps, not from the other end.',
       wind: 'Every spring, bush flies ride warm north winds hundreds of kilometres south across Australia.',
       d_roo: 'A western grey kangaroo. Kangaroos often come into paddocks to graze at dawn and dusk.',
       d_rooPoo: 'Kangaroo poo: small, dry pellets. Australia’s native dung beetles mostly suit this kind of dung, not big cow pats.',
@@ -722,6 +781,10 @@ const Missions = {
             Game.fact('mouth');
             g.toasts.unshift({ text: 'Full of protein! Now follow the arrow to a fresh, shiny cow pat and hold Lay.', kind: 'hint' });
             g.toastT = 0;
+            if (!g.burped || Math.random() < 0.4) {   // and the cow burps in her face
+              g.burped = true;
+              Game.later(0.7, () => { const q = this.head(cow); Sound.play('burp'); Game.say(q.x, q.y - 34, 'Buuurp!', 1.6); Game.fact('burp'); });
+            }
           }
         }
       } else if (mount) {
@@ -759,7 +822,7 @@ const Missions = {
   caterpillar: {
     id: 'caterpillar', bug: 'butterfly', stage: 'Caterpillar', place: 'Wildflower heath, Bold Park', world: BIG,
     sprite: 'plCaterpillar', bg: 'heath', escape: 'Crawl',
-    action: 'Munch', radius: 16, speed: 105, scale: 2.2, goal: 12,
+    action: 'Munch', radius: 16, speed: 105, scale: 2.2, goal: 9,
     explore: false,   // a chrysalis has nothing left to explore
     home: { x: 240, y: 960, r: 44, label: 'Silk shelter' },
     facts: [
@@ -770,7 +833,7 @@ const Missions = {
     how: [
       'Crawl with the arrow keys, or touch and drag.',
       'Find pink everlastings or yellow capeweed and hold or tap Munch to eat the leaves.',
-      'You’ll moult (shed your skin) as you grow. Eat 12 times.',
+      'You’ll moult (shed your skin) as you grow. Eat 9 times.',
       'Then press Pupate to turn into a chrysalis.',
     ],
     discoveries: [
@@ -851,6 +914,9 @@ const Missions = {
             p.munchT = 0;
             g.score++;
             Game.pop(p.x, p.y - 20, 'Yum!', '#7fc24a');
+            // what goes in must come out: a pellet behind her (no fact goes with it)
+            g.frass = (g.frass || []).concat({ x: p.x - Math.cos(p.angle) * (p.r + 6) + (Math.random() - 0.5) * 8, y: p.y - Math.sin(p.angle) * (p.r + 6) + (Math.random() - 0.5) * 8 }).slice(-14);
+            if (g.score === 2) { Sound.play('raspberry'); Game.pop(p.x - Math.cos(p.angle) * 30, p.y - Math.sin(p.angle) * 30 - 12, 'Plop!', '#fff'); }
             if (g.score === 3 || g.score === 6) {
               g.moultT = 1.5;
               Sound.play('score');
@@ -862,12 +928,15 @@ const Missions = {
         }
       }
       if (host && pl.leaf > 0.05) p.progress = Math.min(1, p.munchT);
-      p.size = 1 + g.score * 0.05;
-      p.fat = 1 + g.score * 0.05;
+      p.size = 1 + g.score * 0.6 / this.goal;
+      p.fat = 1 + g.score * 0.6 / this.goal;
       p.r = 16 * p.size;
       p.speed = 105 + g.score * 3;
     },
-    drawBuild(ctx, g) { Game.drawSprite('silkShelter', { x: g.home.x, y: g.home.y, angle: 0.2, flat: true }, 1.5); },
+    drawBuild(ctx, g) {
+      Game.drawSprite('silkShelter', { x: g.home.x, y: g.home.y, angle: 0.2, flat: true }, 1.5);
+      for (const q of g.frass || []) ell(ctx, q.x, q.y, 3, 2.4, '#2e3a1c');
+    },
     drawExtra(ctx, g) {
       if (g.moultT > 0) {
         ctx.globalAlpha = Math.min(1, g.moultT);
@@ -894,7 +963,7 @@ const Missions = {
   butterfly: {
     id: 'butterfly', bug: 'butterfly', stage: 'Butterfly', place: 'Wildflower heath, Bold Park', world: BIG,
     sprite: 'butterfly', bg: 'heath',
-    action: 'Sip', radius: 18, speed: 225, scale: 2, goal: 8,
+    action: 'Sip', radius: 18, speed: 225, scale: 2, goal: 6,
     home: { x: 240, y: 960, r: 44, label: 'Empty chrysalis' },
     facts: [
       'A painted lady butterfly is orange, black and white, with little blue spots on its back wings.',
@@ -905,7 +974,7 @@ const Missions = {
       'Fly with the arrow keys, or touch and drag.',
       'Land on a flower and hold Sip to drink nectar.',
       'Then land on an everlasting or capeweed and hold Lay to lay an egg.',
-      'Lay 8 eggs. Look for sparkles: they’re discoveries.',
+      'Lay 6 eggs. Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
       { key: 'd_cone', sprite: 'cone', fx: 0.8, fy: 0.2 },
@@ -1003,7 +1072,7 @@ const Missions = {
   termite: {
     id: 'termite', bug: 'termite', stage: 'Worker', place: 'Woodland, Whiteman Park', world: BIG,
     sprite: 'termiteWorker', bg: 'woodland', escape: 'Crawl',
-    action: 'Chew', radius: 15, speed: 150, scale: 2.2, goal: 8,
+    action: 'Chew', radius: 15, speed: 150, scale: 2.2, goal: 6, need: 3,
     home: { x: 300, y: 900, r: 60, label: 'Mound' },
     facts: [
       'Termites are not ants. Their closest relatives are cockroaches!',
@@ -1014,7 +1083,7 @@ const Missions = {
       'Crawl with the arrow keys, or touch and drag.',
       'Hold or tap Chew on wood to bite off a piece, or Dig on damp mud to scoop some up.',
       'Carry it home. Wood feeds the colony; mud builds the mound.',
-      'Bring 4 of each. Watch out for raiding bull ants!',
+      'Bring 3 of each. Watch out for raiding bull ants!',
     ],
     discoveries: [
       { key: 'd_roo', sprite: 'kangaroo', fx: 0.75, fy: 0.3 },
@@ -1028,6 +1097,8 @@ const Missions = {
       mud: 'Termites build with soil, chewed wood, spit and poo, all mixed together.',
       soldier: 'Termite soldiers have big heads. Some squirt a sticky white liquid at attackers.',
       queen: 'A termite queen can lay hundreds of eggs a day.',
+      fart: 'Termites fart! Tiny living things in their gut make a gas called methane as they break down the wood.',
+      bottom: 'A young termite gets its gut helpers by eating a drop from another termite’s bottom!',
       ant: 'Bull ants and other ants raid termite nests for food.',
       d_roo: 'A western grey kangaroo. Kangaroos live in the bush at Whiteman Park.',
       d_echidna: 'Echidna diggings! Echidnas tear open termite mounds with strong claws and lick termites up.',
@@ -1053,9 +1124,13 @@ const Missions = {
       if (p.carry) {
         setAction('To the mound', false);
         if (Game.inHome()) {
-          if (p.carry === 'mud') { g.mud++; Game.fact('mud'); if (g.mud === 3) Game.fact('soldier'); }
-          else { g.wood++; Game.fact('wood'); if (g.wood === 2) Game.fact('recycle'); if (g.wood === 4) Game.fact('queen'); }
-          g.score = Math.min(g.wood, 4) + Math.min(g.mud, 4);
+          if (p.carry === 'mud') { g.mud++; Game.fact('mud'); if (g.mud === 2) Game.fact('soldier'); }
+          else {
+            g.wood++; Game.fact('wood'); if (g.wood === 3) Game.fact('queen');
+            if (g.wood === 2) { Sound.play('raspberry'); Game.pop(p.x - 22, p.y + 6, 'Pfft!', '#d8e8c0'); Game.fact('fart'); Game.later(9, () => Game.fact('recycle')); }
+          }
+          if (g.wood + g.mud === 4) Game.later(5, () => Game.fact('bottom'));
+          g.score = Math.min(g.wood, this.need) + Math.min(g.mud, this.need);
           p.carry = null;
           Sound.play('score');
           Game.pop(p.x, p.y - 20, '+1', '#fff');
@@ -1084,12 +1159,12 @@ const Missions = {
           Game.later(3, () => this.addThing(it.kind));
         }
       }
-      if (g.mud >= 4 && g.wood < 4 && !g.toldMud) { g.toldMud = true; g.toasts.push({ text: 'The mound is built! Now bring wood to feed the colony.', kind: 'hint' }); }
-      if (g.wood >= 4 && g.mud < 4 && !g.toldWood) { g.toldWood = true; g.toasts.push({ text: 'Plenty of food! Now bring mud to build the mound.', kind: 'hint' }); }
+      if (g.mud >= this.need && g.wood < this.need && !g.toldMud) { g.toldMud = true; g.toasts.push({ text: 'The mound is built! Now bring wood to feed the colony.', kind: 'hint' }); }
+      if (g.wood >= this.need && g.mud < this.need && !g.toldWood) { g.toldWood = true; g.toasts.push({ text: 'Plenty of food! Now bring mud to build the mound.', kind: 'hint' }); }
     },
     // The mound grows with mud; a wood store builds up beside it.
     drawBuild(ctx, g) {
-      const h = g.home, n = Math.min(g.mud, 8);
+      const h = g.home, n = Math.min(g.mud * 2, 8);
       for (let i = 0; i <= n; i++) ell(ctx, h.x, h.y - i * 4, h.r * (0.9 - i * 0.07) + 6, h.r * (0.75 - i * 0.06) + 4, i % 2 ? '#8a6438' : '#9a7448');
       for (let i = 0; i < Math.min(n, 5); i++) ell(ctx, h.x - 16 + i * 8, h.y - n * 4 - 8 - (i % 2) * 6, 5, 9, '#7a5430');
       for (let i = 0; i < Math.min(g.wood, 8); i++) { ctx.fillStyle = '#a07848'; ctx.fillRect(h.x + h.r + 4 + (i % 3) * 10, h.y + 10 - Math.floor(i / 3) * 6, 9, 4); }
@@ -1097,22 +1172,22 @@ const Missions = {
     goalPoint(g) {
       if (g.player.carry) return g.home;
       // Point at whatever is still needed.
-      if (g.wood >= 4) return nearest(g.items.filter(i => i.kind === 'mud'), g.player, 99999);
-      if (g.mud >= 4) return nearest(g.items.filter(i => i.kind === 'woodChip'), g.player, 99999);
+      if (g.wood >= this.need) return nearest(g.items.filter(i => i.kind === 'mud'), g.player, 99999);
+      if (g.mud >= this.need) return nearest(g.items.filter(i => i.kind === 'woodChip'), g.player, 99999);
       return null;
     },
     hud(g) {
-      const w = Math.min(g.wood, 4), m = Math.min(g.mud, 4);
-      setHud('Wood ' + w + '/4 · Mud ' + m + '/4', g.player.carry ? 'Carrying ' + g.player.carry : '');
+      const n = this.need, w = Math.min(g.wood, n), m = Math.min(g.mud, n);
+      setHud('Wood ' + w + '/' + n + ' · Mud ' + m + '/' + n + '', g.player.carry ? 'Carrying ' + g.player.carry : '');
     },
-    won(g) { return g.wood >= 4 && g.mud >= 4; },
+    won(g) { return g.wood >= this.need && g.mud >= this.need; },
   },
 
   // ---------------------------------------------------------------- Native land snail
   snail: {
     id: 'snail', bug: 'snail', stage: 'Adult', place: 'Bushland near Bibra Lake', world: BIG,
     sprite: 'snail', bg: 'litter', escape: 'Slide',
-    action: 'Graze', radius: 16, speed: 80, scale: 1.6, goal: 10,
+    action: 'Graze', radius: 16, speed: 80, scale: 1.6, goal: 8,
     home: { x: 260, y: 940, r: 55, label: 'Damp hollow' },
     facts: [
       'Snails are not insects. They are molluscs, like octopuses and mussels.',
@@ -1121,7 +1196,7 @@ const Missions = {
     ],
     how: [
       'Slide with the arrow keys, or touch and drag.',
-      'Hold or tap Graze on fungi, lichen or dead leaves to eat them. Eat 10 to grow your shell.',
+      'Hold or tap Graze on fungi, lichen or dead leaves to eat them. Eat 8 to grow your shell.',
       'Sunny patches dry you out. Keep to the shade, or hold Seal to close your shell.',
       'Watch out for the bobtail lizard.',
     ],
@@ -1137,6 +1212,7 @@ const Missions = {
       shell: 'A snail grows its shell by adding new shell around the opening.',
       dry: 'Snails dry out in the sun. In hot weather they seal their shell with a door of dried slime and wait for rain.',
       bobtail: 'Bobtail lizards crunch up snails, shell and all.',
+      poo: 'A snail’s bottom is right beside its breathing hole, under the edge of its shell. Its poo looks like a tiny folded rope.',
       d_frog: 'A motorbike frog, near the lake. Its call sounds like a motorbike changing gears.',
       d_shell: 'An empty garden snail shell. Garden snails were brought here from Europe, unlike native Bothriembryon.',
       d_quenda: 'A quenda dig. Quendas are bandicoots that live in the bush around Bibra Lake.',
@@ -1180,6 +1256,10 @@ const Missions = {
             Sound.play('score');
             Game.pop(p.x, p.y - 22, 'Munch!', '#c0cc9a');
             Game.fact(g.score === 2 ? 'shell' : 'food');
+            if (g.score % 3 === 0) {   // and out it comes, up by the shell's edge
+              const a = p.angle + 1.1; g.poos = (g.poos || []).concat({ x: p.x + Math.cos(a) * p.r * 0.9, y: p.y + Math.sin(a) * p.r * 0.9, a: Math.random() * TAU }).slice(-5);
+              Sound.play('raspberry'); Game.pop(p.x, p.y - 40, 'Plop!', '#fff'); Game.fact('poo');
+            }
           }
         }
       } else {
@@ -1219,6 +1299,7 @@ const Missions = {
         if (dist(a, b) > 40) continue;
         line(ctx, [a.x, a.y, b.x, b.y], 'rgba(230,240,255,' + (0.5 * (1 - (g.t - b.t) / 12)) + ')', 6);
       }
+      for (const q of g.poos || []) { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.a); line(ctx, [-5, 0, -2, -3, 1, 2, 4, -2, 6, 1], '#3a3220', 2.2); ctx.restore(); }   // a tiny folded rope
     },
     goalPoint() { return null; },
     hud(g) {
@@ -1232,7 +1313,7 @@ const Missions = {
   spiderling: {
     id: 'spiderling', bug: 'spider', stage: 'Spiderling', place: 'Coastal dunes, Cottesloe', world: BIG,
     sprite: 'spiderling', bg: 'spider',
-    action: 'Jump', radius: 12, speed: 125, scale: 1.5, goal: 8,
+    action: 'Jump', radius: 12, speed: 125, scale: 1.5, goal: 6,
     home: { x: 260, y: 1000, r: 40, label: 'Mum’s retreat' },
     facts: [
       'Peacock spiders hatch from eggs in a silk sac. The mother guards the eggs in her silk retreat.',
@@ -1242,7 +1323,7 @@ const Missions = {
     how: [
       'Move with the arrow keys, or touch and drag. Explore the dunes!',
       'Springtails hop away if you rush at them. Stop close by, then press Jump.',
-      'Catch 8, then go back to the retreat to moult (shed your skin).',
+      'Catch 6, then go back to the retreat to moult (shed your skin).',
       'Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
@@ -1292,7 +1373,7 @@ const Missions = {
           s.angle = a;
           s.hop = 0.3;
           s.hopT = 1.5 + Math.random() * 2.5;
-          if (scared) Game.fact('springtail');
+          if (scared) { Game.fact('springtail'); if (!(g.boingT > g.t)) { g.boingT = g.t + 1.2; Sound.play('boing'); Game.pop(s.x, s.y - 16, 'Boing!', '#fff'); } }
         }
       }
       if (g.score >= this.goal && !g.moulted) {
@@ -1322,7 +1403,7 @@ const Missions = {
   // ----------------------------------------------------- Peacock spider: adult
   spider: {
     id: 'spider', bug: 'spider', stage: 'Adult male', place: 'Coastal dunes, Cottesloe', world: BIG,
-    action: 'Jump', radius: 15, speed: 135, scale: 1.7, goal: 7,
+    action: 'Jump', radius: 15, speed: 135, scale: 1.7, goal: 5,
     home: { x: 260, y: 1000, r: 40, label: 'Silk retreat' },
     facts: [
       'The coastal peacock spider lives in the sand dunes along Perth’s coast. It is about the size of a grain of rice.',
@@ -1332,7 +1413,7 @@ const Missions = {
     how: [
       'Move with the arrow keys, or touch and drag.',
       'Flies spot you if you walk too close. Stop a little way off, then press Jump.',
-      'Catch 7 flies. Then walk up to the female and tap Dance each time a move reaches the ring: fan up, wave, drum!',
+      'Catch 5 flies. Then walk up to the female and tap Dance each time a move reaches the ring: fan up, wave, drum!',
       'Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
@@ -1530,7 +1611,7 @@ const Missions = {
   nymph: {
     id: 'nymph', bug: 'dragonfly', stage: 'Nymph', place: 'Underwater in Herdsman Lake', world: BIG,
     sprite: 'nymph', bg: 'nymph',
-    action: 'Jet', radius: 15, speed: 115, scale: 1.6, goal: 8,
+    action: 'Jet', radius: 15, speed: 115, scale: 1.6, goal: 6,
     home: { x: 220, y: 1000, r: 60, label: 'Weed bed' },
     reed: { x: 1760, y: 160, r: 50 },
     facts: [
@@ -1542,7 +1623,7 @@ const Missions = {
       'Swim with the arrow keys, or touch and drag. Explore the lake bed!',
       'When food is close the button says Grab. Press it to shoot out your jaw!',
       'Otherwise the button says Jet: a quick squirt of speed.',
-      'Eat 8, then climb the reed to become a dragonfly.',
+      'Eat 6, then climb the reed to become a dragonfly. A tadpole is a big meal: it counts as two!',
     ],
     discoveries: [
       { key: 'd_gilgie', sprite: 'gilgie', fx: 0.55, fy: 0.75 },
@@ -1613,13 +1694,14 @@ const Missions = {
           p.angle = Math.atan2(target.y - p.y, target.x - p.x);
           p.grab = { t: 0, len: 0, reach: Math.max(10, dist(p, target) - 12) };
           g.items.splice(g.items.indexOf(target), 1);
-          g.score++;
+          const was = g.score, big = target.kind === 'tadpole';
+          g.score += big ? 2 : 1;
           Sound.play('score');
-          Game.pop(target.x, target.y - 14, 'Gulp!', '#ffd23f');
+          Game.pop(target.x, target.y - 14, big ? 'Gulp! +2' : 'Gulp!', '#ffd23f');
           Game.fact('grab');
           Game.fact(target.kind);
-          if (g.score === 4) Game.fact('moult');
-          if (g.score === this.goal) {
+          if (was < 3 && g.score >= 3) Game.fact('moult');
+          if (was < this.goal && g.score >= this.goal) {
             // Point to a reed a short swim away, not across the whole lake.
             const r = Game.spawnPoint(100, p, 380);
             this.reed.x = clamp(r.x, 120, World.w - 120); this.reed.y = clamp(r.y, 120, World.h - 120);
@@ -1628,10 +1710,12 @@ const Missions = {
           Game.later(1.5, () => this.addPrey(target.kind));
         } else if (p.jetCd <= 0) {
           p.jet = 0.45; p.jetCd = 2;
-          Sound.play('dart');
+          Sound.play('dart'); if (!g.pfft) { g.pfft = true; Sound.play('raspberry'); Game.pop(p.x - Math.cos(p.angle) * 34, p.y - Math.sin(p.angle) * 34, 'Pfft!', '#cfe6ff'); }
           Game.fact('jet');
         }
       }
+      if (p.jet > 0) for (let k = 0; k < 2; k++) (g.bubbles = g.bubbles || []).push({ x: p.x - Math.cos(p.angle) * (p.r + 6) + (Math.random() - 0.5) * 10, y: p.y - Math.sin(p.angle) * (p.r + 6) + (Math.random() - 0.5) * 10, t: 0, r: 2 + Math.random() * 3 });
+      if (g.bubbles) { for (const b of g.bubbles) { b.t += dt; b.y -= 18 * dt; } g.bubbles = g.bubbles.filter(b => b.t < 0.9).slice(-40); }
       p.speed = p.jet > 0 ? 300 : 115;
     },
     drawBuild(ctx) {
@@ -1647,6 +1731,7 @@ const Missions = {
       ctx.fillText('Reed stems', r.x, r.y + 70);
     },
     drawExtra(ctx, g) {
+      for (const b of g.bubbles || []) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.strokeStyle = 'rgba(235,245,255,' + (0.9 - b.t) + ')'; ctx.lineWidth = 1.2; ctx.stroke(); }   // out of her bottom
       if (g.score >= this.goal && !(g.emerging > 0) && !g.emerged) {
         ctx.beginPath();
         ctx.arc(this.reed.x, this.reed.y, this.reed.r + Math.sin(g.t * 5) * 4, 0, TAU);
@@ -1659,7 +1744,7 @@ const Missions = {
     goalPoint(g) { return g.score >= this.goal && !(g.emerging > 0) && !g.emerged ? this.reed : null; },
     hud(g) {
       if (g.score >= this.goal && !g.emerged) setHud('Climb the reed!', '');
-      else setHud('Food: ' + g.score + (g.emerged ? '' : ' / ' + this.goal), '');
+      else setHud('Food: ' + Math.min(g.score, this.goal) + (g.emerged ? '' : ' / ' + this.goal), '');
     },
     won(g) { return !!g.emerged; },
   },
@@ -1667,7 +1752,7 @@ const Missions = {
   // ------------------------------------------------- Blue skimmer: adult
   dragonfly: {
     id: 'dragonfly', bug: 'dragonfly', stage: 'Adult', place: 'Herdsman Lake', world: BIG,
-    action: 'Dart', radius: 20, speed: 230, scale: 1.3, goal: 25,
+    action: 'Dart', radius: 20, speed: 230, scale: 1.3, goal: 15,
     home: { x: 220, y: 600, r: 50, label: 'Reeds' },
     facts: [
       'Blue skimmers are common around Perth’s lakes and wetlands.',
@@ -1676,8 +1761,9 @@ const Missions = {
     ],
     how: [
       'Fly with the arrow keys, or touch and drag. Explore the lake!',
-      'Fly into mosquitoes to catch them.',
+      'Fly into mosquitoes to catch them. Catch 15.',
       'Press Dart for a burst of speed.',
+      'If another male turns up on your patch, fly at him to see him off.',
       'Look for sparkles: they’re discoveries.',
     ],
     discoveries: [
@@ -1691,6 +1777,7 @@ const Missions = {
       catch: 'Some dragonflies catch more than 9 out of every 10 insects they chase.',
       hobby: 'The Australian hobby is a small, fast falcon. It can catch dragonflies in mid-air.',
       eggs: 'Female blue skimmers lay eggs by dipping the tip of their body into the water as they fly.',
+      rival: 'A male blue skimmer keeps his own patch of the pond, and chases other males off it.',
       d_frog: 'A motorbike frog. Its call sounds like a motorbike changing gears.',
       d_damsel: 'A damselfly, a cousin of dragonflies. Most damselflies fold their wings along their body when resting. Dragonflies hold theirs out flat.',
       d_swan: 'A black swan feather. The black swan is the bird emblem of Western Australia.',
@@ -1729,11 +1816,35 @@ const Missions = {
         Sound.play('pick');
         Game.pop(m.x, m.y - 12, '+1', '#fff');
         if (g.score === 1) Game.fact('catch');
-        if (g.score === 8) Game.fact('eggs');
+        if (g.score === 10) Game.fact('eggs');
         Game.later(1, () => this.addMozzie());
       }
+      // Another male on your patch: he circles till you fly at him, then it's a clatter of wings and he's off
+      if (!g.rival && !g.rivalDone && g.score >= 5 && g.score < this.goal) {
+        const a = Math.random() * TAU;
+        g.rival = { x: clamp(p.x + Math.cos(a) * 320, 60, World.w - 60), y: clamp(p.y + Math.sin(a) * 320, 60, World.h - 60), angle: a + 2, t: 0, state: 'circle', cx: 0, cy: 0 };
+        g.rival.cx = g.rival.x; g.rival.cy = g.rival.y;
+        Sound.play('caught'); Game.fact('rival');
+        g.toasts.unshift({ text: 'A rival male is on your patch! Fly at him to see him off.', kind: 'hint' }); g.toastT = 0;
+      }
+      const r = g.rival;
+      if (r) {
+        r.t += dt;
+        if (r.state === 'circle') {
+          r.x = r.cx + Math.cos(r.t * 1.6) * 70; r.y = r.cy + Math.sin(r.t * 1.6) * 50; r.angle = r.t * 1.6 + Math.PI / 2;
+          if (dist(r, p) < 46) { r.state = 'flee'; r.t = 0; g.rivalDone = true; Sound.play('tap'); Sound.play('score'); Game.pop(r.x, r.y - 26, 'Clack! Off he goes', '#ffd23f'); g.shake = Math.max(g.shake || 0, 0.12); }
+          else if (r.t > 40) { r.state = 'flee'; r.t = 0; g.rivalDone = true; }
+        } else {
+          r.angle = Math.atan2(r.y - p.y, r.x - p.x); r.x += Math.cos(r.angle) * 420 * dt; r.y += Math.sin(r.angle) * 420 * dt;
+          if (r.t > 3) g.rival = null;
+        }
+      }
     },
-    goalPoint() { return null; },
+    drawFront(ctx, g) {
+      const r = g.rival; if (!r) return;
+      Game.drawSprite('dragonfly', { x: r.x, y: r.y, angle: r.angle, flying: true, moving: true }, 1.2);
+    },
+    goalPoint(g) { return g.rival && g.rival.state === 'circle' ? g.rival : null; },
     hud(g) { setHud('Mosquitoes: ' + g.score + (g.score < this.goal ? ' / ' + this.goal : ''), ''); },
     won(g) { return g.score >= this.goal; },
   },

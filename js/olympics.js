@@ -51,6 +51,7 @@ const OLY = {
     o.finished = true; o.result = Math.round(o.time * 10) / 10;
     Sound.play('win');
     Game.pop(g.player.x, g.player.y - 34, o.result + ' seconds!', '#ffd23f');
+    Game.say(g.player.x, g.player.y - 96, ['Ooooh, so close!', 'Bronze! Hooray!', 'Silver! Hooray!', 'GOLD! Hooray!'][this.medal(o.result, m.medals, !!m.higher)], 2.2);   // the crowd
     if (typeof Progress !== 'undefined') o.newBest = Progress.setBest(m.id, o.result, false);
   },
   stars(m, g) { return this.medal(g.oly.result, m.medals, !!m.higher); },
@@ -190,6 +191,7 @@ Missions.oly_jump = {
     const bl = Math.max(0, Math.round((p.x - J.board) / J.BL));
     g.jumps.push({ bl, x: p.x }); o.result = Math.max(o.result, bl);
     Sound.play('score'); Game.pop(p.x, p.y - 36, bl + ' body lengths!', '#ffd23f');
+    Game.say(p.x - 90, p.y - 110, bl >= 20 ? 'Ooooh!' : bl >= 12 ? 'Hooray!' : 'Awww!', 1.6);
     if (bl >= 20) Game.fact('far');
     if (g.jumps.length >= J.attempts) {
       o.finished = true; o.doneT = 0; Sound.play('win');
@@ -606,6 +608,7 @@ Missions.oly_gym = {
     g.flips.push({ turns, feet, points, height }); o.result = Math.max(o.result, points); g.bestH = Math.max(g.bestH, height);
     Sound.play(feet ? 'score' : 'tap');
     Game.pop(p.x, p.y - 36, turns + (turns === 1 ? ' somersault' : ' somersaults') + (feet ? ' + feet: ' : ': ') + points + (points === 1 ? ' point' : ' points'), '#ffd23f');
+    Game.say(p.x + 110, p.y - 100, feet ? (turns >= 2 ? 'A perfect 10!' : 'Bravo!') : 'Ooof!', 1.6);   // the judges
     if (height >= 20) Game.fact('high');
     if (turns >= 2) Game.fact('spin');
     Game.fact(feet ? 'feet' : 'back');

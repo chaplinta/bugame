@@ -196,7 +196,7 @@ const REED_SPOTS = [[520, 300], [1500, 260], [1650, 900], [900, 1050], [300, 400
 
 Missions.frog = {
   id: 'frog', bug: 'frog', stage: 'Calling male', place: 'Lake Joondalup, at night', world: BIG, sprite: 'frog', bg: 'lakeNight',
-  action: 'Call', radius: 16, speed: 120, scale: 1.6, goal: 8, voice: true, noNet: true,
+  action: 'Call', radius: 16, speed: 120, scale: 1.6, goal: 6, voice: true, noNet: true,
   home: { x: 260, y: 980, r: 60, label: 'Reeds' },
   facts: [
     'Motorbike frogs live around Perth’s lakes and swamps. The male’s call sounds like a motorbike changing gears.',
@@ -206,7 +206,7 @@ Missions.frog = {
   how: [
     'Swim and hop with the arrow keys, or touch and drag.',
     'Hold Call (or shout!) when the ring is green: that’s the gap in the chorus, when you can be heard.',
-    'Be heard 8 times and a female will come looking for you.',
+    'Be heard 6 times and a female will come looking for you.',
     'A night heron hunts along the edge. Keep still and quiet when it’s near!',
   ],
   discoveries: [
@@ -252,6 +252,9 @@ Missions.frog = {
     o.call = 0.8;
     g.rings.push({ x: o.x, y: o.y, t: 0 });
     const key = kind === 'motorbike' ? 'rivals' : kind;
+    // the others say what they say, now and then
+    const word = { banjo: 'Bonk!', moaning: 'Moooan…', froglet: 'Squelch!' }[kind];
+    if (word && d < 460 && !(g.saidT > g.t)) { g.saidT = g.t + 3.5; Game.say(o.x, o.y - 26, word, 0.9); }
     if (d < 500 && !g.seen.has(key)) { Game.fact(key); g.point = { x: o.x, y: o.y, t: 2 }; }
   },
   update(g, dt, input) {

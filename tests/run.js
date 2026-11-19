@@ -2032,6 +2032,94 @@ test('mozzies are shooed away, not swatted: blown a little way off, no heart los
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+test('cheeky but true: big meals count double, the echidna’s bubble and droppings, the cuckoo bee, a rival skimmer, termite and snail business, the gull’s splat, the web thief, the waggle, Bonk!', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(LDN_SHOWN);
+  await p.evaluate(LDN_STEP);
+  const run = async (id, o, fn) => { await startMission(p, id, Object.assign({ noNet: true }, o)); return p.evaluate(fn); };
+  // bull ant: a caterpillar is two loads; the echidna's snot bubble and its droppings each have a fact
+  const ant = await run('ant', {}, () => {
+    const g = Game.g, pl = g.player, out = {};
+    const e = { sprite: 'echidna', name: 'echidna', ground: true, r: 26, x: pl.x + 300, y: pl.y, angle: 0, state: 'rest', timer: 99, stay: 99, wanderSpeed: 0, chaseSpeed: 0, sight: 0, chaseTime: 4, restTime: 99 };
+    g.preds = [e]; g.predCfg = null; pl.invuln = 99;
+    pl.carry = 'caterpillar'; pl.carryName = 'caterpillar'; pl.big = true; pl.x = g.home.x; pl.y = g.home.y; lstep(0.1); out.big = [g.score, shown.includes('+2  A big meal!')];
+    e.snotT = -1.59; lstep(0.1); out.bubble = [g.seen.has('bubble'), shown.includes('Pop!')];
+    g.scats = [{ x: pl.x, y: pl.y, a: 0 }]; lstep(0.1); out.scat = [g.seen.has('scat'), shown.includes('Echidna poo!')];
+    out.goal = [g.mission.goal, Missions.bee.goal, Missions.caterpillar.goal, Missions.butterfly.goal, Missions.termite.goal, Missions.snail.goal, Missions.spiderling.goal, Missions.spider.goal, Missions.nymph.goal, Missions.dragonfly.goal, Missions.skimmerF.goal, Missions.sandhopper.goal, Missions.frog.goal].join();
+    return out;
+  });
+  check(ant.big[0] === 2 && ant.big[1] && ant.bubble.every(Boolean) && ant.scat.every(Boolean), 'the ant level: ' + JSON.stringify(ant));
+  check(ant.goal === '8,9,9,6,6,8,6,5,6,15,5,7,6', 'the shorter goals: ' + ant.goal);
+  // blue-banded bee: the cuckoo bee is seen off by flying at her; left alone she gets in and a load is lost
+  const bee = await run('bee', { noPred: true }, () => {
+    const g = Game.g, pl = g.player, h = g.home, out = {};
+    g.score = 3; pl.x = h.x + 700; pl.y = h.y + 300; lstep(0.1); const c = g.cuckoo; out.came = [!!c && c.state, g.seen.has('cuckoo'), Math.round(dist(c, h)) > 200];
+    const d0 = dist(c, h); lstep(2); out.creeps = dist(c, h) < d0 - 10;
+    pl.x = c.x + 10; pl.y = c.y; lstep(0.1); out.shooed = [c.state, g.score, shown.includes('Shoo! Off she goes'), g.cuckooDone];
+    lstep(5); out.gone = !g.cuckoo;
+    g.cuckooDone = false; pl.x = h.x + 700; pl.y = h.y + 300; lstep(0.1); g.cuckoo.x = h.x + 5; g.cuckoo.y = h.y; lstep(0.1); out.gotIn = [g.score, shown.includes('She got in! One load lost')];
+    return out;
+  });
+  check(bee.came[0] === 'sneak' && bee.came[1] && bee.came[2] && bee.creeps && bee.shooed[0] === 'flee' && bee.shooed[1] === 3 && bee.shooed[2] && bee.shooed[3] && bee.gone && bee.gotIn[0] === 2 && bee.gotIn[1], 'the cuckoo bee: ' + JSON.stringify(bee));
+  // blue skimmer: a rival male circles your patch till you fly at him; a nymph's tadpole is two meals
+  const dr = await run('dragonfly', { noPred: true }, () => {
+    const g = Game.g, pl = g.player, out = {};
+    g.score = 5; g.items = []; lstep(0.1); const r = g.rival; out.came = [!!r && r.state, g.seen.has('rival'), !!g.mission.goalPoint(g)];
+    pl.x = r.x; pl.y = r.y; lstep(0.1); out.off = [r.state, g.rivalDone, shown.includes('Clack! Off he goes')]; lstep(3.5); out.gone = !g.rival;
+    return out;
+  });
+  check(dr.came[0] === 'circle' && dr.came[1] && dr.came[2] && dr.off[0] === 'flee' && dr.off[1] && dr.off[2] && dr.gone, 'the rival skimmer: ' + JSON.stringify(dr));
+  const ny = await run('nymph', { noPred: true }, () => {
+    const g = Game.g, pl = g.player;
+    g.items = [{ sprite: 'tadpole', kind: 'tadpole', x: pl.x + 30, y: pl.y, r: 12, speed: 0, scale: 1 }]; lstep(0.1); lstep(0.05, { press: true });
+    const two = g.score; g.items = []; lstep(0.5); lstep(0.05, { press: true }); lstep(0.2);
+    return [two, shown.includes('Gulp! +2'), (g.bubbles || []).length > 0, shown.includes('Pfft!')];
+  });
+  check(ny[0] === 2 && ny[1] && ny[2] && ny[3], 'the nymph’s tadpole and bubbles: ' + JSON.stringify(ny));
+  // termite: three of each wins; the second load of wood comes with a fart. Snail: every third meal, a folded rope
+  const te = await run('termite', { noPred: true }, () => {
+    const g = Game.g, pl = g.player, m = g.mission, out = {};
+    for (let k = 0; k < 2; k++) { pl.carry = 'wood'; pl.x = g.home.x; pl.y = g.home.y; lstep(0.1); }
+    out.fart = [g.wood, g.seen.has('fart'), shown.includes('Pfft!')];
+    g.wood = 3; g.mud = 2; out.notYet = m.won(g); g.mud = 3; out.won = m.won(g);
+    return out;
+  });
+  check(te.fart[0] === 2 && te.fart[1] && te.fart[2] && !te.notYet && te.won, 'the termites: ' + JSON.stringify(te));
+  const sn = await run('snail', { noPred: true }, () => {
+    const g = Game.g, pl = g.player;
+    g.sun = []; g.score = 2; const f = g.items[0]; f.amount = 0.2; pl.x = f.x; pl.y = f.y; lstep(0.6, { held: true });
+    return [g.score, (g.poos || []).length, g.seen.has('poo'), shown.includes('Plop!')];
+  });
+  check(sn[0] === 3 && sn[1] === 1 && sn[2] && sn[3], 'the snail’s poo: ' + JSON.stringify(sn));
+  // sandhopper: an eaten pile sends the others hopping; the gull's splat lands on her and does no harm
+  const sa = await run('sandhopper', { noPred: true }, () => {
+    const g = Game.g, pl = g.player, out = {}, gy = Beach.ground(pl.x);
+    g.splatT = 99; g.splat = { x: pl.x, y: gy - 30, gy, t: 0, hit: false }; lstep(0.3); out.splat = [g.splat.hit, g.lives, shown.includes('Splat! Yuck!')];
+    const w = g.items.find(i => i.kind === 'wrack'); pl.x = w.x; pl.y = Beach.ground(w.x); pl.onGround = true; lstep(0.2); lstep(1.3, { held: true }); out.ate = [g.score, (g.hoppers || []).length > 0];
+    return out;
+  });
+  check(sa.splat[0] && sa.splat[1] === 3 && sa.splat[2] && sa.ate[0] === 1 && sa.ate[1], 'the sandhopper’s beach: ' + JSON.stringify(sa));
+  // the orb web: what sits too long brings the dewdrop spider; a tap sends it off; left alone it steals
+  const web = await run('web', {}, () => {
+    const g = Game.g, m = g.mission, out = {};
+    const q = { sprite: 'fly', kind: 'fly', x: 520, y: 300, r: 9, scale: 1.5, stuck: {}, sitT: 6 }; g.prey = [q]; g.spawnT = 99; g.thiefT = 0;
+    lstep(0.1); const th = g.thief; out.came = [!!th && th.state, Math.hypot(th.x - q.x, th.y - q.y) > 100];
+    m.onPointer(g, 'down', th.x, th.y); out.shooed = [th.state, g.seen.has('klepto'), shown.includes('Shoo, thief!'), g.prey.includes(q)];
+    lstep(3); out.gone = !g.thief;
+    q.sitT = 6; g.thiefT = 0; lstep(0.1); g.thief.x = q.x + 2; g.thief.y = q.y; lstep(0.1); out.stolen = [!g.prey.includes(q), shown.includes('Stolen!'), g.score];
+    return out;
+  });
+  check(web.came[0] === 'creep' && web.came[1] && web.shooed[0] === 'flee' && web.shooed[1] && web.shooed[2] && web.shooed[3] && web.gone && web.stolen[0] && web.stolen[1] && web.stolen[2] === 0, 'the web thief: ' + JSON.stringify(web));
+  // the sugar ant nest: it rains again after the first shower. The mother spider's waggle. The banjo frog says Bonk!
+  const ne = await run('nest', {}, () => { const g = Game.g; g.raining = 0.02; g.rainT = -5; g.mission.weather(g, 0.1); const a = [g.raining, g.rainT > 60]; g.rainT = 0; g.mission.weather(g, 0.1); return a.concat(g.raining > 10, NEST.mound, NEST.jaws); });
+  check(ne[0] === 0 && ne[1] && ne[2] && ne[3] === 12 && ne[4] === 6, 'rain comes back to the nest: ' + JSON.stringify(ne));
+  const sf = await run('spiderF', { noPred: true }, () => { const g = Game.g, pl = g.player, m = g.mission; const male = { x: pl.x + 60, y: pl.y, state: 'dance' }; m.giveUp(g, male); return [g.waggleT > 0, g.seen.has('waggle'), shown.includes('No thanks!'), male.state]; });
+  check(sf[0] && sf[1] && sf[2] && sf[3] === 'leave', 'the waggle: ' + JSON.stringify(sf));
+  const fr = await run('frog', { noPred: true }, () => { const g = Game.g, pl = g.player, o = g.others.find(q => q.kind === 'banjo'); pl.x = o.x + 100; pl.y = o.y; g.mission.callFrom(g, o, 'banjo'); return [shown.includes('Bonk!'), g.seen.has('banjo')]; });
+  check(fr[0] && fr[1], 'Bonk!: ' + JSON.stringify(fr));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('platform physics: ramps to walk up, a ball that rolls down one and flies off its end, the fox’s jump', async (b) => {
   const p = await openGame(b);
   const r = await p.evaluate(() => {

@@ -2,7 +2,7 @@
 // Sugar ant nest, side-on like an ant farm. Dig tunnels anywhere, carry the soil up to build the mound,
 // make rooms for the queen's eggs and for food, fetch honeydew, and plug the entrance before rain floods in.
 
-const NEST = { cell: 24, surf: 300, cols: 80, rows: 37, mound: 20, food: 2 };   // world 1920 x (300 + 37 * 24 = 1188); mound crumbs and honeydew drops to finish
+const NEST = { cell: 24, surf: 300, cols: 80, rows: 37, mound: 12, food: 2, jaws: 6 };   // world 1920 x (300 + 37 * 24 = 1188); mound crumbs and honeydew drops to finish; crumbs her jaws hold
 const SOIL_HARD = { 1: 0.3, 2: 0.4, 3: 0.9, 6: 0.25 };      // seconds to dig: topsoil, deep soil, clay, packed soil
 const ROOM_TYPES = [
   { id: 'nursery', name: 'Nursery', color: 'rgba(255,240,200,.18)' },
@@ -34,7 +34,7 @@ Missions.nest = {
     'A nest has rooms: nurseries for eggs and young, and stores for food.',
   ],
   how: [
-    'Walk into the soil to dig. You carry up to 4 crumbs of soil at a time.',
+    'Walk into the soil to dig. You carry up to 6 crumbs of soil at a time.',
     'Take the soil up to the surface: it builds your mound by the entrance.',
     'In a big open space, press Make room: first a nursery for the queen, then a food store.',
     'Fetch honeydew from the bugs on the plant and bring it to the food store. Press Build to put soil back. Plug the entrance before it rains!',
@@ -136,7 +136,7 @@ Missions.nest = {
     const p = g.player, N = NEST.cell, type = this.at(g, r, c);
     if (type === 0) return;
     if (type === 4 || type === 5) { if (Math.random() < dt) Game.fact('rock'); g.digCell = null; return; }
-    if (p.crumbs >= 4) {
+    if (p.crumbs >= NEST.jaws) {
       // A real push, not every brush against a tunnel wall, earns the reminder
       g.fullT = (g.fullT || 0) + dt;
       if (g.fullT > 0.8) { Game.hint('Your jaws are full! Go back along your tunnel to the surface.'); Game.fact('full'); }
@@ -226,7 +226,7 @@ Missions.nest = {
     g.rainT -= dt;
     if (!g.raining && g.rainT <= 10 && !g.warned) { g.warned = true; g.toasts.unshift({ text: 'Rain is coming! Go up, stand on the entrance and press Plug. To open it again later, press down on it.', kind: 'hint' }); g.toastT = 0; Sound.play('caught'); Game.fact('rain'); }
     if (!g.raining && g.rainT <= 0) { g.raining = 18; g.warned = false; }
-    if (g.raining > 0) { g.raining -= dt; if (g.raining <= 0) g.rainT = 80 + Math.random() * 30; }
+    if (g.raining > 0) { g.raining -= dt; if (g.raining <= 0) { g.raining = 0; g.rainT = 80 + Math.random() * 30; } }   // and back to exactly 0, or it would never rain again
     g.flowT -= dt;
     if (g.flowT > 0) return;
     g.flowT = 0.12;
@@ -341,13 +341,13 @@ Missions.nest = {
   goalPoint(g) {
     const p = g.player;
     if (p.honey) { const f = g.rooms.find(r => r.type === 'food'); return f ? { x: f.c * NEST.cell, y: NEST.surf + f.r * NEST.cell } : null; }
-    if (p.crumbs >= 4) { const e = this.entrances(g)[0]; return e !== undefined ? { x: e * NEST.cell, y: NEST.surf - 8 } : null; }
+    if (p.crumbs >= NEST.jaws) { const e = this.entrances(g)[0]; return e !== undefined ? { x: e * NEST.cell, y: NEST.surf - 8 } : null; }
     if (g.rooms.some(r => r.type === 'food') && g.food < NEST.food) return { x: g.plant.x, y: g.plant.y };
     return null;
   },
   hud(g) {
     const done = [g.mound >= NEST.mound, g.rooms.some(r => r.type === 'nursery'), g.rooms.some(r => r.type === 'food'), g.food >= NEST.food];
-    setHud('Nest jobs: ' + done.filter(Boolean).length + ' / 4', 'Mound ' + Math.min(g.mound, NEST.mound) + '/' + NEST.mound + ' · Soil ' + g.player.crumbs + '/4' + (g.rooms.some(r => r.type === 'food') ? ' · Food ' + g.food + '/' + NEST.food : ''));
+    setHud('Nest jobs: ' + done.filter(Boolean).length + ' / 4', 'Mound ' + Math.min(g.mound, NEST.mound) + '/' + NEST.mound + ' · Soil ' + g.player.crumbs + '/' + NEST.jaws + (g.rooms.some(r => r.type === 'food') ? ' · Food ' + g.food + '/' + NEST.food : ''));
   },
   won(g) { return g.score >= 4; },
 };

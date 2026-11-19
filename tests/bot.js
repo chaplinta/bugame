@@ -26,7 +26,8 @@
       else if (g.phase === 'dig') { goal = Game.inHome() ? null : g.home; hold = Game.inHome(); }
       else goal = p.carry ? g.home : near(g.items);
     } else if (id === 'bee') {
-      if (p.load >= 3) goal = g.home;
+      if (g.cuckoo && g.cuckoo.state === 'sneak') goal = g.cuckoo;   // see the cuckoo bee off
+      else if (p.load >= 3) goal = g.home;
       else { const f = near(g.items.filter(i => i.pollen)); goal = f; if (f && dist(f, p) < 22) { hold = true; goal = null; } }
     } else if (id === 'fly') {
       if (p.protein < 1) { const c = near(g.items.filter(i => i.kind === 'cow')); if (c) { const h = m.head(c); goal = h; if (dist(h, p) < 30) { hold = true; goal = null; } } }
@@ -86,7 +87,7 @@
         if (fl.y < want - 1 && fl.vy < 2) act = true;
       }
     } else if (id === 'skimmerF') {
-      if (p.energy < 8) goal = near(g.items.filter(i => i.kind === 'mosquito'));
+      if (p.energy < m.fuel) goal = near(g.items.filter(i => i.kind === 'mosquito'));
       else { const s = near(g.spots.filter(q => !q.done)); goal = s; if (s && dist(s, p) < 30) act = true; }
     } else if (id === 'spiderF') {
       // the perfect bot waits for the standout; a kid picks whoever is dancing nearby
@@ -101,11 +102,11 @@
       const cellPt = (r, c) => ({ x: c * N + N / 2, y: S + r * N + N / 2 });
       const ent = { x: ec * N + N / 2, y: S - 8 };
       const up = m.above(g);
-      // Plan: a shaft down the entrance column, a nursery at rows 7-9 and a food store at rows 12-14
+      // Plan: a shaft down the entrance column, a nursery beside it at rows 6-7 and a food store at rows 12-13
       if (!g.botPlan) {
         g.botPlan = [];
-        for (let r = 5; r <= 14; r++) g.botPlan.push([r, ec]);
-        for (const [r0, c0] of [[7, ec + 2], [12, ec - 3]]) for (let r = r0; r <= r0 + 2; r++) for (let c = c0 - 2; c <= c0 + 2; c++) g.botPlan.push([r, c]);
+        for (let r = 5; r <= 13; r++) g.botPlan.push([r, ec]);
+        for (const [r0, c0] of [[6, ec + 1], [12, ec - 4]]) for (let r = r0; r <= r0 + 1; r++) for (let c = c0; c <= c0 + 3; c++) g.botPlan.push([r, c]);
       }
       const todo = g.botPlan.filter(([r, c]) => g.grid[r][c] !== 0 && g.grid[r][c] !== 4 && g.grid[r][c] !== 5);
       const plugged = !m.entrances(g).length;
@@ -115,7 +116,7 @@
         // After the rain, dig the plug out again
         goal = up && Math.abs(p.x - ent.x) > 10 ? { x: ent.x, y: S - 8 } : { x: ent.x, y: S + 80 };
       } else if (m.openSpace(g) && g.rooms.length < 2) act = true;
-      else if (p.crumbs >= 4 || (p.crumbs > 0 && !todo.length)) goal = ent;
+      else if (p.crumbs >= NEST.jaws || (p.crumbs > 0 && !todo.length)) goal = ent;
       else if (todo.length) goal = cellPt(...todo[0]);
       else if (g.mound < NEST.mound) { let r = 15; while (r < NEST.rows - 1 && g.grid[r][ec] === 0) r++; goal = cellPt(r, ec); }
       else if (g.rooms.some(r => r.type === 'food') && g.food < NEST.food) {
@@ -145,7 +146,7 @@
             if (nr === -1 && nc !== ec) continue;
             const t = nr === -1 ? 0 : g.grid[nr][nc];
             if (t === 4 || t === 5) continue;
-            if (t !== 0 && p.crumbs >= 4 && !(nr === to.r && nc === to.c)) continue;
+            if (t !== 0 && p.crumbs >= NEST.jaws && !(nr === to.r && nc === to.c)) continue;
             if (dr && dc && t !== 0) continue;   // dig straight, not diagonally
             const nd = d + (t === 0 ? (dr && dc ? 1.4 : 1) : 4);
             if (nd < (dist.get(key(nr, nc)) ?? 1e9)) { dist.set(key(nr, nc), nd); prev.set(key(nr, nc), [r, c]); open.push([nd, nr, nc]); }
@@ -159,7 +160,7 @@
         }
       }
     } else if (id === 'dragonfly') {
-      goal = near(g.items);
+      goal = g.rival && g.rival.state === 'circle' ? g.rival : near(g.items);
     } else if (id === 'frog') {
       // Call in the gap of the chorus; keep quiet and head home when the heron is near; meet the female when she comes
       const heron = pr && pr.state !== 'wander' && dist(pr, p) < 320;

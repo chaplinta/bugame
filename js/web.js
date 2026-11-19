@@ -148,6 +148,9 @@ Missions.web = {
   onPointer(g, type, x, y) {
     if (type === 'down') {
       const pt = { x, y }, R = Math.max(30, Game.fingerR());   // a fingertip's worth on a phone
+      // the little silver thief: a tap sends it packing
+      const th = g.thief;
+      if (th && th.state === 'creep' && Math.hypot(th.x - x, th.y - y) < R + 8) { th.state = 'flee'; th.t = 0; Sound.play('oi'); Game.say(th.x, th.y - 24, 'Eek!', 1); Game.pop(th.x, th.y - 44, 'Shoo, thief!', '#ffd23f'); Game.fact('klepto'); return; }
       // Set free tool: let a caught insect go
       const caught = nearest(g.prey.filter(q => q.stuck || q.wrapped), pt, R);
       if (g.tool === 'free') { if (caught) this.goJob(g, caught, 'free'); else Game.hint('Tap a stuck insect to let it go.'); return; }
@@ -266,7 +269,7 @@ Missions.web = {
         } else if (job.kind === 'eat') {
           q.gone = true; g.score++; g.silk = Math.min(SILK_MAX, g.silk + 40);
           Sound.play('win'); Game.pop(q.x, q.y - 20, 'Yum!', '#7fc24a'); Game.burst(q.x, q.y, '#f4f2ea', 10); Game.fact('eat');
-          if (g.score === 3) Game.fact('klepto');
+          if (g.score === 4) Game.fact('klepto');
         } else {
           q.stuck = null; q.wrapped = false; q.freeT = 1.6; q.vy = -120; q.vx = (q.vx || 80) > 0 ? 120 : -120;
           Sound.play('pick'); Game.pop(q.x, q.y - 20, 'Free!', '#9ad0ff'); Game.fact('free');
@@ -313,6 +316,28 @@ Missions.web = {
       }
       if (q.x < 60 || q.x > W + 40 || q.y < -40 || q.y > H + 40) q.gone = true;
     }
+    // A dewdrop spider, small and silver, creeps out for anything left sitting in the web. Tap it, or eat first.
+    for (const q of g.prey) q.sitT = (q.stuck || q.wrapped) && !q.sting && !(g.job && g.job.q === q) ? (q.sitT || 0) + dt : 0;
+    g.thiefT = (g.thiefT === undefined ? 12 : g.thiefT) - dt;
+    if (!g.thief && g.thiefT <= 0) {
+      const q = g.prey.find(q => q.sitT > 5);
+      if (q) {
+        g.thief = { x: q.x + (q.x > W / 2 ? -1 : 1) * 190, y: q.y - 150, q, state: 'creep', t: 0 }; g.thiefT = 26;
+        if (!g.toldThief) { g.toldThief = true; g.toasts.unshift({ text: 'A little silver spider is after your catch! Tap it to shoo it off.', kind: 'hint' }); g.toastT = 0; Sound.play('caught'); }
+      }
+    }
+    const th = g.thief;
+    if (th) {
+      th.t += dt;
+      if (th.state === 'creep') {
+        if (th.q.gone || !(th.q.stuck || th.q.wrapped)) { th.state = 'flee'; th.t = 0; }
+        else {
+          const d = Math.hypot(th.q.x - th.x, th.q.y - th.y) || 1;
+          th.x += (th.q.x - th.x) / d * 34 * dt; th.y += (th.q.y - th.y) / d * 34 * dt;
+          if (d < 8 && !(g.job && g.job.q === th.q)) { th.q.gone = true; th.state = 'flee'; th.t = 0; th.loot = true; Sound.play('caught'); Game.pop(th.x, th.y - 24, 'Stolen!', '#fff'); Game.fact('klepto'); }
+        }
+      } else { th.x += (th.x > W / 2 ? 1 : -1) * 150 * dt; th.y -= 120 * dt; if (th.t > 2.5) g.thief = null; }
+    }
     g.prey = g.prey.filter(q => !q.gone);
     if (g.prey.some(q => q.stuck && !q.wrapped && !q.told)) {
       const q = g.prey.find(q => q.stuck && !q.told); q.told = true;
@@ -343,6 +368,15 @@ Missions.web = {
     for (const q of g.prey) {
       Game.drawSprite(q.wrapped ? 'wrapped' : q.sprite, Object.assign({}, q, { stuck: !!q.stuck }), q.wrapped ? 1.3 * (1 - (q.eaten || 0) * 0.7) : q.scale);
       if (q.sting && q.stuck) { ctx.fillStyle = '#c0392b'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', q.x, q.y - 16); }
+    }
+    const th = g.thief;
+    if (th) {   // the dewdrop spider: a silver drop on eight fine legs
+      ctx.save(); ctx.translate(th.x, th.y);
+      ctx.strokeStyle = '#5a5248'; ctx.lineWidth = 1; for (let k = 0; k < 4; k++) for (const sd of [-1, 1]) { const a = (k - 1.5) * 0.5 + Math.sin(g.t * 14 + k) * 0.15; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(sd * 9 * Math.cos(a), 9 * Math.sin(a) - 2); ctx.lineTo(sd * 14 * Math.cos(a), 12 * Math.sin(a) + 3); ctx.stroke(); }
+      const gr = ctx.createRadialGradient(-1.5, -2, 0.5, 0, 0, 6); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#9aa4ae'); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(0, 1, 4.6, 6, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#5a4a3a'; ctx.beginPath(); ctx.arc(0, -5, 2.4, 0, TAU); ctx.fill();
+      if (th.loot) Game.drawSprite('wrapped', { x: 0, y: 10, angle: 0 }, 0.7);
+      ctx.restore();
     }
     // Silk meter
     const k = g.silk / SILK_MAX;

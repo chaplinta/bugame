@@ -235,7 +235,7 @@ Object.assign(Missions, {
   sandhopper: {
     id: 'sandhopper', bug: 'sandhopper', stage: 'Adult female', place: 'Port Beach, North Fremantle', view: 'side',
     world: { w: Beach.W, h: Beach.H }, sprite: 'sandhopper', bg: 'beach', escape: 'Hop',
-    action: 'Hop', radius: 14, speed: 150, scale: 1.8, goal: 10,
+    action: 'Hop', radius: 14, speed: 150, scale: 1.8, goal: 7,
     home: { x: Beach.bx, y: Beach.ground(Beach.bx) + Beach.depth - 12, r: 40, label: '' },
     facts: [
       'Sandhoppers live on sandy beaches all around Australia, including Perth.',
@@ -245,7 +245,7 @@ Object.assign(Missions, {
     how: [
       'This beach is side-on! Walk left and right with the arrow keys, or touch and drag.',
       'Press Hop to jump. Hopping is how you escape.',
-      'Find the seaweed washed up on the beach and hold or tap Eat. Eat 10 piles.',
+      'Find the seaweed washed up on the beach and hold or tap Eat. Eat 7 piles.',
       'Then go back to your burrow in the damp sand and drop in. To hide there any time, stand on it and press down (or drag down).',
     ],
     discoveries: [
@@ -334,6 +334,9 @@ Object.assign(Missions, {
         if (p.munchT >= 1) {
           p.munchT = 0; g.score++;
           Game.pop(p.x, p.y - 26, 'Yum!', '#a8d060');
+          // the pile was full of other sandhoppers: off they all hop
+          for (let k = 0; k < 7; k++) (g.hoppers = g.hoppers || []).push({ x: on.x + (Math.random() - 0.5) * 30, y: on.y, vx: (Math.random() - 0.5) * 260, vy: -(160 + Math.random() * 200), t: 0 });
+          Sound.play('boing');
           if (g.score === this.goal) { Sound.play('score'); g.toasts.unshift({ text: 'Full up! Hop home to your burrow.', kind: 'hint' }); g.toastT = 0; }
           g.items.splice(g.items.indexOf(on), 1); Game.later(4, () => this.addWrack(p.x < Beach.bx ? Beach.bx + 200 + Math.random() * 1500 : Beach.sea + 160 + Math.random() * 1500));
         }
@@ -349,6 +352,16 @@ Object.assign(Missions, {
         g.predFlip = !g.predFlip;
       }
       if (g.score >= this.goal && this.inBurrow(g) && p.onGround) g.homeSafe = true;
+      if (g.hoppers) { for (const q of g.hoppers) { q.t += dt; q.vy += 700 * dt; q.x += q.vx * dt; q.y += q.vy * dt; } g.hoppers = g.hoppers.filter(q => q.t < 1.4 && q.y < Beach.ground(clamp(q.x, 10, Beach.W - 10)) + 4); }
+      // A gull going over lets one go. It lands with a splat; under it, yuck! (No harm done.)
+      g.splatT = (g.splatT === undefined ? 14 : g.splatT) - dt;
+      if (g.splatT <= 0 && !this.inBurrow(g) && !g.homeSafe) { g.splatT = 16 + Math.random() * 12; const x = clamp(p.x + (Math.random() - 0.5) * 220, 40, Beach.W - 40); g.splat = { x, y: Beach.ground(x) - 420, gy: Beach.ground(x), t: 0, hit: false }; }
+      const sp = g.splat;
+      if (sp) {
+        sp.t += dt;
+        if (!sp.hit) { sp.y += 520 * dt; if (sp.y >= sp.gy) { sp.y = sp.gy; sp.hit = true; sp.t = 0; Sound.play('splat'); const on = Math.abs(p.x - sp.x) < 26 && p.y > sp.gy - 40; Game.pop(sp.x, sp.gy - 22, on ? 'Splat! Yuck!' : 'Splat!', '#fff'); if (on) g.shake = Math.max(g.shake || 0, 0.15); } }
+        else if (sp.t > 6) g.splat = null;
+      }
     },
     makeGull(g) {
       const p = g.player, m = this, face = Math.random() < 0.5 ? 1 : -1;
@@ -406,6 +419,10 @@ Object.assign(Missions, {
         } };
     },
     drawExtra(ctx, g) {
+      for (const q of g.hoppers || []) { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.t * 9); ell(ctx, 0, 0, 4, 2.2, '#c8b890'); ctx.restore(); }
+      const sp = g.splat;
+      if (sp && !sp.hit) { ell(ctx, sp.x, sp.gy - 1, 10, 2.4, 'rgba(0,0,0,.2)'); ell(ctx, sp.x, sp.y, 4, 6, '#f4f4ee'); }
+      else if (sp) { ctx.globalAlpha = Math.max(0, 1 - sp.t / 6); ell(ctx, sp.x, sp.gy - 1, 15, 4, '#f4f4ee'); ell(ctx, sp.x + 4, sp.gy - 2, 5, 2, '#b8b8a8'); for (const dx of [-20, 19, 26]) ell(ctx, sp.x + dx, sp.gy - 1, 3, 1.6, '#f4f4ee'); ctx.globalAlpha = 1; }
       // Seaweed you can eat right now glows, with a little Eat sign
       const w = g.canEat;
       if (w) {
@@ -652,6 +669,7 @@ Object.assign(Missions, {
       bite: 'A mosquito’s mouth is a bundle of tiny needles. Her spit stops the blood clotting, and that’s what makes the bite itchy.',
       swat: 'People often wave mosquitoes away. Fly off before they do!',
       full: 'A mosquito can drink more than her own weight in blood.',
+      feet: 'Mosquitoes find you by the air you breathe out, your warmth and your smell. This one likes the smell of feet!',
       raft: 'This mosquito lays her eggs stuck together in a little raft that floats on still water.',
       water: 'The young, called wrigglers, grow in still water. That’s why we tip out water from pots, buckets and bird baths.',
       d_gecko: 'A marbled gecko on the wall. Geckos wait near outside lights to catch insects.',
@@ -696,8 +714,8 @@ Object.assign(Missions, {
     spots(pp) {
       const f = pp.face;
       return pp.pose === 'sit'
-        ? [{ x: pp.x + f * 24, y: pp.y - 16, pp }, { x: pp.x - f * 12, y: pp.y - 68, pp }]
-        : [{ x: pp.x + f * 6, y: pp.y - 12, pp }, { x: pp.x - f * 12, y: pp.y - 88, pp }];
+        ? [{ x: pp.x + f * 24, y: pp.y - 16, pp, foot: true }, { x: pp.x - f * 12, y: pp.y - 68, pp }]
+        : [{ x: pp.x + f * 6, y: pp.y - 12, pp, foot: true }, { x: pp.x - f * 12, y: pp.y - 88, pp }];
     },
     update(g, dt, input) {
       const p = g.player, m = this;
@@ -770,6 +788,7 @@ Object.assign(Missions, {
         p.progress = (p.blood * 10 % 5) / 5 || (p.blood >= 1 ? 1 : 0);
         p.x += (spot.x - p.x) * Math.min(1, dt * 8); p.y += (spot.y - p.y) * Math.min(1, dt * 8);
         Game.fact('bite');
+        if (spot.foot && p.blood > 0.3) { Game.fact('feet'); if (!g.pong) { g.pong = true; Game.pop(spot.x, spot.y - 26, 'Pooh! Smelly feet!', '#d8e8a0'); } }
         if (Math.floor(g.t * 4) !== Math.floor((g.t - dt) * 4)) Sound.play('tap');
         if (p.blood >= 1) { Game.pop(p.x, p.y - 20, 'Full!', '#e04040'); Sound.play('score'); Game.fact('full'); g.toasts.unshift({ text: 'Full of blood! Now find still water and hold Lay.', kind: 'hint' }); g.toastT = 0; }
       }
@@ -880,7 +899,7 @@ Object.assign(Missions, {
   skimmerF: {
     id: 'skimmerF', bug: 'dragonfly', stage: 'Adult female', place: 'Herdsman Lake', world: BIG,
     sprite: 'dragonfly', bg: 'dragonfly',
-    action: 'Dart', radius: 20, speed: 230, scale: 1.3, goal: 6,
+    action: 'Dart', radius: 20, speed: 230, scale: 1.3, goal: 5, fuel: 6,
     home: { x: 220, y: 600, r: 50, label: 'Reeds' },
     facts: [
       'Female blue skimmers are yellow-brown. Only the males turn powder-blue.',
@@ -888,8 +907,8 @@ Object.assign(Missions, {
       'While she lays, a male often flies close by to guard her from other males.',
     ],
     how: [
-      'Fly into 8 mosquitoes to get your energy up.',
-      'Then fly to the glowing ripples on open water and press Dip to lay your eggs. Lay at 6 spots.',
+      'Fly into 6 mosquitoes to get your energy up.',
+      'Then fly to the glowing ripples on open water and press Dip to lay your eggs. Lay at 5 spots.',
       'The blue male will follow you and guard you. Press Dart for speed.',
     ],
     discoveries: [
@@ -918,7 +937,7 @@ Object.assign(Missions, {
       Game.later(8, () => Game.fact('guard'));
     },
     makeSpots(g) {
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 5; i++) {
         const s = Game.spawnPoint(350);
         g.spots.push({ sprite: 'ripple', x: s.x, y: s.y, r: 18, angle: 0, flat: true, done: false });
       }
@@ -945,16 +964,16 @@ Object.assign(Missions, {
       }
       for (const m of g.items) if (m.kind === 'mosquito') { wander(m, dt, m.speed); if (Math.random() < dt * 2) m.wt = 0; }
       const caught = g.items.find(i => i.kind === 'mosquito' && touching(p, i, 2));
-      if (caught && p.energy < 8) {
+      if (caught && p.energy < this.fuel) {
         g.items.splice(g.items.indexOf(caught), 1);
         p.energy++; Sound.play('pick'); Game.pop(caught.x, caught.y - 12, '+1', '#fff'); Game.fact('catch');
         Game.later(1, () => Missions.dragonfly.addMozzie());
-        if (p.energy === 8) {
+        if (p.energy === this.fuel) {
           this.makeSpots(g); Sound.play('score');
           g.toasts.unshift({ text: 'Full of energy! Fly to the glowing ripples and press Dip to lay eggs.', kind: 'hint' }); g.toastT = 0;
         }
       }
-      const spot = p.energy >= 8 ? g.spots.find(s => !s.done && dist(s, p) < 42) : null;
+      const spot = p.energy >= this.fuel ? g.spots.find(s => !s.done && dist(s, p) < 42) : null;
       if (spot) {
         setAction('Dip', true);
         if (input.pressed) {
@@ -969,10 +988,10 @@ Object.assign(Missions, {
     },
     drawBuild(ctx, g) { for (const s of g.spots) Game.drawSprite('ripple', s, 1.4); },
     drawExtra(ctx, g) { Game.drawSprite('dragonfly', g.male, g.male.scale); },
-    goalPoint(g) { return g.player.energy >= 6 ? nearest(g.spots.filter(s => !s.done), g.player, 99999) : null; },
+    goalPoint(g) { return g.player.energy >= this.fuel ? nearest(g.spots.filter(s => !s.done), g.player, 99999) : null; },
     hud(g) {
       const p = g.player;
-      if (p.energy < 8) setHud('Energy: ' + p.energy + ' / 8', 'Catch mosquitoes');
+      if (p.energy < this.fuel) setHud('Energy: ' + p.energy + ' / ' + this.fuel, 'Catch mosquitoes');
       else setHud('Eggs laid: ' + g.score + ' / ' + this.goal, '');
     },
     won(g) { return g.score >= this.goal; },
@@ -1005,6 +1024,7 @@ Object.assign(Missions, {
       start: 'Female peacock spiders can see colour well, so they can judge the males’ bright fans.',
       dance: 'Each male raises his colourful fan and waves his legs. He also drums on the ground with his body.',
       fussy: 'Females are fussy. In one study, only about 1 male in 4 that danced for a female was accepted.',
+      waggle: 'In a close cousin of this spider, a female who isn’t interested waggles her bottom from side to side. That means no!',
       choose: 'Scientists think females pick males with the brightest colours and best dances.',
       judge: 'Good eye! Scientists found that females prefer the males that dance best and show their colours.',
       scales: 'The fan’s colours come from tiny scales that bend light, like a soap bubble.',
@@ -1076,6 +1096,8 @@ Object.assign(Missions, {
     giveUp(g, m) {
       m.state = 'leave'; g.gaveUp++;
       Game.pop(m.x, m.y - 30, 'He gave up!', '#e0e0e0'); Sound.play('tap');
+      const p = g.player;
+      if (Math.hypot(m.x - p.x, m.y - p.y) < 260 && !(g.waggleT > 0)) { g.waggleT = 0.9; Game.say(p.x, p.y - 44, 'No thanks!', 1.3); Game.fact('waggle'); }
     },
     // Each male dances his own routine to his own beat. A sloppy dancer's beat drifts and he misses moves.
     dance(m, dt) {
@@ -1228,6 +1250,7 @@ Object.assign(Missions, {
     },
     update(g, dt, input) {
       const p = g.player;
+      if (g.waggleT > 0) { g.waggleT -= dt; p.angle += (Math.sin(g.t * 38) - Math.sin((g.t - dt) * 38)) * 0.5; }   // "no thanks"
       this.updateMales(g, dt);
       this.updateYoung(g, dt);
       if (g.phase === 'watch') { this.watch(g, dt, input); return; }
