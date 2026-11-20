@@ -294,6 +294,7 @@ Object.assign(Sprites, {
   butterfly(ctx, o, t) {
     const f = o.landed ? 0.35 : 0.55 + Math.sin(t * 18) * 0.45;
     const design = !!(o.paint && typeof Paint !== 'undefined' && Paint.image('butterfly'));   // a design of your own over the wings (js/paint.js)
+    const cd = o.cardui ? 1 : 0;   // the painted lady of Europe and Africa: her hindwing spots are small and dark, with no blue in them
     for (const s of [-1, 1]) {
       ctx.save(); ctx.scale(1, s * f);
       // Hindwing first (behind)
@@ -305,7 +306,7 @@ Object.assign(Sprites, {
       // dark margin and eyespots
       ctx.save(); ctx.clip();
       ctx.beginPath(); ctx.moveTo(-13, 17); ctx.bezierCurveTo(-5, 20, 1, 12, -1, 1); ctx.strokeStyle = '#2a1a10'; ctx.lineWidth = 1.4; ctx.stroke();
-      for (let k = 0; k < 4; k++) { const ex = -12.5 + k * 3.1, ey = 14 - k * 1.9; plainEll(ctx, ex, ey, 1.7, 1.7, '#1e1a18'); plainEll(ctx, ex, ey, 0.9, 0.9, '#3a78e0'); plainEll(ctx, ex - 0.3, ey - 0.3, 0.35, 0.35, '#cfe6ff'); }
+      for (let k = 0; k < 4; k++) { const ex = -12.5 + k * 3.1, ey = 14 - k * 1.9; plainEll(ctx, ex, ey, 1.7 - cd * 0.5, 1.7 - cd * 0.5, '#1e1a18'); if (!cd) { plainEll(ctx, ex, ey, 0.9, 0.9, '#3a78e0'); plainEll(ctx, ex - 0.3, ey - 0.3, 0.35, 0.35, '#cfe6ff'); } }
       if (design) Paint.draw(ctx, 'butterfly');
       ctx.restore();
       // Forewing
@@ -498,3 +499,6 @@ Object.assign(Sprites, {
     for (const s of [-1, 1]) plainLine(ctx, [8, s * 1, 11, s * 2.4], '#3a3028', 1);
   },
 });
+
+// The painted lady that reaches Britain each summer, Vanessa cardui: the same drawing with her own hindwing spots
+Sprites.paintedLady = (ctx, o, t) => Sprites.butterfly(ctx, Object.assign({}, o, { cardui: true, paint: undefined }), t);

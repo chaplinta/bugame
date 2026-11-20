@@ -3,7 +3,7 @@
 // Bump VERSION whenever any file below changes, so players get the update.
 // For a release, also update the version and date shown on the map screen (index.html, .version).
 
-const VERSION = 'bugame-v57';
+const VERSION = 'bugame-v58';
 const FILES = [
   './',
   'index.html',
@@ -16,7 +16,7 @@ const FILES = [
   'js/engine.js', 'js/orient.js', 'js/platform.js', 'js/sprite-cache.js', 'js/art-london.js', 'js/art-london3.js', 'js/art-london2.js', 'js/media.js', 'js/mic.js',
   'js/tank.js', 'js/tools.js',
   'js/secrets.js',
-  'js/missions.js', 'js/missions2.js', 'js/flight.js', 'js/garden.js', 'js/web.js', 'js/dig.js', 'js/frogs.js', 'js/olympics.js', 'js/circus.js', 'js/hand.js', 'js/london.js', 'js/london2.js', 'js/art-world2.js', 'js/models-bugs.js', 'js/models-plants.js', 'js/models-animals.js', 'js/models-props.js', 'js/models-london.js', 'vendor/three.min.js',
+  'js/missions.js', 'js/missions2.js', 'js/flight.js', 'js/garden.js', 'js/web.js', 'js/dig.js', 'js/frogs.js', 'js/olympics.js', 'js/circus.js', 'js/hand.js', 'js/london.js', 'js/flight-london.js', 'js/london2.js', 'js/art-world2.js', 'js/models-bugs.js', 'js/models-plants.js', 'js/models-animals.js', 'js/models-props.js', 'js/models-london.js', 'vendor/three.min.js',
   'js/ui.js', 'js/paint.js', 'js/size.js', 'js/quiz.js', 'js/night.js', 'js/tree.js',
 ];
 

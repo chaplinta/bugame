@@ -10,6 +10,8 @@
   function decide(g) {
     const p = g.player, m = g.mission, id = m.id;
     const near = (list) => nearest(list, p, 99999);
+    if (m.view === '3d') return fly(g, m, p);
+    if (id === 'ldn_wrestle') return wrestle(g, m, p);
     if (id.startsWith('ldn_')) return ldn(g, m, p);
     const pr = g.preds[0];
     if (pr && (pr.state === 'chase' || pr.state === 'alert') && dist(pr, p) < 170) return { goal: g.home, flee: true };
@@ -70,21 +72,6 @@
         const t = m.goalPoint(g);
         if (t && dist(t, p) < 22 && !(t.pp && t.pp.look)) { hold = true; goal = null; } else goal = t;
         if (t && t.pp && t.pp.look) goal = null;
-      }
-    } else if (id === 'flight') {
-      const fl = g.fl;
-      if (!fl || g.noGL) return { goal: null };
-      if (!fl.flying) act = true;
-      else if (fl.landed) hold = true;
-      else {
-        const left = fl.flowers.filter(f => !f.visited);
-        const f = left.reduce((a, c) => Math.hypot(c.x - fl.x, c.z - fl.z) < Math.hypot(a.x - fl.x, a.z - fl.z) ? c : a);
-        let rel = Math.atan2(f.x - fl.x, f.z - fl.z) - fl.yaw;
-        while (rel > Math.PI) rel -= 2 * Math.PI; while (rel < -Math.PI) rel += 2 * Math.PI;
-        const turn = clamp(-rel * 2, -1, 1);
-        const want = f.y + 6, dyv = fl.y > want + 1 ? 0.5 : 0;
-        goal = { x: p.x + turn * 200, y: p.y + dyv * 200 };
-        if (fl.y < want - 1 && fl.vy < 2) act = true;
       }
     } else if (id === 'skimmerF') {
       if (p.energy < m.fuel) goal = near(g.items.filter(i => i.kind === 'mosquito'));
@@ -216,6 +203,33 @@
   // London (side-on): out of the way of whatever is coming (a hunter, a train, rain, a foot, someone's red zone),
   // else on to the next route point (the one the arrow shows) and hold or press at its task. Goals are the bug's
   // middle; a walker just walks toward the point's x. The cheeky extras are left to real players.
+  // A 3D flight: head for the next stop (the level says which), drop into its ring, hold the button there.
+  // On a long leg with a wind overhead, climb into it first; a hunter overhead means get down low.
+  function fly(g, m, p) {
+    const fl = g.fl;
+    if (!fl || g.noGL) return { goal: null };
+    if (!fl.flying) return { goal: null, act: true };
+    if (fl.landed) return { goal: null, hold: true };
+    const f = m.target(g);
+    if (!f) return { goal: null };
+    let rel = Math.atan2(f.x - fl.x, f.z - fl.z) - fl.yaw;
+    while (rel > Math.PI) rel -= 2 * Math.PI; while (rel < -Math.PI) rel += 2 * Math.PI;
+    const far = Math.hypot(f.x - fl.x, f.z - fl.z), w = m.windNow && m.id !== 'flight' ? m.windNow(g, fl) : null;
+    const hide = fl.bird && fl.bird.state !== 'leave' && !kidLike;
+    const want = hide ? fl.floor + 1.5 : w && far > 75 ? w.y0 + 5 : Math.max(f.y + 6, fl.floor + 3);
+    const turn = clamp(-rel * 2, -1, 1), dyv = fl.y > want + 1 ? (fl.y > want + 6 ? 1 : 0.5) : 0;
+    return { goal: { x: p.x + turn * 200, y: p.y + dyv * 200 }, act: fl.y < want - 1 && fl.vy < 2 };
+  }
+  // The stag beetle wrestle: push in bursts while there is breath, answer each cue (the kid is late now and then)
+  function wrestle(g, m, p) {
+    const w = g.wr;
+    if (!w || w.over) return { goal: null };
+    if (w.state === 'lift') return { goal: null, hold: true };
+    if (w.cue && w.cueT > (kidLike ? 0.3 : 0.12)) return { goal: null, act: !(kidLike && w.cueN % 4 === 3) };
+    if (w.state === 'push') return { goal: null, hold: w.breath > (w.resting ? 0.75 : 0.12) };
+    return { goal: null };
+  }
+
   function ldn(g, m, p) {
     const L = g.level, P = m.P, cy = p.y - P.hh / 2, h = g.hz, c = { x: p.x, y: cy };
     const hideAt = (x) => {

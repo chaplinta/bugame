@@ -23,7 +23,7 @@ async function measure(p, id, frames) {
     Game.g.netT = 1e9;
     return performance.now() - t0;
   }, id);
-  if (id === 'flight') await p.waitForFunction(() => Game.g.fl3d || Game.g.noGL, null, { timeout: 15000 });
+  if (await p.evaluate(() => Game.g.mission.view === '3d')) await p.waitForFunction(() => Game.g.fl3d || Game.g.noGL, null, { timeout: 30000 });
   // A bot plays so the screen is busy, like a real game; the bot's own cost is excluded by timing draw() alone.
   await p.evaluate(() => { Bot.install('perfect'); Game.timeScale = 1; });
   await p.waitForTimeout(400);

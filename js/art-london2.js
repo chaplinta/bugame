@@ -520,3 +520,119 @@ Backgrounds.ldnStreet = function (ctx, W, H) {
   LondonArt.solids(ctx, { solids: L.solids, ledges: [], hides: [], floor: F });
 };
 Backgrounds.ldnStreet.noVignette = true;
+
+// ------------------------------------------------------------------ The wrestle: one log in Richmond Park at dusk
+Backgrounds.ldnLog = function (ctx, W, H) {
+  const K = WRESTLE, cx = W / 2, far = 'rgba(74,62,96,.5)', dark = 'rgba(46,40,58,.62)', r = rng(51);
+  LondonArt.sky(ctx, W, '#34346a', '#d6866a', '#f8c88a');
+  const sun = ctx.createRadialGradient(W * 0.3, 470, 10, W * 0.3, 470, 300); sun.addColorStop(0, 'rgba(255,232,176,.95)'); sun.addColorStop(1, 'rgba(255,200,140,0)');
+  ctx.fillStyle = sun; ctx.fillRect(W * 0.3 - 320, 150, 640, 440);
+  ctx.fillStyle = far; ctx.beginPath(); ctx.moveTo(0, 600); for (let x = 0; x <= W; x += 40) ctx.lineTo(x, 400 + Math.sin(x * 0.006) * 10 + r() * 12); ctx.lineTo(W, 600); ctx.fill();   // the far line of trees
+  // old pollard oaks, short and very fat in the trunk, and a stag on the rise
+  for (const [x, w] of [[cx - 400, 20], [cx - 60, 13], [cx + 250, 16]]) {
+    ctx.fillStyle = dark; ctx.beginPath(); ctx.moveTo(x - w, 500); ctx.lineTo(x - w * 0.8, 300); ctx.lineTo(x + w * 0.8, 300); ctx.lineTo(x + w, 500); ctx.fill();
+    for (const [dx, dy, rw, rh] of [[0, -40, 70, 44], [-52, -14, 44, 30], [56, -18, 48, 32], [-20, -62, 40, 26], [30, -58, 42, 26]]) { ctx.beginPath(); ctx.ellipse(x + dx * (1 + w / 40), 300 + dy, rw + w, rh, 0, 0, TAU); ctx.fill(); }
+  }
+  ctx.save(); ctx.translate(cx + 120, 440); ctx.fillStyle = 'rgba(40,36,50,.8)';
+  ctx.beginPath(); ctx.ellipse(0, -16, 18, 8, 0, 0, TAU); ctx.fill(); ctx.fillRect(-13, -12, 3, 14); ctx.fillRect(-8, -12, 3, 13); ctx.fillRect(8, -12, 3, 14); ctx.fillRect(12, -12, 3, 13);
+  ctx.beginPath(); ctx.moveTo(12, -20); ctx.lineTo(20, -34); ctx.lineTo(25, -32); ctx.lineTo(18, -14); ctx.fill(); ctx.beginPath(); ctx.ellipse(24, -35, 6.4, 4, -0.3, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(40,36,50,.8)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+  for (const k of [-1, 1]) { ctx.beginPath(); ctx.moveTo(22 + k, -38); ctx.quadraticCurveTo(18 + k * 9, -52, 26 + k * 10, -64); ctx.moveTo(20 + k * 5, -48); ctx.lineTo(15 + k * 9, -55); ctx.moveTo(22 + k * 7, -56); ctx.lineTo(17 + k * 12, -62); ctx.stroke(); }
+  ctx.restore();
+  LondonArt.grass(ctx, W, 440, '#5f7036', '#73843f', 37);
+  // bracken behind the log
+  for (let i = 0; i < 30; i++) {
+    const x = r() * W, h = 60 + r() * 70, lean = (r() - 0.5) * 34, by = 500;
+    ctx.strokeStyle = i % 3 ? '#55702f' : '#6b7c34'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, by); ctx.quadraticCurveTo(x + lean * 0.4, by - h * 0.6, x + lean, by - h); ctx.stroke();
+    for (let k = 1; k < 7; k++) { const fy = by - h * k / 7, fx = x + lean * Math.pow(k / 7, 1.5), l = (7 - k) * 5; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(fx - l, fy - 3); ctx.lineTo(fx, fy); ctx.lineTo(fx + l, fy - 3); ctx.stroke(); }
+  }
+  // the bough she watches from, reaching in from the right
+  const bx = W - 250, byy = 214;
+  let g = ctx.createLinearGradient(0, byy - 20, 0, byy + 30); g.addColorStop(0, '#6e553a'); g.addColorStop(1, '#33251a');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(W, byy - 64); ctx.quadraticCurveTo(W - 120, byy - 30, bx, byy); ctx.quadraticCurveTo(bx - 22, byy + 10, bx, byy + 20); ctx.quadraticCurveTo(W - 110, byy + 4, W, byy - 16); ctx.fill();
+  for (const [lx, ly, lw, lh, c2] of [[W - 60, byy - 86, 90, 44, '#3f5a2c'], [W - 150, byy - 56, 60, 28, '#4a6a32'], [W - 30, byy - 20, 60, 30, '#36502a'], [bx - 6, byy + 36, 34, 15, '#4a6a32']]) { ctx.fillStyle = c2; ctx.beginPath(); ctx.ellipse(lx, ly, lw, lh, 0, 0, TAU); ctx.fill(); }
+  // the log: an old fallen oak, bark on, moss along the top, the cut ends showing their rings
+  const x0 = cx - K.END, x1 = cx + K.END, top = K.Y, bot = K.Y + 112;
+  ctx.fillStyle = 'rgba(20,14,8,.32)'; ctx.beginPath(); ctx.ellipse(cx, bot + 4, K.END + 40, 14, 0, 0, TAU); ctx.fill();
+  g = ctx.createLinearGradient(0, top, 0, bot); g.addColorStop(0, '#7a5e40'); g.addColorStop(0.35, '#5e4630'); g.addColorStop(1, '#2e2014');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x0, top); ctx.lineTo(x1, top); ctx.quadraticCurveTo(x1 + 24, (top + bot) / 2, x1, bot); ctx.lineTo(x0, bot); ctx.quadraticCurveTo(x0 - 24, (top + bot) / 2, x0, top); ctx.fill();
+  ctx.strokeStyle = 'rgba(24,16,8,.45)'; ctx.lineWidth = 2;
+  for (let i = 0; i < 60; i++) { const x = x0 + 10 + r() * (x1 - x0 - 90), y = top + 12 + r() * 86, l = 20 + r() * 60; ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + l / 2, y + (r() - 0.5) * 8, x + l, y + (r() - 0.5) * 6); ctx.stroke(); }
+  for (const [ex, sg] of [[x0, -1], [x1, 1]]) {
+    ctx.fillStyle = '#c4a674'; ctx.beginPath(); ctx.ellipse(ex + sg * 3, (top + bot) / 2, 18, 56, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(110,80,44,.7)'; ctx.lineWidth = 1.2; for (const k of [0.8, 0.58, 0.36, 0.16]) { ctx.beginPath(); ctx.ellipse(ex + sg * 3, (top + bot) / 2, 18 * k, 56 * k, 0, 0, TAU); ctx.stroke(); }
+  }
+  ctx.fillStyle = '#6f8f3a'; for (let i = 0; i < 11; i++) { const x = x0 + 40 + r() * (x1 - x0 - 80); ctx.beginPath(); ctx.ellipse(x, top + 3, 16 + r() * 24, 4 + r() * 3, 0, 0, TAU); ctx.fill(); }
+  for (const fx of [cx - 190, cx + 130]) for (let k = 0; k < 3; k++) { ctx.fillStyle = k % 2 ? '#d8b98a' : '#c9a473'; ctx.beginPath(); ctx.ellipse(fx + k * 18, bot - 30 - k * 12, 17, 7, 0, Math.PI, 0); ctx.fill(); }   // bracket fungus
+  LondonArt.grass(ctx, W, K.G, '#56672f', '#6a7a3a', 38);
+};
+Backgrounds.ldnLog.noVignette = true;
+
+// Both beetles, the breath and lift bars, his cues. A beetle is turned about its back feet: up > 0 is head up.
+LondonArt.wrestle = function (ctx, g, m) {
+  const w = g.wr, K = WRESTLE, R = m.rival(g), cx = World.w / 2, t = g.t, ps = K.S, rs = K.S * R.size;
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(Game.bg, 0, 0, World.w, World.h);
+  Game.drawSprite('stagBeetleF', { x: World.w - 232, y: 205, angle: 0, face: -1, flat: true, moving: w.state === 'thrown' && w.t < 1 }, 2.6);
+  const beetle = (b, face, scale) => {
+    const px = b.x - face * 12 * scale;
+    ctx.save(); ctx.translate(px, b.y); ctx.rotate(-face * (b.up || 0) + (b.spin || 0)); ctx.translate(-px, -b.y);
+    Game.drawSprite('stagBeetle', { x: b.x, y: b.y - 4.5 * scale, angle: 0, face: b.face || face, flat: true, moving: !!b.moving }, scale);   // its feet on the bark
+    ctx.restore();
+  };
+  const c = cx + w.pos, strain = Math.sin(t * 30) * 0.015;
+  const P = { x: c - 21 * ps, y: K.Y, up: 0, moving: false }, Q = { x: c + 21 * rs, y: K.Y, up: 0, moving: false };
+  const ease = (k) => k * k * (3 - 2 * k);
+  if (w.state === 'ready') {   // they walk in from the two ends
+    const k = ease(clamp(w.t / 1.5, 0, 1)), a = cx - K.END + 14 * ps, b = cx + K.END - 14 * rs;
+    P.x = a + (P.x - a) * k; Q.x = b + (Q.x - b) * k; P.moving = Q.moving = k < 1;
+  } else if (w.state === 'push') {
+    P.up = (w.shoving ? -0.05 : 0) + strain; Q.up = -strain; P.moving = w.shoving; Q.moving = !w.shoving;
+    if (w.cue === 'rear') { Q.up = 0.62 * ease(clamp(w.cueT / 0.22, 0, 1)); Q.x += 4 * rs; }
+    if (w.cue === 'dip') { Q.up = -0.17 * ease(clamp(w.cueT / 0.2, 0, 1)); Q.x -= 3 * rs; Q.y += 2 * rs; }
+    if (w.slamT > 0) { Q.up = -0.1; P.up = 0.12; }
+    if (w.puffed) P.up = 0.04 + Math.sin(t * 9) * 0.03;
+  } else if (w.state === 'lift') {   // your jaws under him: up he goes, legs waving
+    const k = clamp(w.lift, 0, 1);
+    P.up = 0.2 + k * 0.32;
+    Q.x = c + 14 * rs - k * 5 * ps; Q.y = K.Y - 4 * ps - k * 17 * ps; Q.up = -(0.2 + k * 0.5) + Math.sin(t * 34) * 0.06; Q.moving = true;
+  } else if (w.state === 'thrown' || w.state === 'off') {   // over he goes, down onto the grass, and away
+    const u = w.t, hi = w.state === 'thrown' ? 1 : 0, y0 = K.Y - hi * 21 * ps;
+    if (u < 0.9) { const k = u / 0.9; Q.x = c + 14 * rs + k * (cx + K.END + 70 - c); Q.y = y0 + (K.G - y0) * k * k - Math.sin(k * Math.PI) * (30 + hi * 80); Q.spin = k * (4 + hi * 5); Q.moving = true; }
+    else { Q.x = cx + K.END + 84 + (u - 0.9) * 130; Q.y = K.G; Q.face = 1; Q.moving = true; }
+    P.up = hi && u < 0.5 ? 0.5 * (1 - u / 0.5) : 0; P.y = K.Y - (u > 0.6 && u < 1.5 ? Math.abs(Math.sin((u - 0.6) * 7)) * 14 : 0);   // a little hop of triumph
+  } else if (w.state === 'carried') {   // he has got under you
+    const k = Math.sin(clamp(w.t / 0.9, 0, 1) * Math.PI);
+    Q.up = 0.26; P.x = c - 15 * ps + k * 4 * ps; P.y = K.Y - 3 * ps - k * 14 * ps; P.up = -(0.2 + k * 0.45) + Math.sin(t * 34) * 0.06; P.moving = true;
+  } else if (w.state === 'fall') {   // off the end, onto the grass, and round to climb back on
+    const u = w.t, ex = cx - K.END - 6;
+    if (u < 0.8) { const k = u / 0.8; P.x = ex - k * 46; P.y = K.Y + (K.G - K.Y) * k * k - Math.sin(k * Math.PI) * 36; P.spin = -k * 5; P.moving = true; }
+    else { P.x = ex - 46 + (u - 0.8) * 30; P.y = K.G; P.moving = true; }
+    Q.x = cx - K.L + 30 + 21 * rs; Q.up = u < 0.7 ? 0.32 : 0;
+  }
+  if (w.over) { P.x = cx - 30; P.up = 0.3 + Math.sin(t * 5) * 0.08; P.y = K.Y; }
+  if (!w.over) beetle(Q, -1, rs);
+  beetle(P, 1, ps);
+  // His cue: what he is doing, the word to press, and a ring that closes as the time runs out
+  if (w.state === 'push' && w.cue) {
+    const left = clamp(1 - w.cueT / m.window(g), 0, 1), rear = w.cue === 'rear', col = rear ? '#ffd23f' : '#ff6a4a', qx = Q.x - 6 * rs, qy = K.Y - 24 * rs - (rear ? 44 : 28);
+    ctx.beginPath(); ctx.arc(qx, qy, 20 + left * 30, 0, TAU); ctx.strokeStyle = col; ctx.lineWidth = 6; ctx.stroke();
+    ctx.beginPath(); ctx.arc(qx, qy, 19, 0, TAU); ctx.fillStyle = col; ctx.fill();
+    ctx.fillStyle = '#2b2118'; ctx.font = 'bold 28px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(rear ? '▲' : '▼', qx, qy + 10);
+    ctx.font = 'bold 26px sans-serif'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(40,30,20,.75)'; ctx.strokeText(rear ? 'Get under!' : 'Hold tight!', qx, qy - 62); ctx.fillStyle = col; ctx.fillText(rear ? 'Get under!' : 'Hold tight!', qx, qy - 62);
+  }
+  // Breath, over your beetle; the lift, over his
+  const bar = (x, y, k, col, label) => {
+    ctx.fillStyle = 'rgba(40,30,20,.6)'; ctx.fillRect(x - 63, y - 3, 126, 20);
+    ctx.fillStyle = col; ctx.fillRect(x - 60, y, 120 * clamp(k, 0, 1), 14);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, x, y - 8);
+  };
+  if (w.state === 'push' || w.state === 'lift') bar(P.x - 4 * ps, K.Y - 24 * ps - 30, w.breath, w.puffed ? '#e05a3a' : w.breath < 0.3 ? '#f0a030' : '#7fd06a', w.puffed ? 'Out of breath' : 'Breath');
+  if (w.state === 'lift') bar(Q.x, Q.y - 22 * rs - 26, w.lift, '#ffd23f', 'Lift!');
+  if (w.state === 'ready' && !w.over) {
+    ctx.textAlign = 'center'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(40,30,20,.7)';
+    ctx.font = 'bold 40px sans-serif'; ctx.strokeText('Round ' + (w.round + 1), cx, 130); ctx.fillStyle = '#ffd23f'; ctx.fillText('Round ' + (w.round + 1), cx, 130);
+    ctx.font = 'bold 22px sans-serif'; ctx.strokeText(R.name, cx, 164); ctx.fillStyle = '#fff'; ctx.fillText(R.name, cx, 164);
+  }
+  FlightKit.fx(ctx, g);
+};

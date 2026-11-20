@@ -487,20 +487,171 @@ Object.assign(Missions, {
   }),
 });
 
+// ------------------------------------------------------------------ The wrestle (the Stag Beetle's second stage)
+// One log at dusk, a female watching, three rival males of rising size. A wrestle, not a brawl, and timing, not
+// mashing: one button whose word changes with the moment.
+//   Push (hold): shove him along the log. It costs breath; let go to get it back. Stray taps cost breath too.
+//   Get under! (press when he rears): your jaws go under him. Then hold Lift! and he is thrown off: round won.
+//   Hold tight! (press when he dips): or he gets under you and carries you back toward your end.
+// Shoving him right off his end wins the round as well. Off your own end is a fall: back on, the round again,
+// and he is a little more tired each time, so it can't be lost for good. Stars are for how few falls it took.
+const WRESTLE = {
+  rivals: [
+    { name: 'a small male', size: 0.86, push: 16, win: 0.95, lift: 1.0, gap: [3.4, 5.4], carry: 80 },
+    { name: 'a big male', size: 1, push: 22, win: 0.8, lift: 1.3, gap: [3, 5], carry: 100 },
+    { name: 'the giant of the log', size: 1.2, push: 27, win: 0.68, lift: 1.6, gap: [2.6, 4.4], carry: 115 },
+  ],
+  S: 3.6, L: 250, END: 375, Y: 392, G: 548, shove: 62, drain: 0.42, regain: 0.7, tap: 0.1, slam: 55, slip: 35,
+};
+
+Missions.ldn_wrestle = {
+  id: 'ldn_wrestle', stage: 'The wrestle', place: 'A log in Richmond Park, dusk', view: 'side',
+  get world() { return { w: W, h: H }; }, sprite: 'stagBeetle', bg: 'ldnLog',
+  action: 'Push', radius: 16, speed: 0, scale: 1.6, noNet: true, gentle: true, explore: false,
+  gentleText: 'You can’t lose this one. If you fall off the log, you climb back on and try that round again.',
+  get home() { return { x: Math.round(W / 2), y: WRESTLE.Y, r: 1, label: '' }; },
+  facts: [
+    'Male stag beetles wrestle over the females. The loser is thrown off the log, or backs away.',
+    'A male stands up on his back legs to throw his rival off.',
+    'The bigger male usually wins.',
+  ],
+  how: [
+    'Hold Push to shove him along the log. Pushing uses up your breath: let go to get it back.',
+    'When he rears up, press Get under! Then hold Lift! and throw him off the log.',
+    'When he dips his head, press Hold tight! or he will lift you and carry you back.',
+    'Three rivals, each bigger than the last. Don’t mash the button: every tap costs breath.',
+  ],
+  factText: {
+    start: 'Two males on one log, and a female watching. Male stag beetles wrestle over the females.',
+    jaws: 'Only males have the big jaws, like a stag’s antlers. They use them to wrestle other males.',
+    throw: 'Thrown! A male stands up on his back legs to throw his rival off the log.',
+    size: 'In stag beetle fights the bigger male usually wins. You are not the biggest here, so timing is everything.',
+    end: 'A fight usually ends when one beetle is thrown off or backs away.',
+    win: 'Three rivals off the log! The log is yours, and the female has seen it all.',
+  },
+
+  setup(g) {
+    const p = g.player; p.flat = true; p.x = Math.round(World.w / 2); p.y = WRESTLE.Y;
+    g.wr = { round: 0, falls: 0, beaten: 0, state: 'ready', t: 0, pos: 0, breath: 1, resting: false, puffed: false, shoving: false,
+      cue: null, cueT: 0, cueN: 0, cueIn: 3, lift: 0, loose: 0, ease: 0, slamT: 0, from: 0, over: false, won: false, told: {} };
+    Game.fact('jaws');
+  },
+  locked() { return true; },
+  move() {},
+  rival(g) { return WRESTLE.rivals[Math.min(WRESTLE.rivals.length - 1, g.wr.round)]; },
+  // How long a cue stays open: longer for the first two of the level, and longer each time you have fallen
+  window(g) { const w = g.wr; return this.rival(g).win + w.ease * 0.6 + (w.cueN <= 2 ? 0.5 : 0); },
+  go(g, state) { const w = g.wr; w.state = state; w.t = 0; w.cue = null; w.cueT = 0; w.slamT = 0; w.shoving = false; },
+  update(g, dt, input) {
+    const w = g.wr, K = WRESTLE, R = this.rival(g), p = g.player, cx = World.w / 2;
+    p.x = cx + w.pos - 21 * K.S; p.y = K.Y;
+    w.t += dt;
+    if (w.over) { setAction('Push', false); return; }
+    if (w.state === 'ready') {
+      setAction('Push', false);
+      if (w.t > 1.7) { this.go(g, 'push'); w.cueIn = R.gap[0] + Math.random() * (R.gap[1] - R.gap[0]); if (w.round === 1) Game.fact('size'); }
+    } else if (w.state === 'push') this.pushing(g, dt, input, R);
+    else if (w.state === 'lift') {
+      setAction('Lift!', true);
+      if (input.held) { w.lift += dt / R.lift; w.loose = 0; } else { w.lift = Math.max(0, w.lift - dt * 0.6); w.loose += dt; }
+      if (w.lift >= 1) {
+        w.beaten++; this.go(g, 'thrown');
+        Sound.play('boing'); Game.pop(cx + w.pos + 30, K.Y - 190, 'Thrown off!', '#ffd23f'); Game.burst(cx + w.pos + 30, K.Y - 60, '#ffd23f', 14); Game.fact('throw');
+      } else if (w.loose > 1.3) { this.go(g, 'push'); w.lift = 0; w.cueIn = 2.5; Game.pop(cx + w.pos + 30, K.Y - 150, 'He wriggled free!', '#fff'); }
+      else if (w.loose > 0.5 && !w.told.lift) { w.told.lift = true; Game.hint('Hold Lift! to throw him off.'); }
+    } else if (w.state === 'thrown' || w.state === 'off') {
+      setAction('Push', false);
+      if (w.t > 2.3) this.next(g);
+    } else if (w.state === 'carried') {
+      setAction('Push', false);
+      const k = Math.min(1, w.t / 0.9);
+      w.pos = w.from - w.carry * (k * k * (3 - 2 * k));
+      if (w.pos <= -K.L) this.fall(g);
+      else if (k >= 1) { this.go(g, 'push'); w.cueIn = 2.2 + Math.random() * 1.5; Game.pop(p.x, K.Y - 120, 'Oof!', '#fff'); }
+    } else if (w.state === 'fall') {
+      setAction('Push', false);
+      if (w.t > 2 && w.roundFalls >= 4) this.next(g);   // four falls to one rival: he gives up on you, and the next one comes
+      else if (w.t > 2) { w.pos = 0; w.breath = 1; w.puffed = false; w.lift = 0; this.go(g, 'ready'); Game.pop(cx, K.Y - 130, 'Back on the log!', '#fff'); }
+    }
+  },
+  pushing(g, dt, input, R) {
+    const w = g.wr, K = WRESTLE, p = g.player, cx = World.w / 2, ease = 1 - Math.min(0.55, w.ease);
+    // breath: holding spends it, letting go gets it back, and a tap with nothing to answer wastes some
+    if (input.held) w.breath = Math.max(0, w.breath - K.drain * dt); else w.breath = Math.min(1, w.breath + K.regain * dt);
+    if (input.pressed && !w.cue) w.breath = Math.max(0, w.breath - K.tap);
+    if (w.breath <= 0 && !w.puffed) { w.puffed = true; Game.pop(p.x, K.Y - 120, 'Puff… puff…', '#fff'); if (!w.told.puff) { w.told.puff = true; Game.hint('Out of breath! Let go of the button to get it back.'); } }
+    if (w.puffed && w.breath > 0.4) w.puffed = false;
+    w.resting = w.breath < 0.12 ? true : w.breath > 0.75 ? false : w.resting;
+    w.shoving = !!input.held && !w.puffed && !w.cue;
+    if (w.slamT > 0) { w.slamT -= dt; w.pos -= K.slam / 0.3 * dt; }
+    else w.pos += ((w.shoving ? K.shove : 0) - R.push * ease) * dt;
+    if (w.shoving && Math.random() < dt * 9) Game.burst(p.x - 40, K.Y - 2, '#c9b48a', 1);
+    if (w.cue) {
+      w.cueT += dt;
+      setAction(w.cue === 'rear' ? 'Get under!' : 'Hold tight!', true);
+      if (input.pressed && w.cueT > 0.06 && w.breath >= 0.1) {
+        if (w.cue === 'rear') { this.go(g, 'lift'); w.lift = 0.12; w.loose = 0; Sound.play('pick'); Game.pop(p.x + 30, K.Y - 130, 'Got under him!', '#ffd23f'); }
+        else { w.cue = null; w.pos += K.slip; w.cueIn = R.gap[0] + Math.random() * (R.gap[1] - R.gap[0]); Sound.play('score'); Game.pop(p.x, K.Y - 130, 'Held on!', '#ffd23f'); Game.fact('end'); }
+      } else if (input.pressed && w.cueT > 0.06 && !w.told.air) { w.told.air = true; Game.hint('No breath left to do it! Keep some breath for when he moves.'); }
+      else if (w.cueT > this.window(g)) {
+        const kind = w.cue; w.cue = null; w.cueIn = R.gap[0] + Math.random() * (R.gap[1] - R.gap[0]);
+        if (kind === 'rear') { w.slamT = 0.3; Sound.play('caught'); Game.pop(p.x, K.Y - 130, 'Wham!', '#fff'); g.shake = 0.25; }
+        else { this.go(g, 'carried'); w.from = w.pos; w.carry = R.carry * (1 - Math.min(0.5, w.ease)); Sound.play('yelp'); Game.pop(p.x, K.Y - 140, 'He got under you!', '#fff'); }
+      }
+    } else {
+      setAction('Push', true);
+      if ((w.cueIn -= dt) <= 0) {
+        w.cue = w.cueN === 0 ? 'rear' : w.cueN === 1 ? 'dip' : Math.random() < 0.55 ? 'rear' : 'dip';   // one of each first, to learn them
+        w.cueT = 0; w.cueN++;
+        if (w.cue === 'rear') { Sound.tone(520, 0.12, 'square', 0.1, 880); if (!w.told.rear) { w.told.rear = true; g.toasts.unshift({ text: 'He is rearing up! Press Get under! now.', kind: 'hint' }); g.toastT = 0; } }
+        else { Sound.tone(520, 0.12, 'square', 0.1, 300); if (!w.told.dip) { w.told.dip = true; g.toasts.unshift({ text: 'He is going under you! Press Hold tight! now.', kind: 'hint' }); g.toastT = 0; } }
+      }
+      if (g.player.stillT > 4 && !w.told.push) { w.told.push = true; Game.hint('Hold Push to shove him along the log.'); }
+    }
+    if (w.state !== 'push') return;
+    if (w.pos >= K.L) { w.beaten++; this.go(g, 'off'); Sound.play('score'); Game.pop(cx + K.L, K.Y - 130, 'He backs off!', '#ffd23f'); Game.fact('end'); }
+    else if (w.pos <= -K.L) this.fall(g);
+  },
+  fall(g) {
+    const w = g.wr;
+    w.falls++; w.roundFalls = (w.roundFalls || 0) + 1; w.ease += 0.18; this.go(g, 'fall');
+    Sound.play('caught'); Game.pop(World.w / 2 - WRESTLE.L - 60, WRESTLE.Y - 120, 'Off the log!', '#fff');
+    g.toasts.unshift({ text: w.roundFalls >= 4 ? 'Four falls! He has had enough of this and wanders off.' : 'You fell off! Climb back on and try that round again. He is getting tired.', kind: 'hint' }); g.toastT = 0;
+  },
+  next(g) {
+    const w = g.wr;
+    w.round++; w.pos = 0; w.lift = 0; w.ease = 0; w.roundFalls = 0; w.breath = 1; w.puffed = false;
+    if (w.round >= WRESTLE.rivals.length) { w.over = true; w.won = true; w.t = 0; g.score = 3; Sound.play('win'); }
+    else { g.score = w.round; this.go(g, 'ready'); }
+  },
+  render(ctx, g) { LondonArt.wrestle(ctx, g, this); },
+  hud(g) {
+    const w = g.wr;
+    setHud(w.over ? 'The log is yours!' : 'Round ' + (w.round + 1) + ' of 3', 'Falls: ' + w.falls);
+  },
+  stars(g) { const f = g.wr.falls; return f === 0 ? 3 : f <= 2 ? 2 : 1; },
+  endLine(g) { const f = g.wr.falls; return f === 0 ? 'Not one fall! Three stars.' : 'Falls: ' + f + '. Fewer falls, more stars.'; },
+  won(g) { return !!g.homeSafe || (g.wr.won && g.wr.t > 1.8); },
+};
+Missions.ldn_wrestle.sex = 'You are a male. Only the males have the antler jaws.';
+
 // London's places: one pin on the London map and one Bug Book section a level, in the order the bus tour plays
 // them (the first five are listed in js/london.js).
 LDN_BUGS.push(
   { id: 'l_darts', stage: 'ldn_darts', name: 'The Ally Pally Wasp', sci: 'Vespula vulgaris', place: 'Alexandra Palace', pin: { x: 652, y: 106 } },
   { id: 'l_louse', stage: 'ldn_louse', name: 'Pill Woodlouse', sci: 'Armadillidium vulgare', place: 'Highgate Wood', pin: { x: 404, y: 104 } },
-  { id: 'l_fox', stage: 'ldn_fox', name: 'Red Fox', sci: 'Vulpes vulpes', place: 'A street in south London', pin: { x: 478, y: 524 } });
+  { id: 'l_fox', stage: 'ldn_fox', name: 'Red Fox', sci: 'Vulpes vulpes', place: 'A street in south London', pin: { x: 478, y: 524 } },
+  LDN_LADY);   // the flight up the Thames (js/flight-london.js): the tour's last stop
 Object.assign(LDN_STOP, {
   ldn_darts: 'Alexandra Palace, in winter. Now you’re a queen wasp at the darts!',
   ldn_louse: 'Highgate Wood. Now you’re a pill woodlouse!',
   ldn_fox: 'a street in south London, at night. Now you’re a fox!',
 });
+LDN_BUGS.find(b => b.id === 'l_stag').more = ['ldn_wrestle'];   // the Stag Beetle has a second game; both are open from the start
 for (const b of LDN_BUGS) {
-  Bugs.push({ id: b.id, name: b.name, sci: b.sci, place: b.place, sprite: Missions[b.stage].sprite, pin: b.pin, hub: 'london', kind: 'sandbox', stages: [b.stage] });
-  Missions[b.stage].bug = b.id;
+  const stages = [b.stage].concat(b.more || []);
+  Bugs.push({ id: b.id, name: b.name, sci: b.sci, place: b.place, sprite: Missions[b.stage].sprite, pin: b.pin, hub: 'london', kind: 'sandbox', stages, free: stages.length > 1 });
+  for (const id of stages) Missions[id].bug = b.id;
 }
 const LDN_TOUR = LDN_BUGS.map(b => b.stage);
 finishMissions();

@@ -215,13 +215,13 @@ const PL = {
     ctx.strokeStyle = 'rgba(70,35,10,.35)'; ctx.lineWidth = 0.4; ctx.stroke();
     ctx.restore();
   },
-  paintHind(ctx) {
+  paintHind(ctx, cardui) {
     ctx.beginPath(); ctx.moveTo(-1, 1); ctx.bezierCurveTo(1, 12, -5, 20, -13, 17); ctx.bezierCurveTo(-17, 9, -11, 2, -4, 1); ctx.closePath();
     const g = ctx.createLinearGradient(-2, 0, -12, 17); g.addColorStop(0, '#9a3e18'); g.addColorStop(0.5, '#e07a2a'); g.addColorStop(1, '#c86022');
     ctx.fillStyle = g; ctx.fill();
     ctx.save(); ctx.clip();
     ctx.beginPath(); ctx.moveTo(-13, 17); ctx.bezierCurveTo(-5, 20, 1, 12, -1, 1); ctx.strokeStyle = '#2a1a10'; ctx.lineWidth = 1.6; ctx.stroke();
-    for (let k = 0; k < 4; k++) { const ex = -12.5 + k * 3.1, ey = 14 - k * 1.9; plainEll(ctx, ex, ey, 1.7, 1.7, '#1e1a18'); plainEll(ctx, ex, ey, 0.9, 0.9, '#3a78e0'); plainEll(ctx, ex - 0.3, ey - 0.3, 0.35, 0.35, '#cfe6ff'); }
+    for (let k = 0; k < 4; k++) { const ex = -12.5 + k * 3.1, ey = 14 - k * 1.9; plainEll(ctx, ex, ey, cardui ? 1.2 : 1.7, cardui ? 1.2 : 1.7, '#1e1a18'); if (!cardui) { plainEll(ctx, ex, ey, 0.9, 0.9, '#3a78e0'); plainEll(ctx, ex - 0.3, ey - 0.3, 0.35, 0.35, '#cfe6ff'); } }
     ctx.beginPath(); for (let k = 0; k < 4; k++) { ctx.moveTo(-3, 2); ctx.quadraticCurveTo(-6 - k * 1.5, 8 + k, -5 - k * 3, 17 - k * 1.5); }
     ctx.strokeStyle = 'rgba(70,35,10,.3)'; ctx.lineWidth = 0.4; ctx.stroke();
     ctx.restore();
@@ -442,7 +442,7 @@ function paintedLady(M, o) {
   const g = new THREE.Group();
   const user = o.paint && typeof Paint !== 'undefined';   // a design of your own on the wings (js/paint.js)
   const foreTex = (user && Paint.texture('butterfly', 'plFore')) || patternTexture(M, 'plFore', PL.fore(), (ctx) => PL.paintFore(ctx));
-  const hindTex = (user && Paint.texture('butterfly', 'plHind')) || patternTexture(M, 'plHind', PL.hind(), (ctx) => PL.paintHind(ctx));
+  const hindTex = (user && Paint.texture('butterfly', 'plHind')) || patternTexture(M, o.cardui ? 'plHindC' : 'plHind', PL.hind(), (ctx) => PL.paintHind(ctx, o.cardui));
   g.userData.wings = [];
   for (const s of [-1, 1]) {
     const hw = paintedWing(M, g, [0, 0, 5.4], PL.hind(), hindTex, s, { key: 'plHind' }); hw.kind = 'hind'; g.userData.wings.push(hw);
@@ -457,7 +457,7 @@ function paintedLady(M, o) {
   if (o.sip) M.seg(g, [9, 0, 4.2], [12.5, 0, 1.2], 0.3, M.chitin('#2a221c'), { full: true });
   return g;
 }
-Models.define('butterfly', {
+const PL_MODEL = {
   buckets: 16,
   variant(o) { return (o.sip ? 'S' : '') + (o.landed ? 'L' : '') + (o.paint ? 'U' + o.paint : ''); },
   key(o, t) { return (o.sip ? 'S' : '') + (o.paint ? 'U' + o.paint : '') + (o.landed ? 'L' : 'w' + SpriteCache.phase(t, 18, 6)); },
@@ -467,7 +467,10 @@ Models.define('butterfly', {
     const ang = Math.acos(Math.max(0.05, Math.min(1, f)));
     for (const w of root.userData.wings) w.hinge.rotation.set(w.s * ang, 0, w.kind === 'hind' ? -w.s * 0.08 : w.s * 0.08);
   },
-});
+};
+Models.define('butterfly', PL_MODEL);
+// The painted lady that reaches Britain, Vanessa cardui: the same butterfly but for the spots on her hindwings
+Models.define('paintedLady', Object.assign({}, PL_MODEL, { build(M, o) { return paintedLady(M, Object.assign({}, o, { cardui: true, paint: undefined })); } }));
 
 // Painted lady caterpillar: dark, spiny, a pale yellow side stripe; o.size and o.fat grow it.
 Models.define('plCaterpillar', {

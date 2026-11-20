@@ -103,7 +103,7 @@ async function exploreSweep(b, ids) {
   const bad = [];
   for (const id of ids) {
     await startMission(p, id, { noNet: true, noPred: true });
-    if (id === 'flight') await p.waitForFunction(() => Game.g.fl3d || Game.g.noGL, null, { timeout: 30000 });   // the 3D flight loads first
+    if (await p.evaluate(() => Game.g.mission.view === '3d')) await p.waitForFunction(() => Game.g.fl3d || Game.g.noGL, null, { timeout: 30000 });   // a 3D flight loads first
     await p.evaluate(() => { Game.timeScale = 8; });
     try { await forceWin(p); } catch (e) { bad.push(id + ': never reached the end screen'); await p.evaluate(() => { Game.stop(); buildMap(); }); continue; }
     const want = await p.evaluate(() => { const m = currentMission, g = Game.g; return typeof m.explore === 'function' ? m.explore(g) : m.explore !== false; });
@@ -115,12 +115,12 @@ async function exploreSweep(b, ids) {
         const g = Game.g, m = g.mission, p = g.player;
         if (m.pointerOnly) return true;
         Game.timeScale = 1;
-        const at = () => m.id === 'flight' && g.fl ? [g.fl.x, g.fl.z] : [p.x, p.y];   // the flight moves its own 3D butterfly
+        const fly = m.view === '3d' && !!g.fl, at = () => fly ? [g.fl.x, g.fl.z] : [p.x, p.y];   // a flight moves its own 3D butterfly
         const tryMove = () => {
           for (const k of ['arrowright', 'arrowleft', 'arrowdown', 'arrowup']) {
             const a = at();
             Input.keys.add(k); for (let i = 0; i < 20; i++) Game.update(1 / 60); Input.keys.delete(k);
-            const b = at(); if (Math.hypot(b[0] - a[0], b[1] - a[1]) > (m.id === 'flight' ? 1 : 3)) return true;   // the flight's units are metres, not pixels
+            const b = at(); if (Math.hypot(b[0] - a[0], b[1] - a[1]) > (fly ? 1 : 3)) return true;   // the flight's units are metres, not pixels
           }
           return false;
         };
@@ -615,13 +615,13 @@ test('reach: an action is ready beside its target, a press that can’t act says
       const ready = document.getElementById('actionBtn').classList.contains('ready'), label = document.getElementById('actionBtn').textContent;
       // a press far from everything: the level's own reason, as a hint
       for (const i of g.items) i.x += 5000;
-      for (const q of g.pats || []) q.x += 5000;
+      for (const q of (g.pats || []).concat(g.sun || [])) q.x += 5000;   // the snail's sunny patches too: one in the corner would offer Seal
       p.x = 40; p.y = 40; g.hintT = 0; g.toasts = []; g.toastT = 0; Game.showToast(null);
       const want = m.notReady(g);
       Input.pressed = true; Game.update(1 / 60); Input.pressed = false;
       const el = document.getElementById('toast'), hint = el.classList.contains('hint') ? el.textContent : (g.toasts.find(t => t.kind === 'hint') || {}).text;
       for (const i of g.items) i.x -= 5000;
-      for (const q of g.pats || []) q.x -= 5000;
+      for (const q of (g.pats || []).concat(g.sun || [])) q.x -= 5000;
       return { ready, label, hint, want };
     }, id);
     if (!(r.ready && r.hint && r.hint === r.want)) bad.push(id + ': ' + JSON.stringify(r));
@@ -1776,7 +1776,7 @@ test('London: every part’s route is clear of the walls, and no task sits insid
   const p = await openGame(b);
   const bad = await p.evaluate(() => {
     const out = [];
-    for (const id of Bugs.filter(x => x.hub === 'london').map(x => x.stages[0])) {
+    for (const id of Bugs.filter(x => x.hub === 'london').flatMap(x => x.stages).filter(id => Missions[id].level)) {   // the side-on levels (not the flight up the Thames, nor the wrestle)
       const m = Missions[id], L = m.level(), P = m.P;
       for (const s of L.spots) if (L.solids.some(q => Plat.overlaps(s.x, s.y + P.hh / 2, P.hw - 1, P.hh - 1, q))) out.push(id + ' ' + s.id + ' is inside a wall');
       for (const s of L.spots) if (s.need && !L.route.some(r => r[2] === s.id)) out.push(id + ' ' + s.id + ' is not on the route');
@@ -2280,7 +2280,8 @@ test('the fox: jump, stand still for a worm and pounce, the daddy-long-legs, the
 test('London I-spy: four sights a level, each named in the docs; spotted only on screen, saved, on the page, the HUD and the end screen', async (b) => {
   const p = await openGame(b);
   const facts = fs.readFileSync(path.join(ROOT, 'docs', 'facts.md'), 'utf8');
-  const all = await p.evaluate(() => Bugs.filter(x => x.hub === 'london').flatMap(x => x.stages).map(id => ({ id, sights: (Missions[id].sights || []).map(s => ({ key: s.key, name: s.name, how: s.mover ? 'mover' : s.at ? 'at' : 'place' })) })));
+  const all = await p.evaluate(() => Bugs.filter(x => x.hub === 'london').flatMap(x => x.stages).filter(id => id !== 'ldn_wrestle').map(id => ({ id, sights: (Missions[id].sights || []).map(s => ({ key: s.key, name: s.name, how: s.mover ? 'mover' : s.at ? 'at' : 'place' })) })));
+  check(all.length >= 9 && all.some(m => m.id === 'ldn_thames'), 'levels with an I-spy list: ' + all.map(m => m.id));
   for (const m of all) {
     check(m.sights.length === 4 && new Set(m.sights.map(s => s.key)).size === 4, m.id + ' has ' + m.sights.length + ' sights');
     for (const s of m.sights) check(facts.toLowerCase().includes('*' + s.name.toLowerCase() + '*'), m.id + ': "' + s.name + '" is not in docs/facts.md');
@@ -2313,6 +2314,205 @@ test('London I-spy: four sights a level, each named in the docs; spotted only on
   // every one of them spotted: the London spotter secret
   const spy = await p.evaluate(() => { const before = Progress.hasSecret('s_spy'); for (const m of Object.values(Missions)) for (const s of m.sights || []) Progress.addSight(m.id, s.key); return [before, Progress.hasSecret("s_spy"), SECRETS.all().some(x => x.key === "s_spy")]; });
   check(!spy[0] && spy[1] && spy[2], 'the London spotter secret: ' + JSON.stringify(spy));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+// ---- 3.20: the 3D flight kit, the flight up the Thames, the stag beetle wrestle
+test('3D flight kit: speed follows the nose, a shadow lies under her, the camera keeps time not frames, the hunter is seen first and loses her down low', async (b) => {
+  const p = await openGame(b);
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'flight', { noNet: true });
+  await p.waitForFunction(() => Game.g.fl3d || Game.g.noGL, null, { timeout: 30000 });
+  check(await p.evaluate(() => !!Game.g.fl3d), 'no 3D scene');
+  await p.evaluate(LDN_STEP);
+  const r = await p.evaluate(() => {
+    const g = Game.g, m = g.mission, fl = g.fl, out = {};
+    g.timers = []; fl.birdT = 1e9;
+    lstep(0.1, { press: true }); out.off = [fl.flying, fl.sp];
+    // nose down: faster. A climb: slower. Level: cruising.
+    fl.y = 30; for (let i = 0; i < 150; i++) { fl.y = 30; m.move(g, 1 / 60, 0, 1); } out.dive = [fl.vy, fl.sp];
+    for (let i = 0; i < 150; i++) { fl.y = 20; fl.vy = 5; m.move(g, 1 / 60, 0, -1); } out.climb = fl.sp;
+    for (let i = 0; i < 200; i++) { fl.y = 20; fl.vy = 0; m.move(g, 1 / 60, 0, 0); } out.level = [fl.sp, m.cruise, m.slow, m.fast];
+    // a glide sinks gently, and she leans into a turn
+    fl.vy = 0; for (let i = 0; i < 180; i++) { fl.y = 30; m.move(g, 1 / 60, 1, 0); } out.glide = fl.vy; out.bank = fl.bank; const y0 = fl.yaw; m.move(g, 1 / 60, 1, 0); out.right = fl.yaw < y0;
+    // the shadow: straight under her, on the ground
+    fl.x = 40; fl.z = -20; fl.y = heathHeight(40, -20) + 12; fl.floor = heathHeight(40, -20); Game.draw();
+    const sh = g.fl3d.shadow.position; out.shadow = [Math.abs(sh.x - fl.x) < 0.01, Math.abs(sh.z - fl.z) < 0.01, Math.abs(sh.y - heathHeight(40, -20)) < 0.3, g.fl3d.shadow.visible];
+    // the camera closes on its place by the clock: 30 frames a second and 120 end in the same spot
+    const run = (fps) => { fl.x = 0; fl.z = 0; fl.y = 12; fl.yaw = 0; fl.turn = 0; fl.camPos = null; m.cam(g, 0); fl.x = 20; fl.z = 20; fl.y = 18; for (let i = 0; i < fps * 0.3; i++) m.cam(g, 1 / fps); return [fl.camPos.x, fl.camPos.y, fl.camPos.z]; };
+    const a = run(30), c = run(120); out.cam = [Math.hypot(a[0] - c[0], a[1] - c[1], a[2] - c[2]), Math.hypot(a[0] - 20, a[2] - 20)];
+    fl.y = -50; m.cam(g, 1); out.above = fl.camPos.y > heathHeight(fl.camPos.x, fl.camPos.z) + 1;
+    // the hunter: seen first, circling; then it comes; get down low and it loses you
+    fl.x = 0; fl.z = 0; fl.y = 30; fl.vy = 0; g.score = 1; fl.birdT = 0; shown.length = 0;
+    lstep(1); const bd = fl.bird; out.watch = [bd && bd.state, bd && Math.round(Math.hypot(bd.x - fl.x, bd.z - fl.z)), shown.some(t => /seen you/.test(t)), g.lives];
+    lstep(2); out.still = [fl.bird.state, g.lives];
+    lstep(1); out.stoop = fl.bird.state;
+    for (let i = 0; i < 80 && fl.bird && fl.bird.state === 'stoop'; i++) { fl.y = fl.floor + 1.5; fl.vy = 0; lstep(1 / 60 * 2); }
+    out.lost = [fl.bird && fl.bird.state, shown.includes('It lost you!'), g.lives];
+    // caught in the open: a heart, and back to the start
+    fl.bird = { x: fl.x, y: 30, z: fl.z, yaw: 0, t: 0, state: 'stoop' }; fl.y = 30; fl.vy = 0; g.player.invuln = 0; lstep(0.05); out.caught = [g.lives, Math.round(fl.x), Math.round(fl.z)];
+    // the sea breeze comes in after two flowers, up high only
+    g.score = 2; fl.y = fl.floor + 20; out.wind = [!!m.air(g, fl) && m.air(g, fl).k, m.air(g, fl).x > 0]; fl.y = fl.floor + 3; out.calm = m.air(g, fl).k; g.score = 1; out.before = m.air(g, fl);
+    return out;
+  });
+  check(r.off[0] && r.dive[1] > r.level[1] + 3 && r.dive[1] <= r.level[3] + 0.01 && r.climb < r.level[1] - 2 && r.climb >= r.level[2] - 0.01 && Math.abs(r.level[0] - r.level[1]) < 0.2, 'speed: ' + JSON.stringify(r));
+  check(r.glide < -2 && r.glide > -3 && r.bank < -0.3 && r.right, 'the glide and the lean: ' + JSON.stringify([r.glide, r.bank, r.right]));
+  check(r.shadow.every(Boolean), 'the shadow: ' + r.shadow);
+  check(r.cam[0] < 1e-6 && r.cam[1] > 1 && r.above, 'the camera: ' + JSON.stringify(r.cam));
+  check(r.watch[0] === 'watch' && r.watch[1] >= 14 && r.watch[2] && r.watch[3] === 3 && r.still[0] === 'watch' && r.still[1] === 3 && r.stoop === 'stoop', 'the hunter gave no warning: ' + JSON.stringify(r));
+  check(r.lost[0] === 'leave' && r.lost[1] && r.lost[2] === 3, 'hiding low did not lose it: ' + JSON.stringify(r.lost));
+  check(r.caught[0] === 2 && r.caught[1] === 0 && r.caught[2] === 0, 'caught: ' + r.caught);
+  check(r.wind[0] === 1 && r.wind[1] && r.calm === 0 && r.before === null, 'the sea breeze: ' + JSON.stringify([r.wind, r.calm, r.before]));
+  // pops are drawn over the 3D picture, and leaving frees the scene
+  check(await p.evaluate(() => { Game.pop(W / 2, 200, 'Yum!', '#ffd23f'); Game.draw(); const c = document.getElementById('game').getContext('2d'), d = c.getImageData(0, 0, c.canvas.width, c.canvas.height).data; for (let i = 3; i < d.length; i += 4) if (d[i] > 200) return true; return false; }), 'nothing drawn over the 3D view');
+  await p.evaluate(() => { Game.stop(); buildMap(); });
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('Up the Thames: the river in its real order, a tailwind high up, four sips then three eggs on thistles, bridges and walls are solid, I-spy from the air', async (b) => {
+  const p = await openGame(b);
+  const facts = fs.readFileSync(path.join(ROOT, 'docs', 'facts.md'), 'utf8');
+  // the layout: no 3D needed to check it
+  const lay = await p.evaluate(() => {
+    const R = THAMES, side = (k) => { const n = R.near(R.marks[k].x, R.marks[k].z); return [Math.round(n.s), Math.sign(n.lat)]; };
+    return { bridges: R.bridges.map(b => b.key), ordered: R.bridges.every((b, i) => !i || b.q.s > R.bridges[i - 1].q.s), marks: Object.fromEntries(['shard', 'gherkin', 'stpauls', 'tate', 'eye', 'bigben', 'palace', 'power'].map(k => [k, side(k)])),
+      end: Math.round(R.END), stops: R.stops.map(f => [f.kind, Math.round(f.s), Math.sign(R.near(f.x, f.z).lat)]), heading: [R.at(1.5).tx < -0.9, R.at(7.5).tz > 0.9, R.at(12.5).tx < -0.9],
+      bug: (() => { const bg = Bugs.find(x => x.id === 'l_lady'); return [bg.hub, bg.stages.join(), bg.sci, !!bg.pin, LDN_TOUR[LDN_TOUR.length - 1], /painted lady/.test(LDN_STOP.ldn_thames)]; })(),
+      inWater: R.stops.concat(R.blocks).filter(f => Math.abs(R.near(f.x, f.z).lat) < R.HALF).length, blocks: R.blocks.length,
+      parkClear: R.blocks.filter(q => q.sd < 0 && q.row < 4 && q.u > 12.2 && q.u < 13.8).length };
+  });
+  check(lay.bridges.join() === 'tower,london,cannon,southwark,millennium,blackRail,blackfriars,waterloo,hungerford,westminster,lambeth,vauxhall,grosvenor,chelsea,albert' && lay.ordered, 'the bridges are out of order: ' + lay.bridges);
+  const M = lay.marks;   // which bank (flying upriver: +1 on your right, the north and then the Westminster side) and how far up
+  check(M.shard[1] === -1 && M.gherkin[1] === 1 && M.stpauls[1] === 1 && M.tate[1] === -1 && M.eye[1] === -1 && M.bigben[1] === 1 && M.palace[1] === 1 && M.power[1] === -1, 'a landmark is on the wrong bank: ' + JSON.stringify(M));
+  check(M.gherkin[0] < M.shard[0] + 60 && M.shard[0] < M.stpauls[0] && Math.abs(M.stpauls[0] - M.tate[0]) < 20 && M.tate[0] < M.eye[0] && M.eye[0] < M.bigben[0] && M.bigben[0] < M.palace[0] && M.palace[0] < M.power[0] && M.power[0] < lay.end, 'a landmark is out of order: ' + JSON.stringify(M));
+  check(lay.heading.every(Boolean), 'the river does not run west, then south, then west: ' + lay.heading);
+  check(lay.stops.filter(f => f[0] !== 'thistle').length >= 5 && lay.stops.filter(f => f[0] === 'thistle').length === 3 && lay.stops.filter(f => f[0] === 'thistle').every(f => f[2] === -1 && f[1] > M.power[0]), 'the stops: ' + JSON.stringify(lay.stops));
+  check(lay.inWater === 0 && lay.blocks > 500 && lay.parkClear === 0, 'buildings in the river or the park: ' + JSON.stringify([lay.inWater, lay.blocks, lay.parkClear]));
+  check(lay.bug.join() === 'london,ldn_thames,Vanessa cardui,true,ldn_thames,true', 'her place in London: ' + lay.bug);
+  for (const name of ['Tower Bridge', 'London Bridge', 'Cannon Street', 'Southwark Bridge', 'Millennium Bridge', 'Blackfriars', 'Waterloo Bridge', 'Hungerford', 'Westminster Bridge', 'Lambeth Bridge', 'Vauxhall Bridge', 'Grosvenor', 'Chelsea Bridge', 'Albert Bridge', 'Battersea Power Station', 'Tate Modern', 'Gherkin', 'Battersea Park']) check(facts.includes(name), name + ' is not in docs/facts.md');
+  // play
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'ldn_thames', { noNet: true });
+  await p.waitForFunction(() => Game.g.fl3d || Game.g.noGL, null, { timeout: 30000 });
+  check(await p.evaluate(() => !!Game.g.fl3d), 'no 3D scene');
+  await p.evaluate(LDN_STEP);
+  const r = await p.evaluate(() => {
+    const g = Game.g, m = g.mission, fl = g.fl, R = THAMES, out = {}, btn = () => document.getElementById('actionBtn').textContent;
+    const put = (u, off, y, yaw) => { const q = R.side(u, off || 0); fl.x = q.x; fl.z = q.z; fl.y = y; fl.vy = 0; fl.yaw = yaw === undefined ? q.yaw : yaw; fl.sp = m.cruise; fl.landed = null; };
+    g.timers = [];
+    out.start = [Math.round(fl.s), fl.y > 2, btn(), g.mission.gentle, Math.round(R.near(fl.x, fl.z).lat)];
+    lstep(0.1, { press: true }); lstep(0.8); out.spied = [g.spied.has('tower'), shown.includes('Spotted: Tower Bridge'), document.getElementById('hudFind').textContent];
+    // the tailwind: only up high, and along the river wherever it bends
+    put(1.4, 0, 30); const a1 = m.air(g, fl), q1 = R.at(1.4); put(7.5, 0, 30); const a2 = m.air(g, fl), q2 = R.at(7.5); put(7.5, 0, 10); out.low = m.air(g, fl).k;
+    out.wind = [a1.k, (a1.x * q1.tx + a1.z * q1.tz) / Math.hypot(a1.x, a1.z), (a2.x * q2.tx + a2.z * q2.tz) / Math.hypot(a2.x, a2.z), Math.hypot(a1.x, a1.z)];
+    const leg = (y) => { put(8.2, 0, y); const s0 = R.near(fl.x, fl.z).s; for (let i = 0; i < 120; i++) { fl.y = y; fl.vy = 0; m.move(g, 1 / 60, 0, 0); } return R.near(fl.x, fl.z).s - s0; };
+    out.legs = [leg(30), leg(10)];
+    // a bridge is solid: over the top or under the arches, never through the road
+    const cross = (y) => { put(1.75, 0, y); let lo = 99, hi = -99, through = false; const bq = R.bridges[1]; for (let i = 0; i < 400; i++) { m.move(g, 1 / 60, 0, 0); fl.vy = 0; const n = R.near(fl.x, fl.z); if (Math.abs(n.s - bq.q.s) < bq.depth / 2 - 0.2) { lo = Math.min(lo, fl.y); hi = Math.max(hi, fl.y); if (fl.y > bq.top - 1.2 && fl.y < bq.top + 0.9) through = true; } } return [Math.round(lo * 10) / 10, Math.round(hi * 10) / 10, through, R.near(fl.x, fl.z).s > bq.q.s]; };
+    out.under = cross(2); out.over = cross(9); out.deck = cross(4.3);
+    // a tall building turns her; a roof she can settle on; the banks are the edge
+    const sh = R.marks.shard; fl.x = sh.x + 14; fl.z = sh.z; fl.y = 12; fl.yaw = -Math.PI / 2; fl.vy = 0; for (let i = 0; i < 200; i++) { m.move(g, 1 / 60, 0, 0); fl.vy = 0; fl.y = 12; } out.wall = Math.hypot(fl.x - sh.x, fl.z - sh.z) > 4.4;
+    const blk = R.blocks.find(q => q.row === 1 && q.u > 2); fl.y = 30; fl.vy = -3; for (let i = 0; i < 900; i++) { fl.x = blk.x; fl.z = blk.z; m.move(g, 1 / 60, 0, 1); } out.roof = [Math.round((fl.y - (R.BANK + blk.h)) * 10) / 10, Math.round(fl.floor - (R.BANK + blk.h))];
+    put(5, 200, 20); m.move(g, 1 / 60, 0, 0); out.edge = Math.abs(R.near(fl.x, fl.z).lat) < 80;
+    // the lost balloon, out over the water
+    const bl = R.marks.balloon; fl.x = bl.x; fl.z = bl.z; fl.y = 15; fl.vy = 0; lstep(0.05); out.balloon = [Progress.hasSecret('s_balloon'), g.secret.found];
+    // stops: flowers first (any four), thistles only once she has fed
+    const fw = fl.flowers.filter(f => f.kind !== 'thistle'), th = fl.flowers.filter(f => f.kind === 'thistle');
+    out.can = [m.can(g, fw[0]), m.can(g, th[0]), m.verb(g, fw[0]), m.verb(g, th[0])];
+    put(1, 0, 8); fl.s = R.near(fl.x, fl.z).s; out.next = m.target(g) === fw[0];
+    shown.length = 0;
+    for (let i = 0; i < 4; i++) { const f = fw[i]; fl.x = f.x; fl.z = f.z; fl.y = f.y + 5; fl.vy = 0; lstep(0.1); if (i === 0) out.landed = [fl.landed === f, btn()]; lstep(1.4, { held: true }); }
+    out.sips = [g.score, shown.filter(t => t === 'Yum!').length, shown.some(t => /Battersea Park/.test(t)), m.can(g, fw[4]), m.can(g, th[0]), m.target(g) && m.target(g).kind];
+    for (let i = 0; i < 3; i++) { const f = th[i]; fl.x = f.x; fl.z = f.z; fl.y = f.y + 5; fl.vy = 0; lstep(0.1); if (i === 0) out.lay = [fl.landed === f, btn()]; lstep(1.6, { held: true }); }
+    out.eggs = [g.score, shown.filter(t => t === 'An egg!').length, m.won(g), g.seen.has('lay'), g.lives];
+    out.words = m.how.concat(m.facts, Object.values(m.factText)).filter(t => /gull|swat|caught/i.test(t)).length;
+    return out;
+  });
+  check(r.start[0] < -20 && r.start[1] && r.start[2] === 'Flap' && r.start[3] && Math.abs(r.start[4]) < 15, 'the start: ' + r.start);
+  check(r.spied[0] && r.spied[1] && /\u{1F440} [1-4] \/ 4/u.test(r.spied[2]), 'Tower Bridge was not spotted from the air: ' + r.spied);
+  check(r.wind[0] === 1 && r.wind[1] > 0.99 && r.wind[2] > 0.99 && r.wind[3] > 6 && r.low === 0 && r.legs[0] > r.legs[1] + 10, 'the tailwind: ' + JSON.stringify([r.wind, r.low, r.legs]));
+  check(r.under[1] < 3.7 && r.under[3] && !r.under[2] && r.over[0] > 5 && r.over[3] && !r.deck[2] && r.deck[3], 'a bridge is not solid: ' + JSON.stringify([r.under, r.over, r.deck]));
+  check(r.wall && Math.abs(r.roof[0] - 1) < 0.2 && r.roof[1] === 0 && r.edge, 'walls, roofs and the edge: ' + JSON.stringify([r.wall, r.roof, r.edge]));
+  check(r.can.join() === 'true,false,Sip,Lay' && r.next && r.landed[0] && r.landed[1] === 'Sip', 'the first stops: ' + JSON.stringify([r.can, r.next, r.landed]));
+  check(r.sips[0] === 4 && r.sips[1] === 4 && r.sips[2] && !r.sips[3] && r.sips[4] && r.sips[5] === 'thistle', 'four sips: ' + r.sips);
+  check(r.lay[0] && r.lay[1] === 'Lay' && r.eggs[0] === 7 && r.eggs[1] === 3 && r.eggs[2] && r.eggs[3] && r.eggs[4] === 3, 'three eggs on the thistles: ' + JSON.stringify([r.lay, r.eggs]));
+  check(r.balloon[0] && r.balloon[1] && r.words === 0, 'the balloon, the words: ' + JSON.stringify([r.balloon, r.words]));
+  // the British painted lady: dark eyespots, where the Australian one's have blue centres
+  const blue = await p.evaluate(() => {
+    const count = (name) => { const c = document.createElement('canvas'); c.width = c.height = 240; const x = c.getContext('2d'); x.translate(120, 120); x.scale(5, 5); Sprites[name](x, { landed: false }, Math.PI / 36); const d = x.getImageData(0, 0, 240, 240).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 2] > 180 && d[i] < 110 && d[i + 3] > 200) n++; return n; };
+    return [count('butterfly'), count('paintedLady'), Models.has('paintedLady'), typeof SIZES.paintedLady.mm];
+  });
+  check(blue[0] > 20 && blue[1] === 0 && blue[2] && blue[3] === 'number', 'the eyespots: ' + blue);
+  // where the 3D flight can't run she flies off on her own
+  await p.evaluate(() => { Game.stop(); buildMap(); Flight3D.supported = () => false; });
+  await startMission(p, 'ldn_thames', { noNet: true });
+  await p.waitForSelector('#end.active', { timeout: 10000 });
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
+test('the stag beetle wrestle: both stages open, breath, his two cues and their windows, a throw, a fall and the round again, stars by falls', async (b) => {
+  const p = await openGame(b);
+  const open = await p.evaluate(() => { const bug = Bugs.find(x => x.id === 'l_stag'); return [bug.stages.join(), Progress.unlocked(bug, 0), Progress.unlocked(bug, 1), Missions.ldn_wrestle.bug, LDN_TOUR.includes('ldn_wrestle'), LDN_TOUR.includes('ldn_stag')]; });
+  check(open.join() === 'ldn_stag,ldn_wrestle,true,true,l_stag,false,true', 'the Stag Beetle’s two stages: ' + open);
+  await p.evaluate(() => { currentHub = 'london'; openBug(Bugs.find(x => x.id === 'l_stag')); });
+  check(await p.evaluate(() => document.querySelectorAll('#stages button').length === 2 && [...document.querySelectorAll('#stages button')].every(q => !q.disabled)), 'two stage buttons, both open');
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'ldn_wrestle', { noNet: true });
+  check(await p.evaluate(() => [...document.querySelectorAll('#stageHow li')].some(li => /climb back on/.test(li.textContent))), 'the page does not say it can’t be lost');
+  await p.evaluate(LDN_STEP);
+  const r = await p.evaluate(() => {
+    const g = Game.g, m = g.mission, w = g.wr, K = WRESTLE, out = {}, btn = () => document.getElementById('actionBtn').textContent;
+    const fresh = (pos) => { m.go(g, 'push'); w.pos = pos || 0; w.breath = 1; w.puffed = false; w.cueIn = 99; w.lift = 0; shown.length = 0; };
+    g.timers = [];
+    out.ready = [w.state, btn()]; lstep(1.9); out.go = [w.state, btn()];
+    // Push: holding shoves him and spends breath; letting go gets it back while he shoves you
+    fresh(); lstep(1, { held: true }); out.push = [w.pos > 30, w.breath < 0.65];
+    const p1 = w.pos; lstep(1); out.rest = [w.pos < p1, w.breath > 0.99];
+    fresh(); lstep(3, { held: true }); const p2 = w.pos; lstep(0.5, { held: true }); out.puffed = [w.puffed, w.pos < p2, shown.includes('Puff… puff…')];
+    fresh(); for (let i = 0; i < 6; i++) lstep(0.05, { press: true }); out.taps = w.breath < 0.7;
+    // he rears: Get under!, then hold Lift! and over he goes
+    fresh(40); w.cueN = 5; w.cueIn = 0; Math.random = () => 0.1; lstep(0.2); out.rear = [w.cue, btn()];
+    lstep(0.05, { press: true }); out.under = [w.state, btn()];
+    lstep(0.5, { held: true }); const l1 = w.lift; lstep(0.3); out.slip = [l1 > 0.4, w.lift < l1, w.state];
+    lstep(1.2, { held: true }); out.thrown = [w.state, w.beaten, shown.includes('Thrown off!'), g.seen.has('throw')];
+    lstep(2.5); out.round2 = [w.round, w.state, g.score];
+    // too late, and he slams you back; with no breath you can't answer at all
+    fresh(0); w.cueN = 5; w.cueIn = 0; lstep(0.1); lstep(m.window(g) + 0.1); lstep(0.05, { press: true }); lstep(0.4); out.late = [w.state, w.pos < -40, shown.includes('Wham!')];
+    fresh(0); w.cueN = 5; w.cueIn = 0; lstep(0.1); w.breath = 0.02; lstep(0.05, { press: true }); out.noAir = [w.state, w.cue];
+    // he dips: Hold tight! or be carried back
+    Math.random = () => 0.9;
+    fresh(0); w.cueN = 5; w.cueIn = 0; lstep(0.2); out.dip = [w.cue, btn()]; lstep(0.05, { press: true }); out.held = [w.cue, w.pos > 25, shown.includes('Held on!')];
+    fresh(0); w.cueN = 5; w.cueIn = 0; lstep(0.1); lstep(m.window(g) + 0.1); out.carried = w.state; lstep(1); out.back = [w.state, Math.round(w.pos) < -80, g.wr.falls];
+    // the first two cues of the level get a longer look
+    w.cueN = 1; const wide = m.window(g); w.cueN = 5; out.window = [wide > m.window(g), m.window(g)];
+    // off your end: a fall, back on, the same round, and he is a little more tired
+    fresh(-240); w.cueN = 5; w.cueIn = 0; lstep(0.1); lstep(m.window(g) + 0.1); lstep(1); out.fall = [w.state, w.falls, w.round, w.ease > 0, shown.includes('Off the log!')];
+    lstep(2.1); out.again = [w.state, w.round, w.pos, g.lives];
+    // shoving him off his end wins the round too
+    fresh(246); lstep(0.4, { held: true }); out.off = [w.state, w.beaten, shown.includes('He backs off!')];
+    lstep(2.5); out.round3 = [w.round, w.state];
+    // four falls to one rival and he gives up on you
+    for (let i = 0; i < 4; i++) { fresh(-249.9); lstep(0.3); lstep(2.2); }
+    out.gaveUp = [w.falls, w.over, w.won]; out.stars = [m.stars(g), m.stars({ wr: { falls: 0 } }), m.stars({ wr: { falls: 2 } }), m.stars({ wr: { falls: 3 } })];
+    out.words = m.how.concat(m.facts, Object.values(m.factText)).filter(t => /bit(e|ten|ing)|hurt|kill|weak/i.test(t)).length;
+    return out;
+  });
+  check(r.ready.join() === 'ready,Push' && r.go.join() === 'push,Push', 'the start: ' + JSON.stringify([r.ready, r.go]));
+  check(r.push.every(Boolean) && r.rest.every(Boolean) && r.puffed.every(Boolean) && r.taps, 'breath: ' + JSON.stringify([r.push, r.rest, r.puffed, r.taps]));
+  check(r.rear.join() === 'rear,Get under!' && r.under.join() === 'lift,Lift!' && r.slip[0] && r.slip[1] && r.slip[2] === 'lift', 'getting under him: ' + JSON.stringify([r.rear, r.under, r.slip]));
+  check(r.thrown[0] === 'thrown' && r.thrown[1] === 1 && r.thrown[2] && r.thrown[3] && r.round2.join() === '1,ready,1', 'the throw: ' + JSON.stringify([r.thrown, r.round2]));
+  check(r.late[0] === 'push' && r.late[1] && r.late[2] && r.noAir[0] === 'push' && r.noAir[1] === 'rear', 'a late press or no breath still worked: ' + JSON.stringify([r.late, r.noAir]));
+  check(r.dip.join() === 'dip,Hold tight!' && r.held[0] === null && r.held[1] && r.held[2] && r.carried === 'carried' && r.back[0] === 'push' && r.back[1] && r.back[2] === 0, 'his dip: ' + JSON.stringify([r.dip, r.held, r.carried, r.back]));
+  check(r.window[0] && r.window[1] >= 0.6, 'the windows: ' + r.window);
+  check(r.fall.join() === 'fall,1,1,true,true' && r.again[0] === 'ready' && r.again[1] === 1 && r.again[2] === 0 && r.again[3] === 3, 'the fall: ' + JSON.stringify([r.fall, r.again]));
+  check(r.off[0] === 'off' && r.off[1] === 2 && r.off[2] && r.round3.join() === '2,ready', 'shoved off his end: ' + JSON.stringify([r.off, r.round3]));
+  check(r.gaveUp.join() === '5,true,true' && r.stars.join() === '1,3,2,1' && r.words === 0, 'four falls, the stars, the words: ' + JSON.stringify([r.gaveUp, r.stars, r.words]));
+  await p.waitForFunction(() => { Game.running = true; return true; });
+  await p.waitForSelector('#end.active', { timeout: 15000 });
+  const end = await p.evaluate(() => [Progress.stars('ldn_wrestle'), document.getElementById('endUnlock').textContent, document.getElementById('endExplore').offsetParent === null]);
+  check(end[0] === 1 && /Falls: 5/.test(end[1]) && end[2], 'the end screen: ' + JSON.stringify(end));
+  // drawn big enough to see: the two beetles fill a good part of the log
+  check(await p.evaluate(() => WRESTLE.S >= 3 && WRESTLE.END * 2 <= 960 - 100), 'the log does not fit a narrow screen');
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
