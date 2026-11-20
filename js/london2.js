@@ -38,6 +38,7 @@ Object.assign(Missions, {
       'Sip the spilled drink in the crowd, then fly up to the cold beam at the end and go back to sleep. Two cheeky extras are hidden here!',
     ],
     discoveries: [{ key: 'd_ticket', sprite: 'oldTicket', fx: 0.25, fy: 0.925 }, { key: 'd_tv', sprite: 'oldTv', fx: 0.66, fy: 0.925 }],
+    sights: [{ key: 'rose', name: 'the rose window', x: 430, y: 236 }, { key: 'screen', name: 'the big 180', x: 1505, y: 170 }, { key: 'trophy', name: 'the trophy', x: 1960, y: 390 }, { key: 'mast', name: 'the old TV mast', x: 3270, y: 290 }],
     factText: {
       start: 'You’re a queen wasp. It’s winter, and you were asleep in the roof of Alexandra Palace. The lights and the noise have woken you!',
       queen: 'Only young queen wasps live through the winter. The workers die in autumn. In spring, each queen starts a new nest.',
@@ -171,6 +172,7 @@ Object.assign(Missions, {
       'Hide from the centipede, wait for the spider to go in, and find the damp crack under the big log. Two cheeky extras are hidden here!',
     ],
     discoveries: [{ key: 'd_service', sprite: 'serviceLeaf', fx: 0.16, fy: 0.927 }, { key: 'd_seed', sprite: 'hornbeamSeed', fx: 0.52, fy: 0.927 }],
+    sights: [{ key: 'sign', name: 'the wood’s name board', x: 568, y: 420 }, { key: 'bus', name: 'a red bus going by', mover: 'roadbus' }, { key: 'fountain', name: 'the old drinking fountain', x: 2085, y: 480 }, { key: 'squirrel', name: 'a grey squirrel', x: 2296, y: 480 }],
     factText: {
       start: 'You’re a pill woodlouse. Your damp log has been moved, so you need a new place to hide.',
       cousin: 'A woodlouse is not an insect. It’s a crustacean, like a crab or a shrimp, that lives on land.',
@@ -219,6 +221,13 @@ Object.assign(Missions, {
       g.ants = []; for (let i = 0; i < 9; i++) g.ants.push({ x: A[0] + 10 + i * (A[1] - A[0] - 20) / 8, y: g.level.floor, v: (i % 2 ? 1 : -1) * (34 + (i * 7) % 20), face: 1 });
       g.spider = { state: 'in', t: 1.5 };
       g.player.rolled = false; g.player.moult = 0;
+      // a bus goes along the road at the wood's edge now and then
+      g.movers.push({ kind: 'roadbus', x: -999, y: 500, dir: 1, wait: 5, shown: false,
+        update(g, dt) {
+          if (!this.shown) { if ((this.wait -= dt) > 0) return; this.shown = true; this.dir = Math.random() < 0.5 ? 1 : -1; this.x = this.dir > 0 ? 330 : 840; if (Math.abs(g.player.x - 585) < 600) Sound.play('honk'); return; }
+          this.x += this.dir * 120 * dt;
+          if (this.x < 320 || this.x > 850) { this.shown = false; this.wait = 11 + Math.random() * 9; }
+        } });
     },
     reset(g) { g.damp = 1; this.uncurl(g, true); },
     uncurl(g, quiet) { const p = g.player; if (!p.rolled) return; p.rolled = false; p.vx = 0; if (!quiet) Sound.play('tap'); },
@@ -337,6 +346,9 @@ Object.assign(Missions, {
       'Catch three snacks and a mouse, and take the mouse home to your cubs under the shed. Two cheeky extras are hidden here!',
     ],
     discoveries: [{ key: 'd_ball', sprite: 'chewedBall', fx: 0.18, fy: 0.925 }, { key: 'd_feather', sprite: 'feather', color: '#8a8a94', band: '#5a5a66', fx: 0.6, fy: 0.925 }],
+    sights: [{ key: 'bus', name: 'the night bus', at: (g) => { const ln = g.level.road.lanes.find(q => q.kind === 'bus' && q.t < 1.6 && q.t > -0.2); return ln ? { x: ln.x, y: 450 } : null; } },
+      { key: 'cab', name: 'a black cab', at: (g) => { const ln = g.level.road.lanes.find(q => q.kind === 'cab' && q.t < 1.6 && q.t > -0.2); return ln ? { x: ln.x, y: 450 } : null; } },
+      { key: 'box', name: 'a red post box', x: 2714, y: 520 }, { key: 'shard', name: 'the Shard, lit up', x: 3016, y: 330 }],
     factText: {
       start: 'You’re a red fox, a vixen with hungry cubs to feed. Thousands of foxes live in London’s streets and gardens.',
       town: 'Foxes moved into Britain’s towns in the 1930s, when lots of houses with gardens were built.',
@@ -381,6 +393,13 @@ Object.assign(Missions, {
     start(g) {
       g.hz.cat = { state: 'asleep', t: 3 };
       g.pounce = null; g.stillT = 0; g.kinds = ['car', 'bus', 'cab', 'car'];
+      // a train rattles over the viaduct now and then
+      g.movers.push({ kind: 'vtrain', x: -999, y: 330, wait: 7, shown: false,
+        update(g, dt) {
+          if (!this.shown) { if ((this.wait -= dt) > 0) return; this.shown = true; this.x = 1700; if (Math.abs(g.player.x - 2230) < 900) Sound.play('tap'); return; }
+          this.x += 330 * dt;
+          if (this.x > 3700) { this.shown = false; this.wait = 14 + Math.random() * 10; }
+        } });
       for (const ln of g.level.road.lanes) { ln.kind = 'car'; ln.n = 0; }
     },
     busy(g) { return !!g.pounce; },

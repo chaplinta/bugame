@@ -98,6 +98,7 @@ function ldnPart(d) {
       Object.assign(p, { x: L.start[0], y: L.start[1], vx: 0, vy: 0, acc: 0, face: 1, angle: 0, flat: true, r: P.hw, onGround: false, flyT: 0, warmT: 0 });
       g.home = { x: L.start[0], y: L.start[1], r: 1, label: '' };
       g.cp = 0; g.wp = 0; g.look = 1; g.counts = {}; g.hz = {}; g.extras = 0; g.shooed = 0; g.stuck = null; g.movers = [];
+      g.spied = new Set(typeof Progress !== 'undefined' ? Progress.sights(this.id) : []); g.spyT = {}; g.spyFx = null;
       g.people = (L.people || []).map((q, i) => Object.assign({ y: L.floor, face: 1, pose: 'stand', seed: i + 1, state: 'calm', timer: (q.look || 0) * (0.4 + 0.6 * ((i * 37) % 10) / 10), looking: false }, q));
       for (const s of L.spots) if (s.on) { const q = g.people.find(x => x.id === s.on), at = ldnAt(q, s.part); s.x = at.x; s.y = at.y; }
       g.fronts = (L.hides || []).map(h => LondonArt.leaves(h));   // the leaves (or pillar) drawn in front of a hidden bug
@@ -176,6 +177,7 @@ function ldnPart(d) {
       }
       if (g.people.length) ldnPeople(g, dt, this);
       for (const mv of g.movers) mv.update(g, dt);
+      if (this.sights) ldnSpy(g, dt, this);
       for (const s of L.spots) if (s.on && s.follow) { const at = ldnAt(g.people.find(x => x.id === s.on), s.part); s.x = at.x; s.y = at.y; }
       for (const s of L.spots) if (s.moving) { s.ph = (s.ph || 0) + dt; s.x = s.ax + Math.cos(s.ph * 1.7) * 26; s.y = s.ay + Math.sin(s.ph * 2.3) * 16; }
       if (L.webs && ldnWebs(g, dt, input, this)) { if (this.hazards) this.hazards(g, dt); return; }   // stuck in a web: wriggle
@@ -218,7 +220,11 @@ function ldnPart(d) {
     caughtText(pr) { return pr.caughtText || 'Caught by a ' + pr.name + '! Back to the last safe spot.'; },
     // One star for finishing, one for each cheeky extra
     stars(g) { return 1 + Math.min(2, g.extras || 0); },
-    endLine(g) { return g.extras >= 2 ? 'Both cheeky extras found!' : 'Cheeky extras found: ' + (g.extras || 0) + ' of 2. Each one is a star.'; },
+    endLine(g) {
+      const spy = this.sights ? ' London things spotted: ' + this.sights.filter(s => g.spied.has(s.key)).length + ' of ' + this.sights.length + '.' : '';
+      return (g.extras >= 2 ? 'Both cheeky extras found!' : 'Cheeky extras found: ' + (g.extras || 0) + ' of 2. Each one is a star.') + spy;
+    },
+    findText(g) { return this.sights ? '\u{1F440} ' + this.sights.filter(s => g.spied.has(s.key)).length + ' / ' + this.sights.length : ''; },
     stat(g) { return '★'.repeat(Math.min(2, g.extras || 0)) + '☆'.repeat(2 - Math.min(2, g.extras || 0)); },
 
     drawBuild(ctx, g) { LondonArt.spots(ctx, g, this); },
@@ -247,6 +253,61 @@ function ldnWebs(g, dt, input, m) {
     Game.pop(p.x, p.y - 34, 'Free!', '#fff'); Sound.play('jump');
   } else if (st.t > 4.5) { g.stuck = null; Game.caught({ name: 'spider', caughtText: 'The spider got to you first! Back to the last safe spot.' }); }
   return !!g.stuck;
+}
+
+// I-spy: London things to spot (a level's `sights`: { key, name, x, y }, or mover: a kind of mover, or at(g): where
+// it is just now). One is ticked once it has been on screen, well inside the view, for half a second. Saved for good.
+function ldnSpy(g, dt, m) {
+  const vw = W / (Game.zoom || 1), x0 = g.cam.x + vw * 0.1, x1 = g.cam.x + vw * 0.9;
+  for (const s of m.sights) {
+    if (g.spied.has(s.key)) continue;
+    const at = s.mover ? g.movers.find(q => q.kind === s.mover && q.shown !== false) : s.at ? s.at(g) : s;
+    const on = !!at && at.x > x0 && at.x < x1;
+    g.spyT[s.key] = on ? (g.spyT[s.key] || 0) + dt : 0;
+    if (g.spyT[s.key] < 0.5) continue;
+    g.spied.add(s.key);
+    if (typeof Progress !== 'undefined') Progress.addSight(m.id, s.key);
+    const y = at.y === undefined ? g.cam.y + 150 : at.y;
+    g.spyFx = { x: at.x, y, t: 0 };
+    Sound.play('spot'); Game.pop(at.x, Math.max(g.cam.y + 150, y - 40), 'Spotted: ' + s.name, '#ffd23f');
+  }
+  if (g.spyFx && (g.spyFx.t += dt) > 1.2) g.spyFx = null;
+}
+
+// Things that come and go, for the look of the place. Each is a mover with a kind that js/art-london3.js draws.
+// Ring-necked parakeets: a noisy little flock crossing overhead every so often
+function ldnFlock(g, y) {
+  g.movers.push({ kind: 'parakeets', x: -9999, y: y || 110, wait: 5 + Math.random() * 6, dir: 1, shown: false,
+    update(g, dt) {
+      const vw = W / (Game.zoom || 1);
+      if (!this.shown) {
+        if ((this.wait -= dt) > 0) return;
+        this.shown = true; this.dir = Math.random() < 0.5 ? 1 : -1; this.x = this.dir > 0 ? g.cam.x - 90 : g.cam.x + vw + 90; this.y = (y || 110) + Math.random() * 50; this.squawked = false;
+      }
+      this.x += this.dir * 190 * dt;
+      if (!this.squawked && this.x > g.cam.x + 80 && this.x < g.cam.x + vw - 80) { this.squawked = true; Sound.play('squawk'); }
+      if (this.x < g.cam.x - 260 || this.x > g.cam.x + vw + 260) { this.shown = false; this.wait = 13 + Math.random() * 12; }
+    } });
+}
+// Pigeons pecking about on a wall or the ground: they clatter off when a bug comes near, and are back before long
+function ldnPigeons(g, x, y, n) {
+  g.movers.push({ kind: 'pigeons', x, y, n: n || 3, up: 0,
+    update(g, dt) {
+      const p = g.player;
+      if (!this.up && Math.hypot(p.x - this.x, p.y - this.y) < 100) { this.up = 0.01; Sound.play('jump'); }
+      if (this.up && (this.up += dt) > 10) this.up = 0;
+      this.shown = !this.up || this.up < 1.5;
+    } });
+}
+// A jet on its way down to Heathrow, crossing high up now and then
+function ldnJet(g) {
+  g.movers.push({ kind: 'jet', x: -9999, y: 70, wait: 8 + Math.random() * 8, shown: false,
+    update(g, dt) {
+      const vw = W / (Game.zoom || 1);
+      if (!this.shown) { if ((this.wait -= dt) > 0) return; this.shown = true; this.x = g.cam.x + vw + 140; this.y = 60; return; }
+      this.x -= 120 * dt; this.y += 5 * dt;
+      if (this.x < g.cam.x - 260) { this.shown = false; this.wait = 22 + Math.random() * 14; }
+    } });
 }
 
 // A bird or animal hunting side-on: it shows itself (alert, with a "!"), then chases; hide and it gives up.
@@ -298,6 +359,7 @@ Object.assign(Missions, {
       'Two cheeky extras are hidden here. Each one is a star!',
     ],
     discoveries: [{ key: 'd_feather', sprite: 'feather', color: '#8a9098', band: '#4a5058', fx: 0.2, fy: 0.925 }, { key: 'd_nut', sprite: 'nutShell', fx: 0.58, fy: 0.925 }],
+    sights: [{ key: 'dome', name: 'the mosque’s gold dome', x: 420, y: 330 }, { key: 'bt', name: 'the BT Tower', x: 1490, y: 250 }, { key: 'giraffe', name: 'the Zoo’s giraffe', x: 3392, y: 196 }, { key: 'parakeets', name: 'green parakeets', mover: 'parakeets' }],
     factText: {
       start: 'You’re a buff-tailed bumblebee worker, collecting nectar and pollen for your nest.',
       fuel: 'A bumblebee keeps nectar in her honey stomach. It fuels her wings. Run out, and she can’t fly up.',
@@ -339,6 +401,7 @@ Object.assign(Missions, {
     },
     start(g) {
       g.fuel = 0.8;
+      ldnFlock(g, 90);
       g.hz.dog = { x: 2950, y: 560, state: 'sit', t: 0 };
       // The rival: another bumblebee working the same flowers. She takes up to three, never leaving you short.
       const m = this, rival = { kind: 'rival', x: 640, y: 380, face: 1, t: 4, took: 0, to: null, sit: 0,
@@ -422,6 +485,7 @@ Object.assign(Missions, {
       'Two cheeky extras are hidden here. Each one is a star!',
     ],
     discoveries: [{ key: 'd_leaf', sprite: 'deadLeaf', fx: 0.1, fy: 0.925 }, { key: 'd_feather', sprite: 'feather', color: '#8a6a48', band: '#4a3424', fx: 0.62, fy: 0.925 }],
+    sights: [{ key: 'sign', name: 'a street sign', x: 400, y: 340 }, { key: 'bus', name: 'a red bus', mover: 'bus' }, { key: 'pots', name: 'chimney pots', x: 1560, y: 128 }, { key: 'pigeons', name: 'pigeons', mover: 'pigeons' }],
     factText: {
       start: 'You’re a common wasp worker. Your job: wood for the nest, and food for the young.',
       paper: 'Wasps chew wood into pulp and spread it thin. It dries into paper: that’s what the nest is made of.',
@@ -459,6 +523,7 @@ Object.assign(Missions, {
       };
     },
     start(g) {
+      ldnPigeons(g, 2850, 294, 3);   // on top of the garden wall
       // A bus goes by behind the garden wall now and then: only its top deck shows
       g.movers.push({ kind: 'bus', x: -900, t: 0, honked: false,
         update(g, dt) { this.x += 250 * dt; if (!this.honked && this.x > g.cam.x - 60) { this.honked = true; Sound.play('honk'); } if (this.x > g.level.w + 300) { this.x = -1800 - Math.random() * 1500; this.honked = false; } } });
@@ -509,6 +574,7 @@ Object.assign(Missions, {
       'Fly to the big puddle at the end and hold Lay. Two cheeky extras are hidden here!',
     ],
     discoveries: [{ key: 'd_ticket', sprite: 'oldTicket', fx: 0.075, fy: 0.658 }, { key: 'd_mouse', sprite: 'mouseSide', fx: 0.6, fy: 0.925 }],
+    sights: [{ key: 'roundel', name: 'the Tube sign', x: 800, y: 250 }, { key: 'gap', name: 'Mind the gap', x: 160, y: 420 }, { key: 'board', name: 'the next-train board', x: 1480, y: 118 }, { key: 'mouse', name: 'a mouse on the track', mover: 'mouse' }],
     factText: {
       start: 'This mosquito lives in the London Underground. It bites people, rats and mice.',
       origin: 'It lives in the Tube, but it didn’t start there. Its family came from the Mediterranean or Middle East long ago.',
@@ -616,6 +682,7 @@ Object.assign(Missions, {
       'Then hold Lay on the nettles at the end. Two cheeky extras are hidden here!',
     ],
     discoveries: [{ key: 'd_shell', sprite: 'shell', color: '#d8c8a8', fx: 0.34, fy: 0.925 }, { key: 'd_feather', sprite: 'feather', color: '#1c1c1c', band: '#3a3a3a', fx: 0.8, fy: 0.925 }],
+    sights: [{ key: 'pots', name: 'chimney pots', x: 520, y: 235 }, { key: 'crystal', name: 'the Crystal Palace tower', x: 1250, y: 200 }, { key: 'shard', name: 'the Shard', x: 2250, y: 240 }, { key: 'parakeets', name: 'green parakeets', mover: 'parakeets' }],
     factText: {
       start: 'Jersey tiger moths arrived in south-east London around 2004 and are spreading across the city.',
       day: 'Unlike most moths, Jersey tigers fly by day as well as at night.',
@@ -650,7 +717,7 @@ Object.assign(Missions, {
         route: [[350, 326, 'b1'], [452, 348, 'b2'], [760, 230], [990, 226], [1200, 316, 'b3'], [1302, 340, 'b4'], [1600, 230], [1850, 210], [2100, 326, 'b5'], [2202, 350, 'b6'], [2400, 480], [2700, 490], [3050, 480], [3380, 490, 'nettle']],
       };
     },
-    start(g) { g.hz.cat = { state: 'awake', t: 0 }; g.hz.dusk = 0; },
+    start(g) { g.hz.cat = { state: 'awake', t: 0 }; g.hz.dusk = 0; ldnFlock(g, 70); },
     hazards(g, dt) {
       const p = g.player, h = g.hz, L = g.level, cy = p.y - this.P.hh / 2;
       // the great tit, twice
@@ -703,6 +770,7 @@ Object.assign(Missions, {
       'Find the female on the old stump at the end. Two cheeky extras are hidden here!',
     ],
     discoveries: [{ key: 'd_acorn', sprite: 'acorn', fx: 0.2, fy: 0.927 }, { key: 'd_antler', sprite: 'antler', fx: 0.55, fy: 0.925 }],
+    sights: [{ key: 'stpauls', name: 'St Paul’s, far away', x: 760, y: 440 }, { key: 'stag', name: 'a red deer stag', x: 2560, y: 480 }, { key: 'jet', name: 'a plane coming in to land', mover: 'jet' }, { key: 'parakeets', name: 'green parakeets', mover: 'parakeets' }],
     factText: {
       start: 'Stag beetles are Britain’s biggest beetles. London is one of the best places in the country to find them.',
       jaws: 'Only males have the big jaws, like a stag’s antlers. They use them to wrestle other males.',
@@ -736,6 +804,7 @@ Object.assign(Missions, {
     start(g) {
       g.rivals = g.level.rivals.map(r => Object.assign({ face: -1, state: 'wait', t: 0, ease: 0 }, r));
       g.wrestle = null; g.steps = []; g.jogT = 3;
+      ldnFlock(g, 100); ldnJet(g);
     },
     busy(g) { return !!g.wrestle; },
     reset(g) { g.wrestle = null; for (const r of g.rivals) if (r.state === 'fight') r.state = 'wait'; },

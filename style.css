@@ -36,6 +36,9 @@ h1 { font-size: 3.2rem; margin: 8px 0 0; color: var(--accent); text-align: cente
 .sci { text-align: center; font-style: italic; margin: 0; }
 .place { text-align: center; margin: 4px 0 10px; color: var(--accent2); font-weight: bold; }
 .facts li, .how li { margin: 6px 0; font-size: 1.05rem; line-height: 1.35; }
+.spy { list-style: none; padding: 0; margin: 4px 0 8px; display: flex; flex-wrap: wrap; gap: 6px 10px; }
+.spy li { font-size: 1rem; padding: 3px 10px; border-radius: 999px; background: rgba(120,100,70,.12); color: #5a4a36; }
+.spy li.spied { background: #2f7d5b; color: #fff; }
 .stars { text-align: center; font-size: 2.4rem; margin: 4px 0; color: #e0a000; }
 
 .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }

@@ -373,13 +373,17 @@ const LondonArt = {
     if (this.train) return this.train;
     const c = document.createElement('canvas'); c.width = 1500; c.height = 410;
     const ctx = c.getContext('2d');
-    const g = ctx.createLinearGradient(0, 0, 0, 410); g.addColorStop(0, '#d8dce0'); g.addColorStop(0.5, '#b8bcc4'); g.addColorStop(1, '#8a8e94');
+    const g = ctx.createLinearGradient(0, 0, 0, 410); g.addColorStop(0, '#f4f4f0'); g.addColorStop(0.6, '#e4e6e8'); g.addColorStop(1, '#c8ccd0');
     ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(0, 20, 1500, 380, 60) : ctx.rect(0, 20, 1500, 380); ctx.fill();
-    ctx.fillStyle = '#c8281e'; ctx.fillRect(0, 300, 1500, 60);
-    ctx.fillStyle = '#1e3a6a'; ctx.fillRect(0, 360, 1500, 18);
-    for (let k = 0; k < 7; k++) {
-      ctx.fillStyle = 'rgba(40,50,60,.9)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(40 + k * 210, 80, 150, 150, 18) : ctx.rect(40 + k * 210, 80, 150, 150); ctx.fill();
-      ctx.fillStyle = 'rgba(255,250,220,.25)'; ctx.fillRect(50 + k * 210, 90, 60, 130);
+    ctx.fillStyle = '#0019a8'; ctx.fillRect(0, 330, 1500, 52);                                   // the blue skirt
+    ctx.fillStyle = '#dc241f'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(0, 20, 70, 380, [60, 0, 0, 60]) : ctx.rect(0, 20, 70, 380); ctx.fill();   // the red front
+    for (let k = 0; k < 4; k++) {
+      const x = 110 + k * 350;
+      ctx.fillStyle = 'rgba(40,50,60,.9)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, 80, 150, 140, 18) : ctx.rect(x, 80, 150, 140); ctx.fill();
+      ctx.fillStyle = 'rgba(255,250,220,.25)'; ctx.fillRect(x + 10, 90, 60, 120);
+      ctx.fillStyle = '#dc241f'; ctx.fillRect(x + 180, 60, 120, 300);                           // a pair of red doors
+      ctx.fillStyle = 'rgba(40,50,60,.9)'; ctx.fillRect(x + 192, 84, 44, 130); ctx.fillRect(x + 244, 84, 44, 130);
+      ctx.fillStyle = '#8a1612'; ctx.fillRect(x + 239, 60, 2, 300);
     }
     ctx.fillStyle = '#ffeaa0'; ctx.beginPath(); ctx.ellipse(30, 330, 14, 10, 0, 0, TAU); ctx.fill();
     return (this.train = c);
@@ -436,6 +440,10 @@ LondonArt.bus = function (ctx, x, y, s, face, o) {
 };
 
 // ------------------------------------------------------------------ the London map (painted on the map screen, js/ui.js)
+// The station the Tube level is set in: the name on its roundels, the line's stations either side, the next trains
+// (Liverpool Street is one of the stations where Byrne & Nichols 1999 collected this mosquito; it is on the Central line.)
+const LDN_STATION = { name: 'LIVERPOOL STREET', here: 'Liverpool Street', colour: '#dc241f', stations: ['Bethnal Green', 'Liverpool Street', 'Bank', 'St Paul’s', 'Chancery Lane'], board: [['1 Ealing Broadway', '2 mins'], ['2 West Ruislip', '5 mins']] };
+
 // A storybook map, not to scale: the Thames winding west to east, the parks, a few landmarks, Heathrow in the west
 // (the plane home) and a ring of road the red bus drives round. The pins come from the London bugs in js/london.js.
 const LDN_MAP = {
@@ -503,33 +511,30 @@ function drawLondonMap(ctx, W, H) {
     ctx.fillStyle = i % 2 ? '#a8563e' : '#7a5648'; ctx.beginPath(); ctx.moveTo(x - 2, y + 1); ctx.lineTo(x + 7.5, y - 7); ctx.lineTo(x + 17, y + 1); ctx.fill();
     plainEll(ctx, x + 8, y + 16, 8, 3.4, 'rgba(120,170,90,.8)');
   }
-  // landmarks
-  const tower = (x, y, w, h, top, a, b) => { const gg = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0); gg.addColorStop(0, a); gg.addColorStop(1, b); ctx.fillStyle = gg; ctx.fillRect(x - w / 2, y - h, w, h); if (top) top(); };
-  // Alexandra Palace on its hill: the long front, the rose window, and the mast the first TV pictures came from
-  ctx.save(); ctx.translate(612, 88);
-  softShadow(ctx, 2, 12, 40, 8, 0.25);
-  ctx.fillStyle = '#d8c8a0'; ctx.fillRect(-36, -10, 72, 20); ctx.fillStyle = '#c4b288'; ctx.fillRect(-36, 6, 72, 4);
-  ctx.fillStyle = '#b8a67c'; ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(0, -22); ctx.lineTo(10, -10); ctx.fill();
-  ctx.fillStyle = '#6a8aa8'; ctx.beginPath(); ctx.arc(0, -6, 5, 0, TAU); ctx.fill(); ctx.strokeStyle = '#f0e6c8'; ctx.lineWidth = 1; ctx.stroke();
-  ctx.fillStyle = '#7a6a50'; for (let k = 0; k < 6; k++) if (k !== 2 && k !== 3) ctx.fillRect(-32 + k * 12, -4, 5, 9);
-  ctx.fillStyle = '#c4b288'; ctx.fillRect(28, -20, 8, 12);
-  ctx.strokeStyle = '#5a5a5a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(29, -20); ctx.lineTo(32, -46); ctx.lineTo(35, -20); ctx.moveTo(30, -29); ctx.lineTo(34, -29); ctx.moveTo(31, -38); ctx.lineTo(33, -38); ctx.stroke();
-  ctx.restore();
-  tower(432, 300, 7, 40, () => { ctx.fillStyle = '#8a98a4'; ctx.fillRect(427, 268, 10, 10); ctx.fillStyle = '#5a6a76'; ctx.fillRect(431.3, 250, 1.4, 12); }, '#c0ccd4', '#7c8a96');   // the BT Tower
-  // St Paul's dome
-  ctx.fillStyle = '#d8d4c4'; ctx.fillRect(538, 326, 22, 12); ctx.fillStyle = '#a8b4bc'; ctx.beginPath(); ctx.arc(549, 326, 9, Math.PI, 0); ctx.fill(); ctx.fillStyle = '#c8a850'; ctx.fillRect(548.3, 311, 1.4, 6);
-  // Big Ben and the wheel
-  tower(446, 372, 6, 26, () => { ctx.fillStyle = '#f4f0dc'; ctx.beginPath(); ctx.arc(446, 351, 2.6, 0, TAU); ctx.fill(); ctx.fillStyle = '#8a7a50'; ctx.beginPath(); ctx.moveTo(442.5, 346); ctx.lineTo(446, 338); ctx.lineTo(449.5, 346); ctx.fill(); }, '#c8b880', '#9a8a58');
-  ctx.strokeStyle = '#f4f4f0'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(470, 398, 11, 0, TAU); ctx.stroke(); for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; plainLine(ctx, [470, 398, 470 + Math.cos(a) * 11, 398 + Math.sin(a) * 11], 'rgba(244,244,240,.8)', 0.7); }
-  // Tower Bridge across the river, and the Shard
-  ctx.fillStyle = '#8a9aa8'; ctx.fillRect(596, 366, 30, 2.4);
-  for (const x of [602, 618]) { ctx.fillStyle = '#c8bca0'; ctx.fillRect(x - 3, 354, 6, 16); ctx.fillStyle = '#5a7a98'; ctx.beginPath(); ctx.moveTo(x - 3.5, 354); ctx.lineTo(x, 347); ctx.lineTo(x + 3.5, 354); ctx.fill(); }
-  ctx.strokeStyle = '#5a9ac8'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(590, 368); ctx.quadraticCurveTo(596, 358, 602, 357); ctx.moveTo(618, 357); ctx.quadraticCurveTo(624, 358, 630, 368); ctx.stroke();
-  g = ctx.createLinearGradient(578, 0, 592, 0); g.addColorStop(0, '#d4e4ec'); g.addColorStop(1, '#8aa4b4'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(578, 410); ctx.lineTo(585, 372); ctx.lineTo(592, 410); ctx.fill();
-  // the City's towers
-  for (let i = 0; i < 6; i++) { const x = 560 + i * 8, h = 14 + ((i * 5) % 4) * 6; tower(x, 344, 6, h, null, '#c8d4dc', '#7a8894'); }
-  // Wembley's arch
-  ctx.strokeStyle = '#f8f8f4'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(232, 222, 16, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke(); plainEll(ctx, 232, 224, 15, 6, '#b8c8a0'); plainEll(ctx, 232, 224, 11, 3.6, '#78a858');
+  // landmarks, drawn with the same kit as the levels' skylines (js/art-london3.js)
+  const ink = '#6a5a48', pale = '#f4eede';
+  const mk = (name, x, y, sc, c, d) => { softShadow(ctx, x + 2, y + 2, 16 * sc * 2, 3, 0.22); LondonSky.mark(ctx, name, x, y, sc, c || ink, d || pale); };
+  // the Thames's bridges, and a boat on it
+  ctx.strokeStyle = '#e8e0c8'; ctx.lineWidth = 2.6; ctx.lineCap = 'butt';
+  for (const [x, y, a] of [[404, 378, 1.2], [420, 384, 1.25], [498, 376, 1.5], [512, 370, 1.5], [540, 366, 1.55], [562, 364, 1.57], [262, 438, 1.3], [330, 424, 1.3]]) { ctx.beginPath(); ctx.moveTo(x - Math.cos(a) * 12, y - Math.sin(a) * 12); ctx.lineTo(x + Math.cos(a) * 12, y + Math.sin(a) * 12); ctx.stroke(); }
+  ctx.fillStyle = '#f4f4f0'; ctx.beginPath(); ctx.moveTo(812, 356); ctx.lineTo(838, 353); ctx.lineTo(834, 360); ctx.lineTo(816, 361); ctx.fill(); ctx.fillStyle = '#c8281e'; ctx.fillRect(820, 351, 9, 3);
+  mk('allyMast', 612, 96, 0.62, '#c4b288');                                        // Alexandra Palace on its hill
+  ctx.fillStyle = '#d8c8a0'; ctx.fillRect(576, 82, 66, 14); ctx.fillStyle = '#6a8aa8'; ctx.beginPath(); ctx.arc(596, 89, 4.4, 0, TAU); ctx.fill();
+  mk('wembley', 232, 226, 0.8, '#78a858', '#f8f8f4');
+  mk('bt', 432, 302, 0.5, '#8a98a4', '#e8f0f4');
+  mk('palace', 388, 352, 0.42, '#d8cfb8', '#8a7a5a');                              // Buckingham Palace
+  mk('parliament', 452, 380, 0.2); mk('bigBen', 452, 380, 0.34, '#a8904e', '#fffbe8');
+  mk('eye', 474, 404, 0.2, '#5a7a98', '#dfe8f0');
+  mk('stPauls', 548, 340, 0.4, '#b8b4a4', '#f4f0e0');
+  mk('cheesegrater', 584, 348, 0.3, '#7c8a96', '#dfe8f0'); mk('gherkin', 596, 348, 0.32, '#5a8a80', '#dff0e8'); mk('walkie', 608, 350, 0.3, '#7c8a96', '#dfe8f0');
+  mk('towerBridge', 628, 374, 0.3, '#c8bca0', '#5a9ac8');
+  mk('shard', 590, 414, 0.3, '#8aa4b4', '#e8f4f8');
+  mk('battersea', 396, 420, 0.3, '#a8684a', '#f0ead8');
+  mk('canary', 760, 346, 0.3, '#7c8a96', '#dfe8f0');
+  mk('o2', 822, 338, 0.42, '#f8f8f0', '#d8a820');
+  mk('ship', 776, 408, 0.4, '#3a3a3a', '#c8a850');                                 // the Cutty Sark at Greenwich
+  mk('palmHouse', 268, 414, 0.34, '#bcd8d0', '#7aa8a0');                           // Kew's Palm House
+  mk('crystal', 610, 552, 0.36, '#6a6a74');
   // Heathrow: two runways, the terminal and a plane (tap it to fly home: js/ui.js)
   ctx.save(); ctx.translate(LDN_MAP.heathrow[0], LDN_MAP.heathrow[1]);
   for (const dy of [-12, 12]) { ctx.fillStyle = '#9a9890'; ctx.fillRect(-46, dy - 3.5, 92, 7); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-42, dy); ctx.lineTo(42, dy); ctx.stroke(); ctx.setLineDash([]); }
@@ -550,7 +555,10 @@ function drawLondonMap(ctx, W, H) {
   label('Epping Forest', 852, 166, 12, '#3a5a22');
   label('Wembley', 232, 246, 12);
   label('Greenwich', 800, 446, 12, '#3a5a22');
-  label('The City', 590, 318, 12);
+  label('The City', 596, 304, 11);
+  label('Canary Wharf', 772, 322, 11); label('Kew', 268, 432, 11, '#3a5a22'); label('Crystal Palace', 610, 572, 11); label('Ally Pally', 560, 72, 11);
+  // a little skyline by the name, where no pin sits: Big Ben, the Eye, St Paul's, the Shard, Tower Bridge
+  LondonSky.line(ctx, [['bigBen', 208, 0.36], ['eye', 244, 0.26], ['stPauls', 290, 0.42], ['shard', 326, 0.3]], 72, '#8a2a1e', '#f4eede');
   ctx.save(); ctx.translate(910, 540);
   ctx.beginPath(); ctx.arc(0, 0, 22, 0, TAU); ctx.fillStyle = 'rgba(255,250,235,.7)'; ctx.fill(); ctx.strokeStyle = '#7a6040'; ctx.lineWidth = 1.5; ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(6, 0); ctx.lineTo(0, 18); ctx.lineTo(-6, 0); ctx.closePath(); ctx.fillStyle = '#c8501e'; ctx.fill();
@@ -799,10 +807,11 @@ LondonArt.spots = function (ctx, g, m) {
     else if (s.on && s.done) plainEll(ctx, s.x, s.y, 3, 2.4, '#e86060');                                                            // an itchy bite
   }
   for (const mv of g.movers) {
-    if (!see(mv.x)) continue;
+    if (!see(mv.x) || mv.shown === false) continue;
     if (mv.kind === 'rival') Game.drawSprite('bumblebee', { x: mv.x, y: mv.y + 12, angle: 0, face: mv.face, flat: true, flying: !(mv.sit > 0), moving: true, pollen: 1 }, 1.8);
     else if (mv.kind === 'rat') LondonArt.rat(ctx, mv.x, mv.y, mv.face, mv.sniff > 0, t);
     else if (mv.kind === 'mouse') Game.drawSprite('mouseSide', { x: mv.x, y: mv.y, angle: 0, face: mv.face, flat: true, moving: !(mv.wait > 0) }, 1.2);
+    else if (LondonLife[mv.kind]) LondonLife[mv.kind](ctx, mv, t, g);   // parakeets, pigeons, a jet... (js/art-london3.js)
   }
   for (const w of L.webs || []) if (see(w.x)) LondonArt.web(ctx, w, g.stuck && g.stuck.web === w ? g.stuck : null, p);
   for (const r of g.rivals || []) if (r.state !== 'gone' && see(r.x)) {
@@ -831,6 +840,9 @@ LondonArt.front = function (ctx, g, m) {
   if (L.cat && h.cat.state !== 'asleep') red(L.cat.x, L.cat.y - 30, m.CAT_R, h.cat.state === 'alert' ? 0.26 : 0.13 + 0.04 * Math.sin(t * 5));
   if (h.dog) red(h.dog.x, h.dog.y - 44, 130, h.dog.state === 'alert' ? 0.26 : 0.12 + 0.04 * Math.sin(t * 5));
   const more = LondonArt.more[m.id]; if (more && more.front) more.front(ctx, g, m);
+  if (g.spyFx) {   // something on the I-spy list, just spotted: a ring opens round it
+    const k = g.spyFx.t / 1.2; ctx.beginPath(); ctx.arc(g.spyFx.x, g.spyFx.y, 16 + k * 54, 0, TAU); ctx.strokeStyle = 'rgba(190,227,255,' + (1 - k) + ')'; ctx.lineWidth = 4; ctx.stroke();
+  }
   if (g.shooed > 0) {   // blown off: streaks of air behind her
     const dir = g.shooDir || 1;
     ctx.strokeStyle = 'rgba(255,255,255,' + Math.min(1, 0.3 + g.shooed) + ')'; ctx.lineWidth = 2;
@@ -889,38 +901,59 @@ LondonArt.front = function (ctx, g, m) {
 // Each paints its sky and scenery, then the level's own solids, ledges and hiding places (LondonArt.solids), so
 // the art and the physics match. The level comes from the game that is starting.
 Backgrounds.ldnPark = function (ctx, W, H) {
-  const L = Game.g.level;
+  const L = Game.g.level, far = '#d8e8f0';
   LondonArt.sky(ctx, W, '#9ac4e8', '#d8e8f0', '#f0f0e0');
-  LondonArt.skyline(ctx, W, 400, 'rgba(150,160,175,.55)', 3);                       // the terraces round the park
-  // the BT Tower, seen over the trees from all across Regent's Park
-  ctx.fillStyle = 'rgba(130,142,160,.75)'; ctx.fillRect(1490, 150, 20, 260); ctx.fillRect(1483, 196, 34, 46); ctx.fillRect(1480, 250, 40, 10); ctx.fillRect(1498, 104, 4, 48);
-  ctx.fillStyle = 'rgba(255,255,255,.25)'; for (let k = 0; k < 5; k++) ctx.fillRect(1483, 200 + k * 9, 34, 3);
+  // Round the park: Nash's white terraces between the trees, the mosque's gold dome at the west end, the BT Tower
+  LondonSky.roofs(ctx, 0, W, 392, 'rgba(160,170,186,.4)', 3);
+  LondonSky.mark(ctx, 'bt', 1490, 404, 2.9, '#8f9cb0', '#dfe8f0');
+  LondonSky.mark(ctx, 'mosque', 420, 404, 2.1, '#e8e2d4', '#d8a820');
+  for (const [x0, x1, seed] of [[640, 1300, 7], [1700, 2500, 8], [2760, 3200, 9]]) LondonStreet.terrace(ctx, x0, x1, 404, { brick: LondonStreet.STUCCO, storeys: 3, sh: 36, w: 132, seed, dim: 0.3, haze: far });
   LondonArt.trees(ctx, W, 470, 'rgba(70,110,60,.6)', 8, 32, 70);
+  // the boating lake, with a couple of boats out
+  ctx.fillStyle = '#8ab8d8'; ctx.beginPath(); ctx.ellipse(2380, 486, 330, 14, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(2150, 482, 120, 2); ctx.fillRect(2420, 490, 160, 2);
+  for (const [x, col] of [[2260, '#2a5ab0'], [2510, '#c8402a']]) { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x - 22, 478); ctx.lineTo(x + 22, 478); ctx.lineTo(x + 15, 486); ctx.lineTo(x - 15, 486); ctx.fill(); ctx.fillStyle = '#3a3a40'; ctx.beginPath(); ctx.arc(x - 3, 472, 4, 0, TAU); ctx.fill(); ctx.fillRect(x - 6, 474, 7, 6); }
   LondonArt.trees(ctx, W, 520, 'rgba(60,100,50,.8)', 9, 20, 50);
-  // the Zoo's fence at the far end (a giraffe looks over it: drawn with the level)
+  // the Zoo at the far end: its fence and sign, the aviary's netting behind (the giraffe is drawn with the level)
+  LondonSky.mark(ctx, 'aviary', 3690, 338, 1.9, '#5a6a5e', 'rgba(210,222,214,.55)');
   ctx.fillStyle = '#3f6a3a'; ctx.fillRect(3240, 330, 330, 230);
   ctx.strokeStyle = 'rgba(20,40,20,.35)'; ctx.lineWidth = 2; for (let x = 3240; x < 3570; x += 22) { ctx.beginPath(); ctx.moveTo(x, 330); ctx.lineTo(x, 560); ctx.stroke(); }
   ctx.fillStyle = '#f4f0e4'; ctx.fillRect(3262, 372, 74, 34); ctx.fillStyle = '#2f5a2a'; ctx.font = 'bold 22px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('ZOO', 3299, 397);
+  // park railings and old lamps along the path
+  for (const [x0, x1] of [[0, 200], [1000, 1150], [2700, 2900]]) LondonStreet.railings(ctx, x0, x1, 560, 54);
+  for (const x of [150, 1660, 2860]) LondonStreet.lamp(ctx, x, 560, 170, false);
   LondonArt.grass(ctx, W, 556, '#5a8a3a', '#6a9a44', 4);
-  ctx.fillStyle = '#7a5a3a'; for (const x of [240, 840, 1500, 2200, 2580, 3120, 3440]) ctx.fillRect(x, 552, 150, 10);   // flower beds along the path
+  ctx.fillStyle = '#7a5a3a'; for (const x of [240, 840, 1500, 2200, 2580, 3120, 3440]) ctx.fillRect(x, 552, 150, 10);   // the rose beds
   ctx.fillStyle = '#6a4a2a'; ctx.fillRect(606, 470, 190, 8); ctx.fillRect(606, 478, 6, 36); ctx.fillRect(790, 478, 6, 36);   // the bench's back
   LondonArt.solids(ctx, L);
 };
 Backgrounds.ldnPark.noVignette = true;
 
 Backgrounds.ldnCafe = function (ctx, W, H) {
-  const L = Game.g.level;
+  const L = Game.g.level, brick = '#8e6c4c';   // the garden wall: old brick gone brown
   LondonArt.sky(ctx, W, '#7ab0e0', '#c8e0f0', '#f0eada');
-  LondonArt.skyline(ctx, W, 320, '#b8a088', 11);
-  ctx.fillStyle = '#a8644a'; ctx.fillRect(0, 300, W, 260);                          // the garden's back wall, brick
-  ctx.strokeStyle = 'rgba(240,220,200,.35)'; ctx.lineWidth = 1;
+  // the backs of a Georgian terrace across the street: yellow stock brick, sash windows, rows of chimney pots
+  LondonStreet.terrace(ctx, -60, W, 300, { side: 'back', storeys: 3, sh: 50, w: 150, seed: 11, roof: 'parapet', dim: 0.2, haze: '#c8dcea' });
+  // two London planes, with their patchy bark, in the street between
+  for (const x of [1250, 2960]) {
+    ctx.fillStyle = '#8a8a6a'; ctx.fillRect(x - 9, 150, 18, 160); ctx.fillStyle = '#c8c8a0'; for (const [dx, dy] of [[-6, 170], [2, 200], [-4, 240], [4, 270]]) { ctx.beginPath(); ctx.ellipse(x + dx, dy, 4, 9, 0, 0, TAU); ctx.fill(); }
+    LondonArt.leafBlob(ctx, x - 90, 60, 180, 110, ['#5a8a3a', '#6a9a44', '#4a7a34'], x, 70);
+  }
+  LondonStreet.phoneBox(ctx, 770, 372, 1.5);                                         // only its top shows over the wall
+  ctx.fillStyle = brick; ctx.fillRect(0, 300, W, 260);                               // the garden's back wall
+  ctx.strokeStyle = 'rgba(40,26,14,.3)'; ctx.lineWidth = 1;
   for (let y = 300; y < 560; y += 12) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-  ctx.fillStyle = '#8a7a6a'; ctx.fillRect(0, 294, W, 8);
-  ctx.fillStyle = '#8a6a44'; for (let x = 0; x < 720; x += 26) ctx.fillRect(x, 380, 20, 180);   // the wooden fence
-  ctx.fillStyle = '#6a5034'; ctx.fillRect(0, 410, 720, 8); ctx.fillRect(0, 500, 720, 8);
-  // the café's back door and its sign
+  const r = rng(12); for (let i = 0; i < 320; i++) { ctx.fillStyle = r() < 0.5 ? 'rgba(60,36,20,.2)' : 'rgba(190,150,100,.16)'; ctx.fillRect(r() * W, 302 + Math.floor(r() * 21) * 12, 26, 10); }
+  ctx.fillStyle = '#c8c0b0'; ctx.fillRect(0, 292, W, 10);
+  LondonArt.leafBlob(ctx, 1040, 290, 200, 150, ['#2a5a2a', '#3a6a34', '#1e4a22'], 13, 80);   // ivy over the wall
+  LondonStreet.streetSign(ctx, 400, 340, 'UPPER STREET', 'N1');
+  ctx.fillStyle = '#8a6a44'; for (let x = 0; x < 200; x += 26) ctx.fillRect(x, 380, 20, 180);   // a bit of wooden fence by the gate
+  ctx.fillStyle = '#6a5034'; ctx.fillRect(0, 410, 200, 8); ctx.fillRect(0, 500, 200, 8);
+  // the café's back door, its sign and its board
   ctx.fillStyle = '#3a4a44'; ctx.fillRect(2100, 380, 110, 180); ctx.fillStyle = 'rgba(255,240,200,.35)'; ctx.fillRect(2112, 394, 86, 70);
   ctx.fillStyle = '#2f5a4a'; ctx.fillRect(2060, 330, 190, 40); ctx.fillStyle = '#f4f0e4'; ctx.font = 'bold 26px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('CAFÉ', 2155, 359);
+  ctx.fillStyle = '#2a2a2a'; ctx.beginPath(); ctx.moveTo(2010, 560); ctx.lineTo(2024, 486); ctx.lineTo(2052, 486); ctx.lineTo(2066, 560); ctx.fill();
+  ctx.fillStyle = '#f4f0e4'; ctx.font = 'bold 11px Georgia, serif'; ctx.fillText('CREAM', 2038, 510); ctx.fillText('TEAS', 2038, 526);
   ctx.fillStyle = '#c8bca8'; ctx.fillRect(0, 556, W, 44);                           // paving
   ctx.strokeStyle = 'rgba(80,70,60,.3)'; for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 556); ctx.lineTo(x, 600); ctx.stroke(); }
   for (const s of L.solids) if (s[4] === 'table') { const x = s[0] + 85; ctx.fillStyle = '#e8e4d8'; ctx.beginPath(); ctx.moveTo(x - 110, 320); ctx.quadraticCurveTo(x, 262, x + 110, 320); ctx.fill(); ctx.fillStyle = '#c8501e'; ctx.fillRect(x - 110, 318, 220, 5); ctx.fillStyle = '#6a6a6a'; ctx.fillRect(x - 2, 320, 4, 110); }   // parasols
@@ -930,51 +963,66 @@ Backgrounds.ldnCafe = function (ctx, W, H) {
 Backgrounds.ldnCafe.noVignette = true;
 
 Backgrounds.ldnTube = function (ctx, W, H) {
-  const L = Game.g.level, PW = L.solids.find(s => s[4] === 'platform')[2];
+  const L = Game.g.level, PW = L.solids.find(s => s[4] === 'platform')[2], NAME = LDN_STATION.name, cream = '#e6dec6', green = '#2f6a4a';
   ctx.fillStyle = '#2a2a30'; ctx.fillRect(0, 0, W, 600);
-  // tiled wall along the platform, then the dark tunnel
-  const g = ctx.createLinearGradient(0, 70, 0, 400); g.addColorStop(0, '#c8c0a8'); g.addColorStop(1, '#a8a088');
+  // The platform's wall: a tiled vault that curves over into the roof, cream with green bands, a green ring every so often
+  const g = ctx.createLinearGradient(0, 70, 0, 400); g.addColorStop(0, '#8a8674'); g.addColorStop(0.28, cream); g.addColorStop(1, '#cfc7ae');
   ctx.fillStyle = g; ctx.fillRect(0, 70, PW, 330);
-  ctx.strokeStyle = 'rgba(80,70,60,.25)'; ctx.lineWidth = 1;
-  for (let y = 70; y < 400; y += 14) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(PW, y); ctx.stroke(); }
-  for (let x = 0; x < PW; x += 28) { ctx.beginPath(); ctx.moveTo(x, 70); ctx.lineTo(x, 400); ctx.stroke(); }
-  ctx.fillStyle = '#7a2a24'; ctx.fillRect(0, 150, PW, 16);                          // a coloured band of tiles
-  // posters: sunny Perth (where the game began), a West End show, the way out
-  const frame = (x, w) => { ctx.fillStyle = '#e8e4d8'; ctx.fillRect(x, 186, w, 128); };
+  ctx.strokeStyle = 'rgba(80,70,60,.22)'; ctx.lineWidth = 1;
+  for (let k = 0; k < 30; k++) { const y = 400 - 330 * Math.sin(k / 30 * Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(PW, y); ctx.stroke(); }
+  for (let x = 0; x < PW; x += 26) { ctx.beginPath(); ctx.moveTo(x, 70); ctx.lineTo(x, 400); ctx.stroke(); }
+  ctx.fillStyle = green; ctx.fillRect(0, 156, PW, 12); ctx.fillRect(0, 338, PW, 10);
+  for (let x = 250; x < PW; x += 500) { ctx.fillRect(x - 9, 70, 18, 330); ctx.fillStyle = cream; for (let y = 84; y < 400; y += 26) ctx.fillRect(x - 5, y, 10, 10); ctx.fillStyle = green; }
+  ctx.fillStyle = '#3a3a40'; ctx.fillRect(0, 74, PW, 4); ctx.fillRect(0, 84, PW, 2);   // cables along the roof
+  // posters: sunny Perth (where the game began) and a West End show
+  const frame = (x, w) => { ctx.fillStyle = '#16161a'; ctx.fillRect(x - 3, 183, w + 6, 134); ctx.fillStyle = '#e8e4d8'; ctx.fillRect(x, 186, w, 128); };
   frame(300, 230);
-  let sk = ctx.createLinearGradient(0, 196, 0, 304); sk.addColorStop(0, '#5ab0e8'); sk.addColorStop(0.6, '#bfe4f4'); sk.addColorStop(0.61, '#3a9ac8'); sk.addColorStop(0.8, '#f2e2b0'); sk.addColorStop(1, '#e8d49a');
+  const sk = ctx.createLinearGradient(0, 196, 0, 304); sk.addColorStop(0, '#5ab0e8'); sk.addColorStop(0.6, '#bfe4f4'); sk.addColorStop(0.61, '#3a9ac8'); sk.addColorStop(0.8, '#f2e2b0'); sk.addColorStop(1, '#e8d49a');
   ctx.fillStyle = sk; ctx.fillRect(310, 196, 210, 108);
   ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(486, 222, 16, 0, TAU); ctx.fill();
   ctx.fillStyle = '#8a6a48'; ctx.beginPath(); ctx.ellipse(352, 286, 14, 9, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(366, 276, 7, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(362, 269, 2.6, 0, TAU); ctx.fill();   // a quokka on the sand
   ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('Sunny PERTH', 414, 232);
   ctx.font = 'bold 12px sans-serif'; ctx.fillText('17 hours by plane', 414, 250);
   frame(1010, 200); ctx.fillStyle = '#2a1a3a'; ctx.fillRect(1020, 196, 180, 108); ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 20px Georgia, serif'; ctx.fillText('BUGS!', 1110, 240); ctx.fillStyle = '#e8e4d8'; ctx.font = '12px sans-serif'; ctx.fillText('the musical', 1110, 260);
-  ctx.fillStyle = '#1e3a6a'; ctx.fillRect(1650, 196, 150, 40); ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 20px sans-serif'; ctx.fillText('WAY OUT →', 1725, 223);
+  // the station's name on the roundel, the line's stations, the way out, the next train
+  for (const x of [150, 800, 1480, 1890]) LondonTube.roundel(ctx, x, 250, 46, NAME);
+  LondonTube.diagram(ctx, 590, 118, 380, LDN_STATION.stations, LDN_STATION.here, LDN_STATION.colour);
+  LondonTube.wayOut(ctx, 1700, 216, false);
+  LondonTube.board(ctx, 1480, 134, LDN_STATION.board);
+  // the tunnel: a round black mouth in a headwall, rings of iron going off into the dark
   const t = ctx.createLinearGradient(PW, 0, W, 0); t.addColorStop(0, '#3a3a40'); t.addColorStop(1, '#141418');
   ctx.fillStyle = t; ctx.fillRect(PW, 70, W - PW, 490);
-  ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 3; for (let x = PW + 50; x < W; x += 90) { ctx.beginPath(); ctx.moveTo(x, 70); ctx.lineTo(x, 560); ctx.stroke(); }   // tunnel rings
+  ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 3; for (let x = PW + 50; x < W; x += 90) { ctx.beginPath(); ctx.moveTo(x, 70); ctx.lineTo(x, 560); ctx.stroke(); }
+  ctx.fillStyle = '#56524a'; ctx.fillRect(PW - 4, 70, 30, 330); ctx.fillStyle = '#16161a'; ctx.fillRect(PW + 2, 300, 18, 40); ctx.fillStyle = '#e03a2a'; ctx.beginPath(); ctx.arc(PW + 11, 312, 5, 0, TAU); ctx.fill(); ctx.fillStyle = '#2a5a2a'; ctx.beginPath(); ctx.arc(PW + 11, 328, 5, 0, TAU); ctx.fill();   // the signal at the tunnel mouth
   ctx.fillStyle = 'rgba(160,200,230,.25)'; for (const x of [2380, 2840, 3420, 3850]) ctx.fillRect(x, 70, 3, 60);   // drips down the tunnel wall
   // the track bed, rails and sleepers
   ctx.fillStyle = '#3a3634'; ctx.fillRect(0, 540, W, 60);
   ctx.fillStyle = '#5a4a3a'; for (let x = 0; x < W; x += 30) ctx.fillRect(x, 548, 18, 8);
   ctx.fillStyle = '#9a9aa0'; ctx.fillRect(0, 544, W, 3); ctx.fillRect(0, 552, W, 3);
   LondonArt.solids(ctx, L);
-  ctx.fillStyle = 'rgba(40,36,30,.8)'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(40,36,30,.85)'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
   for (let x = 160; x < PW - 100; x += 380) ctx.fillText('MIND THE GAP', x, 420);  // painted along the platform's edge
   ctx.fillStyle = '#3a4a6a'; ctx.fillRect(1100, 300, 170, 8); ctx.fillRect(1104, 308, 6, 46); ctx.fillRect(1260, 308, 6, 46);   // the bench's back
 };
 Backgrounds.ldnTube.noVignette = true;
 
 Backgrounds.ldnGarden = function (ctx, W, H) {
-  const L = Game.g.level;
+  const L = Game.g.level, far = 'rgba(96,108,134,.6)', hazy = '#dfe8ec';
   LondonArt.sky(ctx, W, '#8ab8e0', '#e0e8e8', '#f4ead0');
-  LondonArt.skyline(ctx, W, 360, '#c09a7a', 21);                                    // the backs of terraced houses
-  ctx.fillStyle = 'rgba(255,255,255,.25)'; for (let x = 30; x < W; x += 140) ctx.fillRect(x, 300, 16, 20);
+  // Far off over the roofs: the Crystal Palace transmitter on its ridge, and the Shard and Canary Wharf
+  ctx.fillStyle = 'rgba(120,140,130,.55)'; ctx.beginPath(); ctx.ellipse(1250, 312, 520, 50, 0, Math.PI, 0); ctx.fill();
+  LondonSky.mark(ctx, 'crystal', 1250, 268, 1.25, 'rgba(70,80,100,.9)');
+  LondonSky.line(ctx, [['stPauls', 2090, 0.5], ['walkie', 2150, 0.6], ['cheesegrater', 2176, 0.6], ['gherkin', 2200, 0.6], ['shard', 2250, 0.78], ['canary', 2470, 0.62]], 300, far, 'rgba(210,220,232,.5)');
+  // the backs of a Victorian terrace beyond the fence: stock brick, slate, rows of chimney pots
+  LondonStreet.terrace(ctx, -40, 2690, 420, { side: 'back', storeys: 2, sh: 60, w: 128, seed: 21, dim: 0.26, haze: hazy });
+  LondonStreet.terrace(ctx, 2940, W + 60, 420, { side: 'back', storeys: 2, sh: 60, w: 128, seed: 22, dim: 0.26, haze: hazy });
   // the house at the end of the garden, with the kitchen window that lights up at dusk
-  ctx.fillStyle = '#b8846a'; ctx.fillRect(2690, 120, 250, 440); ctx.fillStyle = '#7a5a4a'; ctx.beginPath(); ctx.moveTo(2670, 124); ctx.lineTo(2815, 40); ctx.lineTo(2960, 124); ctx.fill();
-  ctx.strokeStyle = 'rgba(240,220,200,.3)'; ctx.lineWidth = 1; for (let y = 130; y < 560; y += 12) { ctx.beginPath(); ctx.moveTo(2690, y); ctx.lineTo(2940, y); ctx.stroke(); }
+  ctx.fillStyle = '#b39258'; ctx.fillRect(2690, 120, 250, 440); ctx.fillStyle = '#4a4e5c'; ctx.beginPath(); ctx.moveTo(2670, 124); ctx.lineTo(2815, 40); ctx.lineTo(2960, 124); ctx.fill();
+  ctx.strokeStyle = 'rgba(90,60,30,.25)'; ctx.lineWidth = 1; for (let y = 130; y < 560; y += 12) { ctx.beginPath(); ctx.moveTo(2690, y); ctx.lineTo(2940, y); ctx.stroke(); }
+  ctx.fillStyle = '#a8523a'; ctx.fillRect(2744, 190, 112, 8);
   ctx.fillStyle = '#f4f0e4'; ctx.fillRect(2748, 198, 104, 104); ctx.fillStyle = '#ffe9a8'; ctx.fillRect(2756, 206, 88, 88); ctx.fillStyle = '#f4f0e4'; ctx.fillRect(2797, 206, 6, 88); ctx.fillRect(2756, 247, 88, 6);
   ctx.fillStyle = '#5a6a5a'; ctx.fillRect(2860, 400, 60, 160);
+  ctx.fillStyle = '#b39258'; ctx.fillRect(2880, 20, 34, 50); ctx.fillStyle = '#c06a3a'; for (let k = 0; k < 4; k++) ctx.fillRect(2883 + k * 8, 8, 5, 12);   // its chimney
   ctx.fillStyle = '#8a6a48'; for (let x = 0; x < 2690; x += 30) ctx.fillRect(x, 420, 24, 140); for (let x = 2940; x < W; x += 30) ctx.fillRect(x, 420, 24, 140);   // the fence
   ctx.fillStyle = '#6a5034'; ctx.fillRect(0, 450, 2690, 8); ctx.fillRect(2940, 450, W - 2940, 8);
   LondonArt.trees(ctx, W, 470, 'rgba(60,110,60,.55)', 23, 10, 40);
@@ -982,26 +1030,38 @@ Backgrounds.ldnGarden = function (ctx, W, H) {
   LondonArt.leafBlob(ctx, 1770, 430, 160, 120, ['#3f7a38', '#4a8a40', '#2f6a2e'], 77, 60);
   LondonArt.leafBlob(ctx, 3180, 470, 150, 90, ['#3a5a2a', '#4a6a34', '#6a3a4a'], 78, 50);   // brambles by the nettles
   LondonArt.grass(ctx, W, 556, '#5e9440', '#6aa04a', 24);
+  LondonStreet.bins(ctx, 2972, 560);
   LondonArt.solids(ctx, L);
 };
 Backgrounds.ldnGarden.noVignette = true;
 
 Backgrounds.ldnRichmond = function (ctx, W, H) {
-  const L = Game.g.level;
+  const L = Game.g.level, far = 'rgba(74,62,96,.5)', dark = 'rgba(40,36,50,.8)';
   LondonArt.sky(ctx, W, '#3a3a6a', '#d88a6a', '#f8c88a');                           // dusk
   const sun = ctx.createRadialGradient(2300, 470, 10, 2300, 470, 260); sun.addColorStop(0, 'rgba(255,230,170,.9)'); sun.addColorStop(1, 'rgba(255,200,140,0)');
   ctx.fillStyle = sun; ctx.fillRect(2000, 200, 600, 400);
-  LondonArt.skyline(ctx, W, 470, 'rgba(70,60,90,.45)', 31, [600]);                 // the city far off
-  // old oaks in silhouette, and deer on the skyline
+  // London, a long way off over the trees: St Paul's, the City's towers, the Shard, the BT Tower, the Eye
+  LondonSky.line(ctx, [['wembley', 250, 0.8], ['bt', 520, 0.5], ['eye', 640, 0.36], ['stPauls', 760, 0.62], ['cheesegrater', 842, 0.46], ['gherkin', 866, 0.46], ['walkie', 892, 0.46], ['shard', 970, 0.5], ['canary', 1150, 0.36]], 470, far, 'rgba(255,220,180,.35)');
   const r = rng(32);
-  for (let i = 0; i < 11; i++) { const x = 500 + i * 320 + r() * 80; ctx.fillStyle = 'rgba(40,36,50,.75)'; ctx.fillRect(x - 10, 360, 20, 200); ctx.beginPath(); ctx.ellipse(x, 330, 110, 70, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x - 70, 360, 60, 40, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x + 70, 356, 60, 40, 0, 0, TAU); ctx.fill(); }
-  ctx.fillStyle = 'rgba(40,36,50,.8)';
-  for (const x of [900, 1650, 2560]) { ctx.beginPath(); ctx.ellipse(x, 500, 18, 8, 0, 0, TAU); ctx.fill(); ctx.fillRect(x - 12, 504, 3, 14); ctx.fillRect(x + 10, 504, 3, 14); ctx.fillRect(x + 14, 488, 4, 12); ctx.beginPath(); ctx.ellipse(x + 20, 486, 6, 4, -0.3, 0, TAU); ctx.fill(); plainLine(ctx, [x + 20, 482, x + 18, 472, x + 24, 468], 'rgba(40,36,50,.8)', 1.4); }
+  ctx.fillStyle = far; ctx.beginPath(); ctx.moveTo(0, 600); for (let x = 0; x <= W; x += 40) ctx.lineTo(x, 462 + Math.sin(x * 0.004) * 8 + r() * 10); ctx.lineTo(W, 600); ctx.fill();   // the far line of trees
+  // old oaks in silhouette: pollards, short and very fat in the trunk
+  for (let i = 0; i < 11; i++) { const x = 500 + i * 320 + r() * 80, w = 14 + r() * 12; ctx.fillStyle = 'rgba(40,36,50,.75)'; ctx.beginPath(); ctx.moveTo(x - w, 560); ctx.lineTo(x - w * 0.8, 380); ctx.lineTo(x + w * 0.8, 380); ctx.lineTo(x + w, 560); ctx.fill(); ctx.beginPath(); ctx.ellipse(x, 330, 110, 70, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x - 70, 360, 60, 40, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x + 70, 356, 60, 40, 0, 0, TAU); ctx.fill(); }
+  // deer on the skyline: two hinds, and a stag with his antlers
+  const deer = (x, y, s, stag) => {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = dark;
+    ctx.beginPath(); ctx.ellipse(0, -16, 18, 8, 0, 0, TAU); ctx.fill(); ctx.fillRect(-13, -12, 3, 14); ctx.fillRect(-8, -12, 3, 13); ctx.fillRect(8, -12, 3, 14); ctx.fillRect(12, -12, 3, 13);
+    ctx.beginPath(); ctx.moveTo(12, -20); ctx.lineTo(20, -34); ctx.lineTo(25, -32); ctx.lineTo(18, -14); ctx.fill(); ctx.beginPath(); ctx.ellipse(24, -35, 6.4, 4, -0.3, 0, TAU); ctx.fill();
+    if (stag) { ctx.strokeStyle = dark; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; for (const k of [-1, 1]) { ctx.beginPath(); ctx.moveTo(22 + k, -38); ctx.quadraticCurveTo(18 + k * 9, -52, 26 + k * 10, -64); ctx.moveTo(20 + k * 5, -48); ctx.lineTo(15 + k * 9, -55); ctx.moveTo(22 + k * 7, -56); ctx.lineTo(17 + k * 12, -62); ctx.stroke(); } }
+    ctx.restore();
+  };
+  deer(900, 520, 1, false); deer(1650, 518, 1, false); deer(2560, 522, 1.7, true);
   // the great oak by the start, weeping sap
   const tg = ctx.createLinearGradient(230, 0, 370, 0); tg.addColorStop(0, '#4a3828'); tg.addColorStop(0.5, '#6a5038'); tg.addColorStop(1, '#3a2a1c');
   ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(250, 0); ctx.lineTo(350, 0); ctx.lineTo(372, 560); ctx.lineTo(228, 560); ctx.fill();
   ctx.strokeStyle = 'rgba(20,14,8,.5)'; ctx.lineWidth = 2; for (let k = 0; k < 7; k++) { ctx.beginPath(); ctx.moveTo(258 + k * 14, 10 + (k * 37) % 60); ctx.lineTo(250 + k * 17, 540); ctx.stroke(); }
   LondonArt.grass(ctx, W, 556, '#6a7a3a', '#7a8a44', 33);
+  // anthills: the park is covered in them
+  for (const x of [430, 720, 1460, 1790, 2240, 2980, 3380, 3700]) { ctx.fillStyle = '#62702f'; ctx.beginPath(); ctx.ellipse(x, 560, 26, 15, 0, Math.PI, 0); ctx.fill(); ctx.strokeStyle = '#7a8a44'; ctx.lineWidth = 1.4; ctx.beginPath(); for (let k = -4; k <= 4; k++) { ctx.moveTo(x + k * 5.4, 560 - Math.sqrt(1 - Math.pow(k / 4.6, 2)) * 15); ctx.lineTo(x + k * 6.2, 553 - Math.sqrt(1 - Math.pow(k / 4.6, 2)) * 15); } ctx.stroke(); }
   // the pond, and the path the joggers use
   const [p0, p1] = L.pond;
   ctx.fillStyle = '#3a5a7a'; ctx.beginPath(); ctx.ellipse((p0 + p1) / 2, 566, (p1 - p0) / 2, 16, 0, 0, TAU); ctx.fill(); ctx.fillRect(p0 + 10, 566, p1 - p0 - 20, 34);

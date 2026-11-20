@@ -3,11 +3,11 @@
 
 // Saved progress: stars per mission, fact keys found per mission, secrets, and best results (the Olympics).
 const Progress = {
-  data: { stars: {}, facts: {}, secrets: [], best: {} },
+  data: { stars: {}, facts: {}, secrets: [], best: {}, sights: {} },
   load() {
     try {
       const d = JSON.parse(localStorage.getItem('bugame.progress') || '{}');
-      this.data = { stars: d.stars || {}, facts: d.facts || {}, secrets: d.secrets || [], best: d.best || {} };
+      this.data = { stars: d.stars || {}, facts: d.facts || {}, secrets: d.secrets || [], best: d.best || {}, sights: d.sights || {} };
     } catch (e) { /* storage off */ }
   },
   best(id) { return this.data.best[id]; },
@@ -24,6 +24,13 @@ const Progress = {
   addFact(id, key) {
     const list = this.data.facts[id] || (this.data.facts[id] = []);
     if (!list.includes(key)) { list.push(key); this.save(); }
+  },
+  // London's I-spy: the things spotted in each level
+  sights(id) { return this.data.sights[id] || []; },
+  addSight(id, key) {
+    const list = this.data.sights[id] || (this.data.sights[id] = []);
+    if (!list.includes(key)) { list.push(key); this.save(); }
+    if (!this.hasSecret('s_spy') && Object.values(Missions).every(m => !m.sights || m.sights.every(s => this.sights(m.id).includes(s.key)))) this.addSecret('s_spy');
   },
   addSecret(key) { if (!this.data.secrets.includes(key)) { this.data.secrets.push(key); this.save(); } },
   hasSecret(key) { return this.data.secrets.includes(key); },
@@ -198,6 +205,11 @@ function selectStage(id) {
   fillList($('stageFacts'), m.facts);
   const gentleLine = bug.hub === 'london' ? 'You can\u2019t lose this one. If you get caught you go back to the last safe spot.' : 'You can\u2019t lose this one. If you get caught you just go home.';
   fillList($('stageHow'), m.gentle ? m.how.concat(gentleLine) : m.how);
+  // London's I-spy list: what there is to spot, ticked if you have
+  const spy = m.sights || [], seen = Progress.sights(id);
+  $('stageSpyHead').hidden = $('stageSpy').hidden = !spy.length;
+  $('stageSpy').innerHTML = '';
+  for (const s of spy) { const li = document.createElement('li'); li.className = seen.includes(s.key) ? 'spied' : ''; li.textContent = (seen.includes(s.key) ? '\u2713 ' : '\u25CB ') + s.name; $('stageSpy').appendChild(li); }
   $('sizeBtn').hidden = !(typeof Size !== 'undefined' && Size.of(m));   // Real size (js/size.js), for the stages that are a real bug
 }
 
@@ -257,7 +269,8 @@ Game.onEnd = (won, g) => {
   $('endAgain').classList.toggle('secondary', !!won && (!!next || explore));   // otherwise Play again is the main button
   if (won && Run.on) {   // the end of the bus tour: every stop's stars and facts
     $('endTitle').textContent = 'You toured London!';
-    $('endUnlock').textContent = 'Stars on the tour: ' + Run.stars + ' / ' + Run.parts * 3 + '.' + (Run.parts === Run.list.length ? ' Every stop on the bus!' : '');
+    const spy = Run.list.reduce((n, id) => n + (Missions[id].sights ? Missions[id].sights.length : 0), 0), spied = Run.list.reduce((n, id) => n + Progress.sights(id).length, 0);
+    $('endUnlock').textContent = 'Stars on the tour: ' + Run.stars + ' / ' + Run.parts * 3 + '.' + (Run.parts === Run.list.length ? ' Every stop on the bus!' : '') + (spy ? ' London things spotted: ' + spied + ' / ' + spy + '.' : '');
     fillList($('endFacts'), Run.learned);
     Run.stop();
   }
@@ -441,7 +454,7 @@ function flyTo(hub) {
     ctx.save(); ctx.translate(from[0] + (to[0] - from[0]) * e, from[1] + (to[1] - from[1]) * e); ctx.rotate(rot); ctx.scale(1.6 + k * 1.4, 1.6 + k * 1.4);
     Sprites.jetPlane(ctx); ctx.restore();
     if (k < 1) requestAnimationFrame(step);
-    else { c.hidden = true; planeFlying = false; currentHub = hub; buildMap(); }
+    else { c.hidden = true; planeFlying = false; currentHub = hub; buildMap(); if (hub === 'london') Sound.play('chimes'); }   // Big Ben says hello
   };
   requestAnimationFrame(step);
 }

@@ -65,6 +65,9 @@ const Sound = {
       case 'yelp': this.tone(700, 0.1, 'triangle', 0.14, 1300); this.tone(1300, 0.16, 'triangle', 0.1, 600, 0.09); break;
       case 'oi': this.tone(300, 0.09, 'square', 0.08, 420); this.tone(520, 0.2, 'square', 0.08, 380, 0.1); break;
       case 'slurp': this.tone(240, 0.22, 'sine', 0.13, 900); this.tone(900, 0.08, 'sine', 0.06, 1400, 0.2); break;
+      case 'spot': this.tone(880, 0.09, 'sine', 0.12); this.tone(1320, 0.16, 'sine', 0.1, 0, 0.09); break;
+      case 'squawk': this.tone(1500, 0.07, 'square', 0.045, 1050); this.tone(1350, 0.09, 'square', 0.045, 900, 0.09); break;
+      case 'chimes': [415, 370, 330, 247].forEach((f, i) => this.tone(f, 0.55, 'sine', 0.12, 0, i * 0.42)); break;   // the first Westminster quarter
       case 'munch': this.tone(220, 0.05, 'square', 0.06, 160); this.tone(200, 0.05, 'square', 0.05, 150, 0.09); break;
     }
   },
@@ -392,7 +395,8 @@ const Game = {
       }
     }
     const el = document.getElementById('hudFind');
-    if (el) el.textContent = g.finds.length ? '\u{1F50D} ' + g.finds.filter(d => d.found).length + ' / ' + g.finds.length : '';
+    const more = g.mission.findText ? g.mission.findText(g) : '';   // London's I-spy count sits beside it
+    if (el) el.textContent = (g.finds.length ? '\u{1F50D} ' + g.finds.filter(d => d.found).length + ' / ' + g.finds.length : '') + (more ? (g.finds.length ? ' · ' : '') + more : '');
   },
 
   update(dt) {

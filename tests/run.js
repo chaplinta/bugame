@@ -2277,6 +2277,45 @@ test('the fox: jump, stand still for a worm and pounce, the daddy-long-legs, the
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+test('London I-spy: four sights a level, each named in the docs; spotted only on screen, saved, on the page, the HUD and the end screen', async (b) => {
+  const p = await openGame(b);
+  const facts = fs.readFileSync(path.join(ROOT, 'docs', 'facts.md'), 'utf8');
+  const all = await p.evaluate(() => Bugs.filter(x => x.hub === 'london').flatMap(x => x.stages).map(id => ({ id, sights: (Missions[id].sights || []).map(s => ({ key: s.key, name: s.name, how: s.mover ? 'mover' : s.at ? 'at' : 'place' })) })));
+  for (const m of all) {
+    check(m.sights.length === 4 && new Set(m.sights.map(s => s.key)).size === 4, m.id + ' has ' + m.sights.length + ' sights');
+    for (const s of m.sights) check(facts.toLowerCase().includes('*' + s.name.toLowerCase() + '*'), m.id + ': "' + s.name + '" is not in docs/facts.md');
+  }
+  // a save from before the I-spy list still loads
+  await p.evaluate(() => { localStorage.setItem('bugame.progress', JSON.stringify({ stars: { ant: 2 }, facts: {}, secrets: ['s_london'], best: {} })); Progress.load(); });
+  check(await p.evaluate(() => Progress.stars('ant') === 2 && Progress.sights('ldn_bee').length === 0), 'an old save did not load');
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'ldn_bee', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const r = await p.evaluate(() => {
+    const { g, pl, m, put } = ldnKit(), out = {}, bt = m.sights.find(s => s.key === 'bt');
+    for (const mv of g.movers) if (mv.kind === 'parakeets') mv.wait = 999;
+    put(3000, 300); g.cam.x = 2700; lstep(1.2); out.far = [g.spied.has('bt'), Progress.sights('ldn_bee').includes('bt')];
+    put(bt.x - 60, 300); lstep(0.3); out.soon = g.spied.has('bt'); lstep(1.6);
+    out.seen = [g.spied.has('bt'), Progress.sights('ldn_bee').includes('bt'), shown.includes('Spotted: the BT Tower'), !!g.spyFx || true];
+    out.hud = document.getElementById('hudFind').textContent; out.end = m.endLine(g);
+    // a flock of parakeets counts once it is in view
+    const fl = g.movers.find(q => q.kind === 'parakeets'); fl.wait = 0; lstep(3); out.flock = [g.spied.has('parakeets'), shown.includes('Spotted: green parakeets')];
+    return out;
+  });
+  check(!r.far[0] && !r.far[1] && r.seen[0] && r.seen[1] && r.seen[2], 'spotting the BT Tower: ' + JSON.stringify(r));
+  check(/\u{1F440} \d \/ 4/u.test(r.hud) && /London things spotted: \d of 4/.test(r.end) && r.flock[0] && r.flock[1], 'the HUD, the end line and the flock: ' + JSON.stringify(r));
+  // the level's page lists them, the spotted ones ticked
+  await p.evaluate(() => { Game.stop && Game.stop(); currentHub = 'london'; openBug(Bugs.find(x => x.id === 'l_bee')); });
+  const page = await p.evaluate(() => ({ head: !document.getElementById('stageSpyHead').hidden, items: [...document.querySelectorAll('#stageSpy li')].map(li => [li.textContent, li.className]) }));
+  check(page.head && page.items.length === 4 && page.items.some(([t, c]) => /BT Tower/.test(t) && c === 'spied' && t.startsWith('✓')) && page.items.some(([t, c]) => c === '' && t.startsWith('○')), 'the page’s list: ' + JSON.stringify(page));
+  await p.evaluate(() => openBug(Bugs.find(x => x.id === 'ant')));
+  check(await p.evaluate(() => document.getElementById('stageSpy').hidden && document.getElementById('stageSpyHead').hidden), 'a Perth level shows the I-spy list');
+  // every one of them spotted: the London spotter secret
+  const spy = await p.evaluate(() => { const before = Progress.hasSecret('s_spy'); for (const m of Object.values(Missions)) for (const s of m.sights || []) Progress.addSight(m.id, s.key); return [before, Progress.hasSecret("s_spy"), SECRETS.all().some(x => x.key === "s_spy")]; });
+  check(!spy[0] && spy[1] && spy[2], 'the London spotter secret: ' + JSON.stringify(spy));
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('London has its own map: hidden until the plane is found, a pin for every level, Back stays in London, the plane flies both ways', async (b) => {
   const p = await openGame(b, { width: 844, height: 390 });
   const before = await p.evaluate(() => { const ldn = Bugs.filter(x => x.hub === 'london').map(x => x.sprite); return { pins: document.querySelectorAll('.pin').length, perth: Bugs.filter(x => x.pin && !x.hub).length, london: ldn.length, parade: paradeMarchers().some(m => ldn.includes(m.sprite)), tour: document.getElementById('tourBtn').hidden && document.getElementById('flyHome').hidden }; });

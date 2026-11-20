@@ -50,12 +50,13 @@ const SECRETS = {
     s_paint: { name: 'Painted bug', text: 'Paint a bug and save your design.' },
     s_quiz: { name: 'Bug expert', text: 'Get every question right in the Bug quiz.' },
     s_london: { name: 'A plane to London', text: 'Tap the plane at Perth Airport.' },
+    s_spy: { name: 'London spotter', text: 'Spot every London thing in every London level.', hub: 'london' },
     s_tank: { name: 'Out of the bug tank', text: 'Meet the girl with the net and get out of her tank. She only turns up now and then.' },
   },
   all() {
     const known = (s) => !s.hub || (typeof Progress !== 'undefined' && Progress.hasSecret('s_' + s.hub));
     const list = Object.values(this.places).filter(known).map(s => ({ key: s.key, name: s.name, text: s.text }));
-    for (const [key, s] of Object.entries(this.other)) list.push({ key, name: s.name, text: s.text });
+    for (const [key, s] of Object.entries(this.other)) if (known(s)) list.push({ key, name: s.name, text: s.text });
     return list;
   },
 };
