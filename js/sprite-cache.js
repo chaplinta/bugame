@@ -71,6 +71,14 @@ const SpriteCache = {
   // The look key: a 3D model's own key (its poses) when it renders in 3D, else the drawing's key as before.
   // A design of your own (o.paint, js/paint.js) gets its own bitmaps.
   keyOf(reg, o, t, threeD) { const k = threeD && reg.model && reg.model.key ? reg.model.key : reg.key, v = k ? k(o, t) : this.defaultKey(o, t); return v === null || !o.paint ? v : v + 'U' + o.paint; },
+  // Is a picture of this look made already? For callers that would rather wait a frame than have one made now
+  // (the other bugs in a level, js/npc.js). True for anything this cache does not keep as a flat picture.
+  ready(name, e, t, px) {
+    const reg = this.regs[name];
+    if (!reg || !this.enabled || this.is3D(name) || !Sprites[name] || reg.live2d) return true;
+    const vk = this.keyOf(reg, e, t, false);
+    return vk === null || this.entries.has(name + '|' + vk + '|' + this.bucketOf(reg, e.angle || 0) + '|' + this.P(px));
+  },
   // Draw name at the current transform (already translated and rotated, not scaled). Returns false if not cached.
   draw(ctx, name, e, t, scale, px) {
     const reg = this.regs[name];

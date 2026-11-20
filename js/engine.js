@@ -269,6 +269,7 @@ const Game = {
     if (typeof SpriteCache !== 'undefined') SpriteCache.clear();
     if (typeof Tex !== 'undefined') Tex.ready();
     mission.setup(g);
+    if (typeof Npc !== 'undefined') Npc.setup(g);   // the other bugs that live here (js/npc.js)
     if (typeof Tools !== 'undefined') Tools.build(mission, g);
     if (this.setupSecret) this.setupSecret();
     this.updateZoom();
@@ -449,6 +450,7 @@ const Game = {
     p.progress = 0;   // missions set this while an action is under way (drawn as a ring)
     if (typeof Mic !== 'undefined') Mic.tick(dt);   // shouting counts as holding the button in levels that allow it
     m.update(g, dt, Input);
+    if (typeof Npc !== 'undefined') Npc.update(g, dt);
     // A press that can't do anything here: the level says why (levels whose button always does something have no notReady)
     if (Input.pressed && m.notReady && !m.pointerOnly && !g.done && !g.frozen && !((g.oly && g.oly.finished) || (g.cir && g.cir.finished)) &&
       !document.getElementById('actionBtn').classList.contains('ready')) this.hint(m.notReady(g));
@@ -700,6 +702,7 @@ const Game = {
       }
     }
     for (const it of g.items) this.drawSprite(it.sprite, it, it.scale);
+    if (typeof Npc !== 'undefined') Npc.draw(ctx, g, false);
     if (m.drawExtra) m.drawExtra(ctx, g);
 
     // Guide arrow to the current goal
@@ -728,6 +731,7 @@ const Game = {
     this.drawSprite(m.playerSprite ? m.playerSprite(g) : (m.sprite || m.id), p, m.scale * (1 + (p.hop || 0) * 0.5));
     if (this.drawHat) this.drawHat(ctx);
     ctx.globalAlpha = 1;
+    if (typeof Npc !== 'undefined') Npc.draw(ctx, g, true);   // the ones in the air
     if (m.drawFront) m.drawFront(ctx, g);   // things in front of the bug: leaves it hides in, a passing train
 
     for (const pr of g.preds) {

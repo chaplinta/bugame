@@ -417,7 +417,7 @@ function thamesStop(T, f) {
 Missions.ldn_thames = flightLevel({
   id: 'ldn_thames', stage: 'Painted lady', place: 'Up the Thames, a summer afternoon',
   sprite: 'paintedLady', model: 'paintedLady', bg: 'ldnThames', goal: 7, gentle: true, sky: '#bcdcf0', far: 330,   // nothing is drawn past the fog
-  SIPS: 4,
+  SIPS: 4, others: 4,
   facts: [
     'Painted ladies reach Britain every summer from North Africa, the Middle East and southern Europe.',
     'They cannot live through a British winter. Every one you see flew in, or is the child of one that did.',
@@ -466,6 +466,12 @@ Missions.ldn_thames = flightLevel({
     const fl = g.fl, left = fl.flowers.filter(f => !f.visited && this.can(g, f)), ahead = left.filter(f => f.s > fl.s - 12);
     const pick = ahead.length ? ahead : left;
     return pick.length ? pick.reduce((a, c) => Math.hypot(c.x - fl.x, c.z - fl.z) < Math.hypot(a.x - fl.x, a.z - fl.z) ? c : a) : null;
+  },
+  // Other painted ladies, on their way up the river too
+  otherAt(g, i, t) {
+    const span = THAMES.END + 140, s = ((t * (7 + i) + i * span / 4) % span) - 70, k = THAMES.S.findIndex(q => q.s >= s), q = THAMES.S[Math.max(0, k)];
+    const lat = [-11, 9, -4, 13][i % 4] + Math.sin(t * 0.3 + i) * 3;
+    return { x: q.x - q.tz * lat, y: 9 + (i % 3) * 6, z: q.z + q.tx * lat, yaw: Math.atan2(q.tx, q.tz) };
   },
   // She stays over the river and its banks
   keep(g, fl) {

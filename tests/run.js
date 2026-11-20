@@ -2516,6 +2516,64 @@ test('the stag beetle wrestle: both stages open, breath, his two cues and their 
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+// ---- 3.21: other bugs living in the levels (js/npc.js)
+test('other bugs live in the levels: every list is as the docs say, apart from the level’s own things, harmless, on the move, shy ones scatter, cheap to draw', async (b) => {
+  const p = await openGame(b, null, FILE_URL + '?no3d=1');
+  const facts = fs.readFileSync(path.join(ROOT, 'docs', 'facts.md'), 'utf8'), sec = facts.slice(facts.indexOf('## Other bugs in each level'));
+  check(sec.length > 500, 'docs/facts.md has no "Other bugs in each level" section');
+  const want = { ant: 3, queen: 5, bee: 5, fly: 20, caterpillar: 4, butterfly: 4, termite: 8, snail: 4, spiderling: 4, spider: 1, nymph: 4, dragonfly: 3, skimmerF: 3, sandhopper: 44, mosquito: 16, nest: 3, frog: 48,
+    ldn_bee: 6, ldn_wasp: 4, ldn_mosquito: 6, ldn_moth: 2, ldn_stag: 5, ldn_louse: 4, ldn_fox: 15 };
+  const lists = await p.evaluate(() => ({ keys: Object.keys(NPCS).sort().join(), flights: [Missions.flight.others, Missions.ldn_thames.others], factKeys: Object.entries(NPC_FACTS).flatMap(([id, f]) => Object.keys(f).map(k => [id, k, Missions[id].factText[k]])) }));
+  check(lists.keys === Object.keys(want).sort().join(), 'levels with other bugs: ' + lists.keys);
+  check(lists.flights[0] >= 2 && lists.flights[1] >= 2, 'the 3D flights have nobody else on the wing: ' + lists.flights);
+  check(lists.factKeys.length >= 5 && lists.factKeys.every(f => f[2]), 'their facts are not in the levels’ lists: ' + JSON.stringify(lists.factKeys));
+  // every animal named in the docs, with the level it is in
+  for (const name of ['honey bee', 'hover fly', 'Portuguese millipede', 'water boatman', 'damselfl', 'kelp fl', 'black house ant', 'midges', 'seven-spot ladybird', 'marmalade', 'red admiral', 'peacock', 'dung beetle', 'large yellow underwing', 'soldier'])
+    check(sec.toLowerCase().includes(name.toLowerCase()), '"' + name + '" is not in the docs section');
+  await p.evaluate(LDN_STEP);
+  const bad = [];
+  let worst = 0;
+  for (const id of Object.keys(want)) {
+    await startMission(p, id, { noNet: true, noPred: true });
+    const r = await p.evaluate(() => {
+      const g = Game.g, pl = g.player, at = g.npcs.map(n => [n.x, n.y]), items = g.items.length;
+      g.timers = []; g.predCfg = null; g.preds = [];
+      const inItems = g.npcs.some(n => g.items.includes(n)), kinds = [...new Set(g.npcs.map(n => n.d.how))];
+      lstep(2);
+      const live = g.npcs.filter(n => !n.gone && !n.hide);
+      const moved = live.filter((n, i) => { const k = g.npcs.indexOf(n); return Math.hypot(n.x - at[k][0], n.y - at[k][1]) > 0.5; }).length;
+      const off = live.filter(n => !isFinite(n.x) || !isFinite(n.y) || (n.d.how !== 'leave' && (n.x < -40 || n.x > World.w + 40 || n.y < -40 || n.y > World.h + 40))).length;
+      // a shy one, met: it gets further away
+      let shy = null;
+      const s = live.find(n => n.d.shy && ['walk', 'swarm'].includes(n.d.how));
+      if (s) { const a = s.d.how === 'swarm' ? Npc.pt(s.d.at, g, s.i) : s; pl.x = a.x + 6; pl.y = a.y + 6; pl.invuln = 99; const group = live.filter(n => n.d === s.d), d0 = group.reduce((t, n) => t + Math.hypot(n.x - pl.x, n.y - pl.y), 0);
+        const px = pl.x, py = pl.y; for (let i = 0; i < 60; i++) { pl.x = px; pl.y = py; if (pl.vx !== undefined) { pl.vx = 0; pl.vy = 0; } Npc.update(g, 1 / 60); }
+        shy = group.reduce((t, n) => t + Math.hypot(n.x - px, n.y - py), 0) > d0 + 4; }
+      const t0 = performance.now(); for (let i = 0; i < 40; i++) { Npc.draw(Game.ctx, g, false); Npc.draw(Game.ctx, g, true); }
+      return { n: g.npcs.length, inItems, moved, live: live.length, off, shy, score: g.score, lives: g.lives, items: [items, g.items.length], kinds, ms: (performance.now() - t0) / 40 };
+    });
+    if (r.n !== want[id]) bad.push(id + ': ' + r.n + ' of them, not ' + want[id]);
+    if (r.inItems) bad.push(id + ': one of them is in g.items');
+    if (r.moved < Math.ceil(r.live / 3)) bad.push(id + ': only ' + r.moved + ' of ' + r.live + ' moved');
+    if (r.off) bad.push(id + ': ' + r.off + ' out of the world');
+    if (r.shy === false) bad.push(id + ': a shy one did not move away');
+    if (r.score !== 0 || r.lives !== 3) bad.push(id + ': score ' + r.score + ', lives ' + r.lives);
+    worst = Math.max(worst, r.ms);
+    await p.evaluate(() => { Game.stop(); buildMap(); });
+  }
+  check(bad.length === 0, bad.join(' | '));
+  check(worst < 4, 'drawing them costs ' + worst.toFixed(2) + ' ms a frame in the worst level');
+  // a level with nobody else in it: the darts (one wasp in winter is the joke)
+  await startMission(p, 'ldn_darts', { noNet: true });
+  check(await p.evaluate(() => Game.g.npcs.length === 0), 'the darts has other bugs');
+  // their fact shows when you come near, once
+  await p.evaluate(() => { Game.stop(); buildMap(); });
+  await startMission(p, 'frog', { noNet: true });
+  const f = await p.evaluate(() => { const g = Game.g, n = g.npcs[0], a = Npc.pt(n.d.at, g, 0); g.timers = []; const before = g.seen.has('midges'); g.player.x = a.x + 20; g.player.y = a.y; Npc.update(g, 1 / 60); return [before, g.seen.has('midges'), g.learned.filter(t => /midges/.test(t)).length]; });
+  check(!f[0] && f[1] && f[2] === 1, 'the midges’ fact: ' + f);
+  check(p.errors.length === 0, p.errors.join('; '));
+});
+
 test('London has its own map: hidden until the plane is found, a pin for every level, Back stays in London, the plane flies both ways', async (b) => {
   const p = await openGame(b, { width: 844, height: 390 });
   const before = await p.evaluate(() => { const ldn = Bugs.filter(x => x.hub === 'london').map(x => x.sprite); return { pins: document.querySelectorAll('.pin').length, perth: Bugs.filter(x => x.pin && !x.hub).length, london: ldn.length, parade: paradeMarchers().some(m => ldn.includes(m.sprite)), tour: document.getElementById('tourBtn').hidden && document.getElementById('flyHome').hidden }; });

@@ -171,9 +171,9 @@ function wingTexture(sprite) {
   return tex;
 }
 
-function makeButterfly(T, sprite) {
+function makeButterfly(T, sprite, plain) {
   // The sprite model, turned from its ground frame (x forward, z up) into the flight scene (z forward, y up)
-  if (typeof Models !== 'undefined' && typeof Render3D !== 'undefined' && Render3D.ok && Models.has(sprite)) {
+  if (!plain && typeof Models !== 'undefined' && typeof Render3D !== 'undefined' && Render3D.ok && Models.has(sprite)) {
     try {
       const root = Models.build(sprite, { landed: false, paint: sprite === 'butterfly' && typeof Paint !== 'undefined' ? Paint.stamp('butterfly') : undefined }), mirror = new T.Group(), wrap = new T.Group(), g = new T.Group();
       mirror.scale.set(1, -1, 1); mirror.add(root);
@@ -193,8 +193,7 @@ function makeButterfly(T, sprite) {
     const ant = new T.Mesh(new T.CylinderGeometry(0.015, 0.015, 0.8, 3), bodyMat);
     ant.position.set(s * 0.15, 0.25, 1.1); ant.rotation.x = 1.1; ant.rotation.z = -s * 0.3; g.add(ant);
   }
-  const tex = wingTexture(sprite);
-  const wingMat = new T.MeshLambertMaterial({ map: tex, transparent: true, side: T.DoubleSide, alphaTest: 0.1 });
+  const wingMat = plain && plain.isMaterial ? plain : new T.MeshLambertMaterial({ map: wingTexture(sprite), transparent: true, side: T.DoubleSide, alphaTest: 0.1 });
   g.userData.wings = [];
   for (const s of [-1, 1]) {
     const hinge = new T.Group();
@@ -267,6 +266,11 @@ function flightLevel(def) {
     yum() { return 'Yum!'; },
     keep() {},
     stop(T, f) { return makeFlower(T, f.kind); },
+    // Where another of her kind is just now: by default, circling one of the stops
+    otherAt(g, i, t) {
+      const f = g.fl.flowers[(i * 3 + 1) % g.fl.flowers.length], r = 9 + (i % 3) * 3, dir = i % 2 ? 1 : -1, a = t * 0.45 * dir + i * 2.1;
+      return { x: f.x + Math.cos(a) * r, y: f.y + 6 + (i % 2) * 2, z: f.z + Math.sin(a) * r, yaw: Math.atan2(-Math.sin(a) * dir, Math.cos(a) * dir) };
+    },
     // The stop the arrow points at: the nearest one still to do
     target(g) {
       const fl = g.fl, left = fl.flowers.filter(f => !f.visited && this.can(g, f));
@@ -313,6 +317,12 @@ function flightLevel(def) {
       }
       const d = { scene, camera, bf, world, shadow: FlightKit.shadow(scene), bird: null, birdShadow: null, streaks: this.windNow ? FlightKit.streaks(scene, 70) : null };
       if (this.hunter) { d.bird = this.hunter.make(T); d.bird.visible = false; scene.add(d.bird); d.birdShadow = FlightKit.shadow(scene); d.birdShadow.visible = false; }
+      // Others of her kind on the wing (js/npc.js has the ones in the flat levels): plain little models, one wing picture between them
+      d.others = [];
+      if (this.others) {
+        const wings = new T.MeshLambertMaterial({ map: wingTexture(this.sprite), transparent: true, side: T.DoubleSide, alphaTest: 0.1 });
+        for (let i = 0; i < this.others; i++) { const o = makeButterfly(T, this.sprite, wings); o.rotation.order = 'YXZ'; o.scale.setScalar(0.85); scene.add(o); d.others.push(o); }
+      }
       g.fl3d = d;
     },
     locked() { return false; },
@@ -514,6 +524,11 @@ function flightLevel(def) {
           FlightKit.put(d.birdShadow, b.x, gy, b.z, b.y - gy, 2.2);
         }
       }
+      d.others.forEach((o, i) => {
+        const q = this.otherAt(g, i, g.t);
+        o.position.set(q.x, q.y + Math.sin(g.t * 2.3 + i * 2) * 0.6, q.z); o.rotation.set(-0.35, q.yaw, Math.sin(g.t * 1.3 + i) * 0.25);
+        for (const wg of o.userData.wings) wg.hinge.rotation.z = wg.s * (0.15 + Math.sin(g.t * 20 + i * 1.7) * 0.7);
+      });
       if (d.streaks) FlightKit.blow(d.streaks, this.windNow(g, fl), fl, g.t);
       if (d.world.frame) d.world.frame(g, dt);
       // Camera
@@ -685,7 +700,7 @@ function buildHeath(scene, T) {
 
 Missions.flight = flightLevel({
   id: 'flight', bug: 'butterfly', stage: 'Flying high', place: 'Above the heath, Bold Park',
-  sprite: 'butterfly', bg: 'heath', goal: 6,
+  sprite: 'butterfly', bg: 'heath', goal: 6, others: 3,
   facts: [
     'Painted ladies are strong fliers. Some fly hundreds of kilometres across Australia.',
     'Butterflies warm up in the sun before they fly. Cold wing muscles don’t work well.',
