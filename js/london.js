@@ -90,6 +90,7 @@ function ldnPeople(g, dt, m) {
 function ldnPart(d) {
   return Object.assign({
     bug: 'london', view: 'side', world: { w: 3600, h: 600 }, noNet: true, gentle: true, zoom: [1.1, 1.35], toastTop: true,
+    pad: true,   // steered with the thumb pad on a touch screen (js/pad.js)
     radius: 10, speed: 0, home: { x: 80, y: 500, r: 1, label: '' },
     get P() { return LDN_PHYS[this.kind]; },
 
@@ -107,11 +108,12 @@ function ldnPart(d) {
       Game.later(16, () => Game.fact(this.later2));
     },
 
-    // The way the bug is steered: toward the finger (slowing as she gets there, so she stops on it) or with the arrow
-    // keys. Let go and a flier hovers where she is; only a bumblebee out of fuel drifts down.
+    // The way the bug is steered: with the thumb pad on a touch screen (how far it is pushed is how fast), with the
+    // arrow keys, or toward the mouse (slowing as she gets there, so she stops on it). Let go and a flier hovers where
+    // she is; only a bumblebee out of fuel drifts down.
     move(g, dt, dx, dy) {
       const p = g.player, P = this.P, L = g.level;
-      if (Input.target && !Input.keys.size && !this.locked(g)) {   // locked: blown off, stuck or wrestling
+      if (Input.target && !Input.stick && !Input.keys.size && !this.locked(g)) {   // locked: blown off, stuck or wrestling
         const z = Game.zoom || 1, tx = Input.target.x / z + g.cam.x, ty = Input.target.y / z + g.cam.y;
         const cx = p.x, cy = p.y - P.hh / 2, d = Math.hypot(tx - cx, ty - cy);
         if (d < 10) { dx = 0; dy = 0; }
@@ -352,7 +354,7 @@ Object.assign(Missions, {
       'Buff-tails are nectar robbers: they bite a hole in a deep flower and drink without going in.',
     ],
     how: [
-      'This is side-on! Touch and drag (or use the arrow keys) and you fly that way. Let go and you hover.',
+      'This is side-on! Slide your thumb on the pad in the corner (or use the arrow keys) and you fly that way. Let go and you hover.',
       'Hold Sip on four open flowers. A flower with footprints is empty: another bee got there first.',
       'Hold Rob on a deep blue flower to bite a hole and steal its nectar. That fills your fuel right up.',
       'When it rains, shelter under leaves. Watch for crab spiders on the daisies, and the dog. Then fly home to your nest in the bank.',
@@ -478,7 +480,7 @@ Object.assign(Missions, {
       'A wasp’s nest is made of paper, and the wasps make the paper themselves.',
     ],
     how: [
-      'Fly by dragging, or with the arrow keys. Let go and you hover.',
+      'Fly with the pad in the corner, or the arrow keys. Let go and you hover.',
       'Hold Scrape on three wooden posts to chew wood for the nest.',
       'Catch the fly buzzing by the bin (get close, press Catch), then hold Chew to make it a meatball.',
       'A red zone shows where a customer is looking. Fly in it and they wave you away. Keep clear of the jam jar and the web, then fly home to the nest under the shed roof.',
@@ -567,7 +569,7 @@ Object.assign(Missions, {
       'The wind from passing trains is real. Being blown all the way back is pretend.',
     ],
     how: [
-      'Fly by dragging, or with the arrow keys. Mind the ceiling!',
+      'Fly with the pad in the corner, or the arrow keys. Mind the ceiling!',
       'First, hold Lay at the puddle under the dripping pipe: your first eggs need no blood.',
       'Then hold Bite on someone’s ankle. Keep out of the red zone where they’re looking. People on their phones never look.',
       'When a train comes, hide behind a pillar or in an alcove. In the tunnel, bite a rat while it stops to sniff.',
@@ -675,7 +677,7 @@ Object.assign(Missions, {
       'They fly in the daytime as well as at night.',
     ],
     how: [
-      'Fly by dragging, or with the arrow keys. Let go and you hover.',
+      'Fly with the pad in the corner, or the arrow keys. Let go and you hover.',
       'Hold Sip on four purple buddleia flowers.',
       'The red circle is as far as the cat can reach: go round it, or sneak past while it naps.',
       'A great tit hunts moths! When it spots you, hide in a bush or the ivy until it flies off.',
@@ -763,7 +765,7 @@ Object.assign(Missions, {
       'On warm summer evenings the males fly off to look for females.',
     ],
     how: [
-      'Walk left and right by dragging, or with the arrow keys. Walk into a log and you climb it.',
+      'Walk left and right with the pad in the corner, or the arrow keys. Walk into a log and you climb it.',
       'Press Fly to take off. You buzz for a moment first, then fly a short, wobbly way. That’s how to cross the pond.',
       'A male on a log? Lock jaws and tap Push fast to tip him off.',
       'On the path, red marks show where the joggers’ feet will land. When a magpie or the fox spots you, hide in the bracken.',

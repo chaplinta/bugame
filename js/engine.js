@@ -5,10 +5,11 @@ let W = 960; const H = 600;      // screen (view) size: H is fixed, W follows th
 const World = { w: W, h: H };    // size of the current mission's world, set in Game.start
 
 // Settings remembered between visits.
-const SETTING_KEYS = ['sound', 'speech', 'threeD', 'mic'];   // what is saved; a new setting goes here too
+const SETTING_KEYS = ['sound', 'speech', 'threeD', 'mic', 'fullscreen'];   // what is saved; a new setting goes here too
 const Settings = {
   sound: true, speech: false, threeD: true,   // threeD: the 3D pictures (js/render3d.js reads it before this file loads)
   mic: false,                                 // shout to buzz: the microphone as a second action button (js/mic.js)
+  fullscreen: true,                           // ask the browser for the full screen at Start, on phones and tablets (js/orient.js)
   load() {
     try { const d = JSON.parse(localStorage.getItem('bugame.settings') || '{}'); for (const k of SETTING_KEYS) if (k in d) this[k] = d[k]; } catch (e) { /* storage off */ }
   },
@@ -95,6 +96,7 @@ const Input = {
   keys: new Set(),
   target: null,      // pointer position the player moves toward
   pointer: null,     // id of the finger (or mouse button) that is steering; other touches are ignored
+  stick: null,       // the thumb pad's push, { x, y } each -1 to 1, while a thumb is on it (js/pad.js)
   pressed: false,    // action pressed this frame
   held: false,       // action held
   loud: false,       // the kid is shouting (js/mic.js), which counts as holding in levels that allow it
@@ -222,6 +224,8 @@ const Game = {
     const mine = (e) => Input.pointer !== null && e.pointerId === Input.pointer;
     this.canvas.addEventListener('pointerdown', (e) => {
       Sound.wake();
+      // A level steered with the thumb pad: a finger on the picture does not move the bug (a mouse still does)
+      if (typeof Pad !== 'undefined' && Pad.shown && e.pointerType !== 'mouse') { Pad.nudge(); return; }
       if (Input.pointer !== null && !mine(e)) return;
       Input.pointer = e.pointerId;
       try { this.canvas.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
@@ -231,7 +235,7 @@ const Game = {
     const up = (e) => { if (!mine(e)) return; tell('up', e); Input.pointer = null; Input.target = null; };
     for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) this.canvas.addEventListener(ev, up);
     // Keys or a finger held when the window loses focus (a notification, an app switch) never get their release: let go.
-    const letGo = () => { Input.keys.clear(); Input.held = false; Input.target = null; Input.pointer = null; };
+    const letGo = () => { Input.keys.clear(); Input.held = false; Input.target = null; Input.pointer = null; if (typeof Pad !== 'undefined') Pad.drop(); };
     window.addEventListener('blur', letGo);
     document.addEventListener('visibilitychange', () => { if (document.hidden) letGo(); });
     // A long press on Android would otherwise open a context menu and cancel the touch.
@@ -272,6 +276,7 @@ const Game = {
     if (typeof Npc !== 'undefined') Npc.setup(g);   // the other bugs that live here (js/npc.js)
     if (typeof Tools !== 'undefined') Tools.build(mission, g);
     if (this.setupSecret) this.setupSecret();
+    if (typeof Pad !== 'undefined') Pad.sync(mission);   // the thumb pad, in the levels that are steered with it
     this.updateZoom();
     this.updateCamera();
     this.bg = document.createElement('canvas');
@@ -303,6 +308,7 @@ const Game = {
     this.running = false; this.showToast(null); Speech.stop();
     clearTimeout(this.endTimer);   // an end screen due after a catch must not pop up over the map
     if (typeof Tools !== 'undefined') Tools.hide();
+    if (typeof Pad !== 'undefined') Pad.sync(null);
     if (this.g && this.g.mission.teardown) this.g.mission.teardown(this.g);
   },
 
@@ -382,6 +388,10 @@ const Game = {
     const vw = W / z, vh = H / z, f = g.mission.camera ? g.mission.camera(g, vw, vh) : p;   // a level can choose what the camera follows
     g.cam.x = clamp(f.x - vw / 2, 0, Math.max(0, World.w - vw));
     g.cam.y = clamp(f.y - vh / 2, 0, Math.max(0, World.h - vh));
+    // With the thumb pad up, the bug is never left under it: near the world's left edge the view slides on past
+    // the edge (drawWorld carries the scenery on, mirrored)
+    const lead = typeof Pad !== 'undefined' && Pad.shown ? Pad.w / z : 0;
+    if (lead && p.x - g.cam.x < lead) g.cam.x = p.x - lead;
   },
 
   // Discoveries: hidden things to find while exploring. Each one is a fact for the Bug Book.
@@ -428,7 +438,8 @@ const Game = {
     if (k.has('arrowright') || k.has('d')) dx += 1;
     if (k.has('arrowup') || k.has('w')) dy -= 1;
     if (k.has('arrowdown') || k.has('s')) dy += 1;
-    if (!dx && !dy && Input.target) {
+    if (!dx && !dy && Input.stick) { dx = Input.stick.x; dy = Input.stick.y; }   // the thumb pad: how far it is pushed is how fast
+    else if (!dx && !dy && Input.target) {
       // Pointer is in screen space; the world scrolls under it.
       const z = this.zoom || 1;
       const tx = Input.target.x / z + g.cam.x - p.x, ty = Input.target.y / z + g.cam.y - p.y, d = Math.hypot(tx, ty);
@@ -606,7 +617,7 @@ const Game = {
 
   // Carry on exploring after finishing the mission goal.
   resume() {
-    Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false;
+    Input.keys.clear(); Input.target = null; Input.held = false; Input.pressed = false; if (typeof Pad !== 'undefined') Pad.drop();
     this.g.frozen = false;
     this.running = true;
   },
@@ -675,6 +686,10 @@ const Game = {
     ctx.scale(z, z);
     ctx.translate(-Math.round(g.cam.x) + (Math.random() - 0.5) * sh, -Math.round(g.cam.y) + (Math.random() - 0.5) * sh);
     if (!(m.liveBg && m.liveBg(g))) ctx.drawImage(this.bg, 0, 0, World.w, World.h);   // liveBg: a camera frame is already down (js/hand.js)
+    if (g.cam.x < 0) {   // past the world's left edge, to keep the bug clear of the thumb pad: the scenery carries on, mirrored
+      const n = Math.ceil(-g.cam.x) + 2, k = this.bg.width / World.w;
+      ctx.save(); ctx.scale(-1, 1); ctx.drawImage(this.bg, 0, 0, Math.ceil(n * k), this.bg.height, 0, 0, n, World.h); ctx.restore();
+    }
 
     // Home marker
     ctx.beginPath();

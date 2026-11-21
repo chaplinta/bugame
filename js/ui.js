@@ -552,6 +552,7 @@ function bugParade() {
 
 function syncToggles() {
   for (const b of document.querySelectorAll('.toggle')) {
+    if (b.dataset.setting === 'fullscreen') b.hidden = !(typeof Orient !== 'undefined' && Orient.touch && document.documentElement.requestFullscreen);   // only where the game can ask for full screen: Android phones and tablets (an iPhone has no such thing)
     const on = Settings[b.dataset.setting];
     b.setAttribute('aria-pressed', on);
     b.classList.toggle('off', !on);
@@ -573,6 +574,7 @@ for (const b of document.querySelectorAll('.toggle')) {
       Render3D.toggle(Settings.threeD);
       redrawPortraits();   // the pins follow the setting
     }
+    if (k === 'fullscreen' && typeof Orient !== 'undefined') Orient.apply();
     if (k === 'mic' && typeof Mic !== 'undefined') {
       // The click is the gesture that lets the page ask for the microphone. If it can't be had, the toggle goes back off.
       if (Settings.mic) Mic.start().then((ok) => { if (!ok) { Settings.mic = false; Settings.save(); syncToggles(); } else Speech.say('Shout BUZZ to buzz!', true); });

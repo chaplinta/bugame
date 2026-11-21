@@ -75,6 +75,17 @@ button.secondary { background: linear-gradient(#a0906e, #8a7a5c 60%, #6e6046); }
 #actionBtn { position: absolute; right: 14px; bottom: 14px; width: 110px; height: 110px; border-radius: 50%;
   padding: 0; font-size: 1.2rem; background: rgba(200,80,30,.9); box-shadow: 0 4px 0 #7a2e10; }
 #actionBtn.ready { background: rgba(47,125,91,.95); box-shadow: 0 4px 0 #1b4a35; }
+/* The thumb pad (js/pad.js): bottom left in the side-on levels, on screens that can be touched. The ring is set in
+   from the corner, clear of the phone's own edge swipes; the element round it is the (larger) place a thumb can land. */
+#pad { position: absolute; left: 0; bottom: 0; width: 214px; height: 204px; touch-action: none; -webkit-tap-highlight-color: transparent; }
+#pad[hidden] { display: none; }
+#padRing { position: absolute; left: 32px; bottom: 28px; width: 132px; height: 132px; border-radius: 50%; box-sizing: border-box;
+  background: rgba(255,250,240,.26); border: 3px solid rgba(255,250,240,.8); box-shadow: 0 2px 8px rgba(40,20,5,.3);
+  display: flex; align-items: center; justify-content: center; pointer-events: none; }
+#padKnob { width: 40%; height: 40%; border-radius: 50%; background: rgba(255,250,240,.9); box-shadow: 0 3px 0 rgba(90,60,30,.45); will-change: transform; }
+#pad.pulse #padRing { animation: padPulse .7s ease-out; }
+@keyframes padPulse { 0% { box-shadow: 0 0 0 0 rgba(255,210,63,.95); } 100% { box-shadow: 0 0 0 30px rgba(255,210,63,0); } }
+#stage.hasPad #toast { bottom: auto; top: 54px; }   /* messages go up top, out of the thumb's corner */
 
 /* Map */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -146,6 +157,8 @@ li.unknown { color: #9a8d72; font-style: italic; }
 @media (max-width: 600px), (max-height: 500px) {
   #app { padding: 6px 10px; }
   #actionBtn { width: 76px; height: 76px; font-size: .95rem; }
+  #pad { width: 172px; height: 160px; }
+  #padRing { left: 28px; bottom: 22px; width: 104px; height: 104px; }
   #toast { max-width: 62%; font-size: .9rem; left: 38%; }
   #stage.hasTools #toast { left: 49%; }   /* between the tool palette and the action button */
   #hud > * { font-size: .85rem; padding: 3px 8px; }
@@ -241,6 +254,7 @@ canvas.sunClock { width: 64px; height: 30px; border-radius: 15px; box-shadow: 0 
   #map h1 { font-size: 2rem; margin: 0; }
   #map .toggles { justify-content: flex-start; gap: 6px; }
   #map .toggle { font-size: .85rem; padding: 6px 10px; min-height: 36px; }
+  @media (max-width: 700px) { #map .toggles { gap: 5px; } #map .toggle { font-size: .8rem; padding: 6px 8px; } }   /* a narrow phone: two switches to a row */
   #map .sub { font-size: .95rem; margin: 2px 0 6px; }
   #map .buttons { justify-content: flex-start; margin-top: 6px; gap: 8px; }
   #map .buttons button { font-size: 1rem; padding: 8px 14px; min-height: 40px; }

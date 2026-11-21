@@ -2574,6 +2574,164 @@ test('other bugs live in the levels: every list is as the docs say, apart from t
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
+// ---- 3.22: the thumb pad in the side-on levels, and the Full screen switch
+test('thumb pad: on a touch screen the side-on levels are steered with a pad in the corner, a finger on the picture does nothing, and the bug is never under it', async (b) => {
+  const ctx = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true });
+  const p = await ctx.newPage();
+  p.errors = [];
+  p.on('pageerror', (e) => p.errors.push(e.message));
+  p.on('console', (m) => { if (m.type() === 'error') p.errors.push(m.text()); });
+  await p.addInitScript(() => { Element.prototype.requestFullscreen = () => Promise.resolve(); });   // full screen has its own test
+  await p.goto(FILE_URL + '?no3d=1');
+  const cdp = await ctx.newCDPSession(p);
+  const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
+  // which levels ask for it
+  const flagged = await p.evaluate(() => Object.keys(Missions).filter(id => Missions[id].pad).sort().join());
+  check(flagged === ['ldn_bee', 'ldn_wasp', 'ldn_mosquito', 'ldn_moth', 'ldn_stag', 'ldn_darts', 'ldn_louse', 'ldn_fox', 'sandhopper', 'nest'].sort().join(), 'levels with the pad: ' + flagged);
+  const shown = {};
+  for (const id of ['ant', 'mosquito', 'ldn_wrestle', 'flight', 'sandhopper', 'nest', 'ldn_bee']) {
+    await startMission(p, id, { noNet: true, noPred: true });
+    shown[id] = await p.evaluate(() => Pad.shown && !document.getElementById('pad').hidden && document.getElementById('stage').classList.contains('hasPad'));
+    if (id !== 'ldn_bee') await p.evaluate(() => { Game.stop(); buildMap(); });
+  }
+  check(!shown.ant && !shown.mosquito && !shown.ldn_wrestle && !shown.flight && shown.sandhopper && shown.nest && shown.ldn_bee, 'where the pad shows: ' + JSON.stringify(shown));
+  check(await p.evaluate(() => { Game.stop(); const off = !Pad.shown && document.getElementById('pad').hidden; return off; }), 'the pad stayed up after the level');
+  // a flier: where the pad sits, and that she is not under it
+  await p.evaluate(LDN_SHOWN);
+  await startMission(p, 'ldn_bee', { noNet: true });
+  await p.evaluate(LDN_STEP);
+  const lay = await p.evaluate(() => {
+    const box = (id) => { const r = document.getElementById(id).getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }, hit = (a, c) => a[0] < c[2] && a[2] > c[0] && a[1] < c[3] && a[3] > c[1];
+    const g = Game.g, st = box('stage'), ring = box('padRing'), zone = box('pad');
+    Game.hint('A message.'); Game.updateToasts(1); const toast = box('toast');
+    Game.draw(); const cv = document.getElementById('game'), px = cv.getContext('2d').getImageData(4, Math.round(cv.height * 0.6), 1, 1).data[3];
+    return { size: ring[2] - ring[0], in: [ring[0] - st[0], st[3] - ring[3]], left: ring[2] - st[0] < (st[2] - st[0]) * 0.3, low: ring[1] - st[1] > (st[3] - st[1]) * 0.5,
+      clear: [hit(zone, box('actionBtn')), hit(zone, box('hud')), hit(zone, toast)], bug: st[0] + (g.player.x - g.cam.x) * (Game.zoom || 1) * (st[2] - st[0]) / W - ring[2], cam: g.cam.x, edge: px,
+      ring: [(ring[0] + ring[2]) / 2, (ring[1] + ring[3]) / 2, (ring[2] - ring[0]) / 2], btn: [(box('actionBtn')[0] + box('actionBtn')[2]) / 2, (box('actionBtn')[1] + box('actionBtn')[3]) / 2], st };
+  });
+  check(lay.size >= 96 && lay.in[0] >= 20 && lay.in[1] >= 16 && lay.left && lay.low, 'the pad is not a thumb-sized ring set in from the bottom left corner: ' + JSON.stringify(lay));
+  check(!lay.clear[0] && !lay.clear[1] && !lay.clear[2], 'the pad covers the action button, the HUD or a message: ' + lay.clear);
+  check(lay.bug > 30 && lay.cam < 0 && lay.edge === 255, 'the bug starts under the pad, or the view past the world’s edge is blank: ' + JSON.stringify([lay.bug, lay.cam, lay.edge]));
+  const [cx, cy, R] = lay.ring, thumb = (kx, ky) => ({ x: cx + kx * R, y: cy + ky * R, id: 1 });
+  const run = (sec) => p.evaluate((sec) => { const g = Game.g, pl = g.player, a = [pl.x, pl.y]; g.timers = []; for (const q of g.people || []) { q.state = 'calm'; q.timer = 99; } pl.invuln = 99; lstep(sec); return { dx: pl.x - a[0], dy: pl.y - a[1], stick: Input.stick && [Input.stick.x, Input.stick.y], target: Input.target, knob: document.getElementById('padKnob').style.transform }; }, sec);
+  const slide = async (kx, ky) => { await touch('touchMove', [thumb(kx, ky)]); await p.waitForTimeout(90); };   // a browser hands touch moves on with the next frame
+  await touch('touchStart', [thumb(0.85, 0)]); await p.waitForTimeout(60);
+  const right = await run(0.6);
+  await slide(0.45, 0);
+  const part = await run(0.6);
+  await slide(0.1, 0.05);
+  const dead = await run(0.1);
+  await slide(0, -0.9);
+  const up = await run(0.5);
+  await slide(3, 0.4);
+  const far = await run(0.1);
+  check(right.stick && right.stick[0] > 0.7 && Math.abs(right.stick[1]) < 0.05 && right.dx > 40 && right.target === null && /translate/.test(right.knob), 'thumb right did not fly her right: ' + JSON.stringify(right));
+  check(part.stick[0] > 0.2 && part.stick[0] < 0.45 && part.dx > 5, 'part-way is not part speed: ' + JSON.stringify(part));
+  check(dead.stick && dead.stick[0] === 0 && dead.stick[1] === 0, 'the middle of the pad is not dead: ' + JSON.stringify(dead));
+  check(up.stick[1] < -0.7 && up.dy < -20, 'thumb up did not fly her up: ' + JSON.stringify(up));
+  check(Math.abs(Math.hypot(far.stick[0], far.stick[1]) - 1) < 0.01 && far.stick[0] > 0.9, 'slid out past the ring it is not still full tilt: ' + JSON.stringify(far));
+  // a second finger on the action button, while the thumb stays on the pad
+  const fin = { x: lay.btn[0], y: lay.btn[1], id: 2 };
+  await touch('touchStart', [thumb(3, 0.4), fin]); await p.waitForTimeout(60);
+  const both = await p.evaluate(() => [Input.held, !!Input.stick]);
+  await touch('touchEnd', [fin]); await p.waitForTimeout(60);
+  const one = await p.evaluate(() => [Input.held, !!Input.stick]);
+  await touch('touchEnd', []); await p.waitForTimeout(60);
+  const none = await p.evaluate(() => [Input.stick, document.getElementById('padKnob').style.transform]);
+  check(both.join() === 'true,true' && one.join() === 'false,true' && none[0] === null && none[1] === '', 'pad and button together: ' + JSON.stringify([both, one, none]));
+  // letting go: she slows to a hover; the faster push went further
+  const slow = await run(0.8), still = await run(0.3);
+  check(right.dx > part.dx * 1.4 && Math.abs(still.dx) < Math.abs(slow.dx) + 1 && Math.abs(still.dx) < 6, 'speed by how far it is pushed, and a hover on letting go: ' + JSON.stringify([right.dx, part.dx, slow.dx, still.dx]));
+  // a finger on the picture does not steer here; it is told where the steering is, once
+  await p.evaluate(() => { shown.length = 0; Game.running = true; Game.g.hintT = 0; });
+  const mid = { x: lay.st[0] + (lay.st[2] - lay.st[0]) * 0.6, y: lay.st[1] + (lay.st[3] - lay.st[1]) * 0.5, id: 3 };
+  await touch('touchStart', [mid]); await p.waitForTimeout(120);
+  const pic = await p.evaluate(() => [Input.target, Input.pointer, document.getElementById('pad').classList.contains('pulse'), Pad.told]);
+  await touch('touchEnd', []); await touch('touchStart', [mid]); await touch('touchEnd', []); await p.waitForTimeout(120);
+  const hints = await p.evaluate(() => { Game.running = false; return shown.concat(Game.g.toasts.map(t => t.text), [document.getElementById('toast').textContent]).filter(t => /thumb on the pad/.test(t)).length; });
+  check(pic[0] === null && pic[1] === null && pic[2] && pic[3] && hints >= 1 && hints <= 2, 'a finger on the picture: ' + JSON.stringify([pic, hints]));
+  // a mouse still steers by dragging, and the arrow keys still work
+  await p.mouse.move(mid.x, mid.y); await p.mouse.down();
+  const mouse = await p.evaluate(() => Input.target !== null);
+  await p.mouse.up();
+  const keys = await p.evaluate(() => { const pl = Game.g.player, x = pl.x; Input.target = null; Input.pointer = null; lstep(0.4, { keys: ['arrowleft'] }); return pl.x - x; });
+  check(mouse && keys < -15, 'the mouse or the keys stopped steering: ' + JSON.stringify([mouse, keys]));
+  // losing focus, or the phone turned upright, lets go of the stick
+  await touch('touchStart', [thumb(0.8, 0)]); await p.waitForTimeout(60);
+  const blur = await p.evaluate(() => { const had = !!Input.stick; window.dispatchEvent(new Event('blur')); return [had, Input.stick]; });
+  await touch('touchEnd', []); await touch('touchStart', [thumb(0.8, 0)]); await p.waitForTimeout(60);
+  await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(250);
+  const turned = await p.evaluate(() => [Orient.covered, Input.stick]);
+  await touch('touchEnd', []);
+  await p.setViewportSize({ width: 844, height: 390 }); await p.waitForTimeout(250);
+  check(blur[0] && blur[1] === null && turned[0] && turned[1] === null, 'the stick was not let go: ' + JSON.stringify([blur, turned]));
+  // a walker walks; the sandhopper drops into her burrow on pad down; the ant digs down in her nest
+  const pad = async (id, kx, ky, sec, setup) => {
+    await p.evaluate(() => { Game.stop(); buildMap(); });
+    await startMission(p, id, { noNet: true, noPred: true });
+    await p.evaluate(LDN_STEP);
+    if (setup) await p.evaluate(setup);
+    const r = await p.locator('#padRing').boundingBox(), t = { x: r.x + r.width / 2 + kx * r.width / 2, y: r.y + r.height / 2 + ky * r.height / 2, id: 1 };
+    await touch('touchStart', [t]); await p.waitForTimeout(60);
+    const out = await p.evaluate((sec) => { const g = Game.g, pl = g.player, a = [pl.x, pl.y]; g.timers = []; pl.invuln = 99; lstep(sec); return { dx: pl.x - a[0], dy: pl.y - a[1], in: g.mission.inBurrow ? g.mission.inBurrow(g) : null, ground: pl.onGround, under: (pl.x - g.cam.x) * (Game.zoom || 1) < Pad.w - 1 }; }, sec);
+    await touch('touchEnd', []);
+    return out;
+  };
+  const louse = await pad('ldn_louse', 0.8, 0, 0.6), lift = await pad('ldn_louse', 0.12, -0.8, 0.5);
+  check(louse.dx > 15 && !louse.under && Math.abs(lift.dx) < 2, 'the woodlouse: ' + JSON.stringify([louse, lift]));
+  const onTop = '(() => { const pl = Game.g.player; pl.x = Beach.bx; pl.y = Beach.ground(Beach.bx) - 12; pl.vx = 0; pl.vy = 0; pl.exiting = false; pl.onGround = true; })()';
+  const hop = await pad('sandhopper', 0, 0.9, 0.9, onTop), stay = await pad('sandhopper', 0.8, 0, 0.5, onTop.replace('Beach.bx;', 'Beach.bx + 200;').replace('Beach.ground(Beach.bx)', 'Beach.ground(Beach.bx + 200)'));
+  check(hop.in === true && stay.in === false && stay.dx > 20, 'the sandhopper: ' + JSON.stringify([hop, stay]));
+  const dig = await pad('nest', 0, 0.9, 1.6);
+  check(dig.dy > 6 || await p.evaluate(() => Game.g.digCell !== null || Game.g.player.crumbs > 0), 'the ant did not dig down: ' + JSON.stringify(dig));
+  // with no touch screen there is no pad, the view stops at the world's edge, and a drag steers as before
+  const d = await openGame(b, { width: 844, height: 390 }, FILE_URL + '?no3d=1');
+  await startMission(d, 'ldn_louse', { noNet: true });
+  const desk = await d.evaluate(() => [Pad.shown, document.getElementById('pad').hidden, Game.g.cam.x, document.querySelector('.toggle[data-setting="fullscreen"]').hidden]);
+  check(desk.join() === 'false,true,0,true', 'a desktop: ' + desk);
+  check(p.errors.length === 0 && d.errors.length === 0, p.errors.concat(d.errors).join('; '));
+  await ctx.close();
+});
+
+test('Full screen switch: on touch screens only, on by default; off, Start never asks; off while in full screen leaves it; the choice is kept', async (b) => {
+  const ctx = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true });
+  const p = await ctx.newPage();
+  p.errors = [];
+  p.on('pageerror', (e) => p.errors.push(e.message));
+  // a stand-in for the browser's full screen: counts what was asked, and says it is in full screen once asked
+  await p.addInitScript(() => {
+    window.fs = { asked: 0, left: 0, el: null };
+    Element.prototype.requestFullscreen = function () { window.fs.asked++; window.fs.el = this; return Promise.resolve(); };
+    Document.prototype.exitFullscreen = function () { window.fs.left++; window.fs.el = null; return Promise.resolve(); };
+    Object.defineProperty(Document.prototype, 'fullscreenElement', { configurable: true, get() { return window.fs.el; } });
+  });
+  await p.goto(FILE_URL + '?no3d=1');
+  const sw = '.toggle[data-setting="fullscreen"]';
+  const state = () => p.evaluate((sw) => { const el = document.querySelector(sw); return { shown: !el.hidden && el.offsetParent !== null, on: el.getAttribute('aria-pressed'), set: Settings.fullscreen, asked: window.fs.asked, left: window.fs.left, saved: JSON.parse(localStorage.getItem('bugame.settings') || '{}').fullscreen }; }, sw);
+  const play = async () => { await p.locator('.pin').first().click(); await p.click('#bugStart'); await p.waitForTimeout(200); await p.click('#menuBtn'); await p.waitForTimeout(100); };
+  const s0 = await state();
+  check(s0.shown && s0.on === 'true' && s0.set === true && s0.asked === 0, 'the switch at first: ' + JSON.stringify(s0));
+  await play();
+  const s1 = await state();
+  check(s1.asked === 1 && s1.left === 0, 'Start did not ask for full screen once: ' + JSON.stringify(s1));
+  await p.click(sw);
+  const s2 = await state();
+  check(s2.on === 'false' && s2.set === false && s2.left === 1 && s2.saved === false, 'switching it off: ' + JSON.stringify(s2));
+  await play();
+  const s3 = await state();
+  check(s3.asked === 1, 'Start asked for full screen with the switch off: ' + JSON.stringify(s3));
+  await p.reload(); await p.waitForTimeout(300);
+  const s4 = await state();
+  check(s4.on === 'false' && s4.set === false && s4.asked === 0, 'the choice was not kept: ' + JSON.stringify(s4));
+  await play();
+  check((await state()).asked === 0, 'Start asked after a reload with the switch off');
+  await p.click(sw);
+  const s5 = await state();
+  check(s5.on === 'true' && s5.set === true && s5.asked === 1 && s5.saved === true, 'switching it back on did not ask there and then: ' + JSON.stringify(s5));
+  check(p.errors.length === 0, p.errors.join('; '));
+  await ctx.close();
+});
+
 test('London has its own map: hidden until the plane is found, a pin for every level, Back stays in London, the plane flies both ways', async (b) => {
   const p = await openGame(b, { width: 844, height: 390 });
   const before = await p.evaluate(() => { const ldn = Bugs.filter(x => x.hub === 'london').map(x => x.sprite); return { pins: document.querySelectorAll('.pin').length, perth: Bugs.filter(x => x.pin && !x.hub).length, london: ldn.length, parade: paradeMarchers().some(m => ldn.includes(m.sprite)), tour: document.getElementById('tourBtn').hidden && document.getElementById('flyHome').hidden }; });

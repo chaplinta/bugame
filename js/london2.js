@@ -32,7 +32,7 @@ Object.assign(Missions, {
     ],
     how: [
       'Brr! First hold Shiver to warm up.',
-      'Fly by dragging, or with the arrow keys. Let go and you hover.',
+      'Fly with the pad in the corner, or the arrow keys. Let go and you hover.',
       'Hold Land on the player who is throwing. Then land on the dartboard, but only when he has thrown all three darts!',
       'A red zone shows where someone is looking. Fly in it and they wave you away. Wait for the stage smoke to stop.',
       'Sip the spilled drink in the crowd, then fly up to the cold beam at the end and go back to sleep. Two cheeky extras are hidden here!',
@@ -165,7 +165,7 @@ Object.assign(Missions, {
       'The pill woodlouse can roll into a ball. Most woodlice can’t.',
     ],
     how: [
-      'Someone has moved your log! Walk left and right by dragging, or with the arrow keys. Walk into a log and you climb it.',
+      'Someone has moved your log! Walk left and right with the pad in the corner, or the arrow keys. Walk into a log and you climb it.',
       'Press Roll to curl into a ball. On a slope, a ball rolls fast! Steer, or press Unroll, to walk again.',
       'The sun dries you out: cross sunny ground fast, and rest under the leaves. Roll into a ball when ants are about.',
       'Hold Munch on three bits of food, and hold Moult in two hiding places.',
@@ -339,7 +339,7 @@ Object.assign(Missions, {
       'Foxes hunt with their ears. They can hear a worm moving in the grass.',
     ],
     how: [
-      'Trot left and right by dragging, or with the arrow keys. Press Jump to jump up onto walls and bins.',
+      'Trot left and right with the pad in the corner, or the arrow keys. Press Jump to jump up onto walls and bins.',
       'On the grass, stand still and listen. When a worm comes up, press Pounce!',
       'Jump to snap the daddy-long-legs by the porch light. In the long grass, stand still, listen for the mouse, and Pounce.',
       'At the road, wait on the kerb till the lights have gone by, then run to the island in the middle. Don’t walk past the cat while it’s awake.',

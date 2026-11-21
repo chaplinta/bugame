@@ -233,7 +233,7 @@ Bugs.push({ id: 'sandhopper', name: 'Sandhopper', sci: 'Family Talitridae', plac
 
 Object.assign(Missions, {
   sandhopper: {
-    id: 'sandhopper', bug: 'sandhopper', stage: 'Adult female', place: 'Port Beach, North Fremantle', view: 'side',
+    id: 'sandhopper', bug: 'sandhopper', stage: 'Adult female', place: 'Port Beach, North Fremantle', view: 'side', pad: true,
     world: { w: Beach.W, h: Beach.H }, sprite: 'sandhopper', bg: 'beach', escape: 'Hop',
     action: 'Hop', radius: 14, speed: 150, scale: 1.8, goal: 7,
     home: { x: Beach.bx, y: Beach.ground(Beach.bx) + Beach.depth - 12, r: 40, label: '' },
@@ -243,10 +243,10 @@ Object.assign(Missions, {
       'You’re a mother sandhopper. Your eggs are in a pouch under your body.',
     ],
     how: [
-      'This beach is side-on! Walk left and right with the arrow keys, or touch and drag.',
+      'This beach is side-on! Walk left and right with the pad in the corner, or the arrow keys.',
       'Press Hop to jump. Hopping is how you escape.',
       'Find the seaweed washed up on the beach and hold or tap Eat. Eat 7 piles.',
-      'Then go back to your burrow in the damp sand and drop in. To hide there any time, stand on it and press down (or drag down).',
+      'Then go back to your burrow in the damp sand and drop in. To hide there any time, stand on it and press down.',
     ],
     discoveries: [
       { key: 'd_shell', sprite: 'seashell', fx: 0.3, fy: 0 },

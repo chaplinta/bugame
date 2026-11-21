@@ -24,6 +24,7 @@
         <button class="toggle" data-setting="speech" aria-pressed="false">Read to me</button>
         <button class="toggle" data-setting="threeD" aria-pressed="true">3D pictures</button>
         <button class="toggle" data-setting="mic" aria-pressed="false">Shout to buzz</button>
+        <button class="toggle" data-setting="fullscreen" aria-pressed="true" hidden>Full screen</button>
       </div>
     </header>
     <p class="sub" id="mapSub">Be a real bug in Perth, WA. Tap a place on the map.</p>
@@ -52,7 +53,7 @@
       <button id="flyHome" class="secondary" hidden>Fly home to Perth</button>
       <button id="installBtn" class="secondary" hidden>Install app</button>
     </div>
-    <p class="version">Version 3.21 · released 20 November 2026</p>
+    <p class="version">Version 3.22 · released 21 November 2026</p>
   </section>
 
   <section id="bug" class="screen">
@@ -93,6 +94,7 @@
       </div>
       <div id="toast" aria-live="polite"></div>
       <button id="actionBtn"></button>
+      <div id="pad" hidden><div id="padRing"><div id="padKnob"></div></div></div>
       <div id="tools" hidden></div>
     </div>
   </section>
@@ -237,6 +239,7 @@
 <script src="js/art-world.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/orient.js"></script>
+<script src="js/pad.js"></script>
 <script src="js/platform.js"></script>
 <script src="js/sprite-cache.js"></script>
 <script src="js/art-london.js"></script>

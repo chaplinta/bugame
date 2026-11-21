@@ -24,7 +24,7 @@ Bugs.push({ id: 'sugarant', name: 'Sugar Ant', sci: 'Camponotus', place: 'Bull C
   pin: { x: 585, y: 552 }, stages: ['nest'] });
 
 Missions.nest = {
-  id: 'nest', bug: 'sugarant', stage: 'Worker', place: 'Under a backyard in Bull Creek', view: 'side',
+  id: 'nest', bug: 'sugarant', stage: 'Worker', place: 'Under a backyard in Bull Creek', view: 'side', pad: true,
   world: { w: NEST.cols * NEST.cell, h: NEST.surf + NEST.rows * NEST.cell }, sprite: 'sugarAnt', bg: 'nestSoil', escape: 'Climb',
   action: 'Build', radius: 10, speed: 150, scale: 1.3, goal: 4,
   home: { x: 960, y: NEST.surf + 3.5 * NEST.cell, r: 30, label: '' },
@@ -34,7 +34,7 @@ Missions.nest = {
     'A nest has rooms: nurseries for eggs and young, and stores for food.',
   ],
   how: [
-    'Walk into the soil to dig. You carry up to 6 crumbs of soil at a time.',
+    'Walk with the pad in the corner, or the arrow keys. Walk into the soil to dig. You carry up to 6 crumbs of soil at a time.',
     'Take the soil up to the surface: it builds your mound by the entrance.',
     'In a big open space, press Make room: first a nursery for the queen, then a food store.',
     'Fetch honeydew from the bugs on the plant and bring it to the food store. Press Build to put soil back. Plug the entrance before it rains!',

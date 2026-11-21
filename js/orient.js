@@ -18,24 +18,34 @@ const Orient = {
     if (this.covered && !was) {
       // a finger on the screen as the phone turns never gets its release: let go of everything
       Input.keys.clear(); Input.held = false; Input.pressed = false; Input.target = null; Input.pointer = null;
+      if (typeof Pad !== 'undefined') Pad.drop();
       Speech.stop();
       if (Settings.speech) Speech.say('Turn your phone sideways to play.');
     }
   },
 
-  // Full screen, then landscape. Every step can be refused (no API, not allowed, not full screen): that's fine.
+  // Full screen (unless the Full screen switch on the map is off), then landscape. Every step can be refused (no API,
+  // not allowed, not full screen): that's fine.
   lock() {
     if (!this.touch) return;
     const root = document.documentElement, turn = () => {
       try { const p = screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'); if (p && p.catch) p.catch(() => {}); } catch (e) { /* not allowed here */ }
     };
     try {
-      if (!document.fullscreenElement && root.requestFullscreen) {
+      if (Settings.fullscreen && !document.fullscreenElement && root.requestFullscreen) {
         const p = root.requestFullscreen({ navigationUI: 'hide' });
         if (p && p.then) { p.then(turn, turn); return; }
       }
     } catch (e) { /* no full screen here */ }
     turn();
+  },
+
+  // The Full screen switch was flipped. On: ask now (the tap is the gesture a browser wants first). Off: leave full
+  // screen at once, and the browser's own "swipe to exit full screen" message goes with it.
+  apply() {
+    if (!this.touch) return;
+    if (Settings.fullscreen) { this.lock(); return; }
+    try { if (document.fullscreenElement && document.exitFullscreen) { const p = document.exitFullscreen(); if (p && p.catch) p.catch(() => {}); } } catch (e) { /* not in full screen */ }
   },
 };
 
