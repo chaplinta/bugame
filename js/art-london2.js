@@ -242,7 +242,12 @@ LondonArt.more.ldn_fox = {
         ctx.fillStyle = '#8a6a48'; ctx.beginPath(); ctx.ellipse(-4, 0, 9, 2, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(6, -0.5, 2.4, 0, TAU); ctx.fill();
         ctx.fillStyle = 'rgba(230,230,240,.5)'; const b = Math.sin(t * 60) * 0.5; for (const k of [-1, 1]) { ctx.beginPath(); ctx.ellipse(0, -5 * k * (0.6 + b * k), 3, 10, k * 0.5, 0, TAU); ctx.fill(); }
         ctx.restore();
-      } else if (s.kind === 'welly' && !s.done) LDN2.welly(ctx, s.x, F, 1);
+      } else if (s.kind === 'toy') {   // toys for the cubs: where they lie (the ball and the teddy are drawn by the engine)
+        if (g.toy !== s) {
+          if (s.id === 'welly') LDN2.welly(ctx, s.x, F, 1); else if (s.id === 'chew') LDN2.chew(ctx, s.x, F - 5, 1);
+          if (s.lay && !s.home) { const k = Math.sin(t * 5) * 3; ctx.fillStyle = 'rgba(255,210,63,.95)'; ctx.beginPath(); ctx.moveTo(s.x - 8, F - 52 + k); ctx.lineTo(s.x + 8, F - 52 + k); ctx.lineTo(s.x, F - 40 + k); ctx.fill(); }   // dropped: an arrow, so it is found again
+        }
+      }
       else if (s.kind === 'post' && s.done) { ctx.fillStyle = 'rgba(230,210,90,.55)'; ctx.beginPath(); ctx.ellipse(s.x + 10, F - 1, 14, 3, 0, 0, TAU); ctx.fill(); }
       else if (s.kind === 'gnome') {
         const x = s.x, y = F;
@@ -258,7 +263,8 @@ LondonArt.more.ldn_fox = {
           if (out > 0.2) { ctx.save(); ctx.translate(cx, cy + Math.abs(Math.sin(t * 7 + k)) * -6 * out); ctx.scale(0.55, 0.55); Sprites.fox(ctx, { face: 1, angle: 0, moving: true }, t + k); ctx.restore(); }
           else { ctx.fillStyle = 'rgba(190,230,120,.9)'; const bl = Math.sin(t * 0.9 + k * 2) > 0.94 ? 0.2 : 1; for (const dx of [-4, 4]) { ctx.beginPath(); ctx.ellipse(s.x - 40 + k * 36 + dx, F - 22, 2.2, 2.2 * bl, 0, 0, TAU); ctx.fill(); } }
         }
-        if (s.done && g.counts.welly) LDN2.welly(ctx, s.x - 96, F, 1);
+        const grab = !s.done && g.cubT !== undefined ? clamp(1 - (t - g.cubT) / 1.8, 0, 1) : 0;   // a cub out to grab a new toy
+        if (grab > 0) { ctx.save(); ctx.translate(s.x - 44 - g.toysHome * 24, F - 6 - Math.abs(Math.sin(t * 9)) * 8 * grab); ctx.scale(0.55, 0.55); Sprites.fox(ctx, { face: -1, angle: 0, moving: true }, t); ctx.restore(); }
       }
     }
     // the dog behind its gate
@@ -271,7 +277,10 @@ LondonArt.more.ldn_fox = {
     const L = g.level, t = g.t, p = g.player, F = L.floor, R = L.road, s = m.scale;
     // what she carries: the mouse by its tail, and the welly
     const mx = p.x + p.face * 24 * s, my = p.y - 16 * s;
-    if (p.welly) LDN2.welly(ctx, mx + p.face * 2, my + 20, p.face);
+    const ty = g.toy;
+    if (ty && ty.id === 'welly') LDN2.welly(ctx, mx + p.face * 2, my + 20, p.face);
+    else if (ty && ty.id === 'chew') LDN2.chew(ctx, mx + p.face * 5, my + 9, p.face);
+    else if (ty) Game.drawSprite(ty.id === 'ball' ? 'chewedBall' : 'lostTeddy', { x: mx + p.face * 5, y: my + (ty.id === 'ball' ? 9 : 14), angle: 0, flat: true }, ty.id === 'ball' ? 1.4 : 1.6);
     if (p.carry === 'mouse') { ctx.strokeStyle = '#c89a94'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + p.face * 2, my + 8); ctx.stroke(); ctx.fillStyle = '#8a7a6e'; ctx.beginPath(); ctx.ellipse(mx + p.face * 3, my + 13, 4.4, 6.4, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(mx + p.face * 3, my + 20, 3, 0, TAU); ctx.fill(); }
     if (p.listen && !g.pounce && L.spots.some(q => q.prey && !q.done && Math.abs(q.x - p.x) < 200)) {   // listening: sound rings by her ears
       const k = (t * 1.4) % 1; ctx.strokeStyle = 'rgba(255,255,255,' + (0.7 - k * 0.7) + ')'; ctx.lineWidth = 2;
@@ -288,6 +297,14 @@ LondonArt.more.ldn_fox = {
       }
     }
   },
+};
+// A dog's rope toy: a twist of rope with a knot at each end
+LDN2.chew = function (ctx, x, y, face) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(face < 0 ? -1 : 1, 1);
+  ctx.strokeStyle = '#e8e2d0'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.stroke();
+  ctx.strokeStyle = '#3a8ac8'; ctx.lineWidth = 1.6; for (let k = -7; k <= 7; k += 3.5) { ctx.beginPath(); ctx.moveTo(k - 1.5, -2.4); ctx.lineTo(k + 1.5, 2.4); ctx.stroke(); }
+  for (const sg of [-1, 1]) { ctx.fillStyle = '#e8e2d0'; ctx.beginPath(); ctx.arc(sg * 11, 0, 4.4, 0, TAU); ctx.fill(); ctx.fillStyle = '#c8322a'; ctx.beginPath(); ctx.arc(sg * 11, 0, 2, 0, TAU); ctx.fill(); }
+  ctx.restore();
 };
 LDN2.welly = function (ctx, x, y, face) {
   ctx.save(); ctx.translate(x, y); ctx.scale(face < 0 ? -1 : 1, 1);

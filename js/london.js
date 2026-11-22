@@ -224,7 +224,7 @@ function ldnPart(d) {
     stars(g) { return 1 + Math.min(2, g.extras || 0); },
     endLine(g) {
       const spy = this.sights ? ' London things spotted: ' + this.sights.filter(s => g.spied.has(s.key)).length + ' of ' + this.sights.length + '.' : '';
-      return (g.extras >= 2 ? 'Both cheeky extras found!' : 'Cheeky extras found: ' + (g.extras || 0) + ' of 2. Each one is a star.') + spy;
+      return (g.extras >= 2 ? 'Both cheeky extras found!' : 'Cheeky extras found: ' + (g.extras || 0) + ' of 2. Each one is a star.') + (this.endMore ? this.endMore(g) : '') + spy;
     },
     findText(g) { return this.sights ? '\u{1F440} ' + this.sights.filter(s => g.spied.has(s.key)).length + ' / ' + this.sights.length : ''; },
     stat(g) { return '★'.repeat(Math.min(2, g.extras || 0)) + '☆'.repeat(2 - Math.min(2, g.extras || 0)); },

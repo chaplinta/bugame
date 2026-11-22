@@ -39,7 +39,7 @@ const SECRETS = {
     ldnWood: { key: 's_shard', name: 'Roman pot shard', sprite: 'potShard', fx: 0.875, fy: 0.927, hub: 'london',
       text: 'A piece of a Roman pot! Potters made pots in this wood nearly two thousand years ago.' },
     ldnStreet: { key: 's_teddy', name: 'Lost teddy', sprite: 'lostTeddy', fx: 0.516, fy: 0.925, hub: 'london',
-      text: 'A lost teddy on the pavement. Somebody will be back for him in the morning.' },
+      text: 'A lost teddy on the pavement. A fox might carry him off before morning.' },
   },
   // Secrets that aren't in a place.
   other: {

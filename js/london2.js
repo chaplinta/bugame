@@ -329,6 +329,10 @@ Object.assign(Missions, {
   // jump through the gardens: stand still to hear a worm, then pounce; snap a daddy-long-legs out of the air; pounce
   // on a mouse; cross the road between the cars and the night bus; get past the cat; and take the mouse home to the
   // cubs under the shed.
+  // Toys for the cubs, a small game of its own (foxes really do carry shoes, balls and dog chews home): four things
+  // lie along the street, the welly, a chewed ball, Rex's chew toy and the lost teddy. Take one (one at a time: it is
+  // in her mouth) and carry it to the den. A fright makes her drop it where she stands: Rex's bark, the cat's swipe,
+  // a near miss on the road. Go back and Take it again. The first toy home is one of the two cheeky extras.
   ldn_fox: ldnPart({
     id: 'ldn_fox', kind: 'fox', stage: 'Fox', place: 'A south London street, a spring night', sprite: 'fox', bg: 'ldnStreet', scale: 1.5,
     world: { w: 4300, h: 600 }, action: 'Jump', later1: 'town', later2: 'fifth', zoom: [1, 1.2],
@@ -344,6 +348,7 @@ Object.assign(Missions, {
       'Jump to snap the daddy-long-legs by the porch light. In the long grass, stand still, listen for the mouse, and Pounce.',
       'At the road, wait on the kerb till the lights have gone by, then run to the island in the middle. Don’t walk past the cat while it’s awake.',
       'Catch three snacks and a mouse, and take the mouse home to your cubs under the shed. Two cheeky extras are hidden here!',
+      'Cubs love toys. Press Take at a welly, a ball, a dog’s toy or a teddy and carry it home to them, one at a time. A fright makes you drop it!',
     ],
     discoveries: [{ key: 'd_ball', sprite: 'chewedBall', fx: 0.18, fy: 0.925 }, { key: 'd_feather', sprite: 'feather', color: '#8a8a94', band: '#5a5a66', fx: 0.6, fy: 0.925 }],
     sights: [{ key: 'bus', name: 'the night bus', at: (g) => { const ln = g.level.road.lanes.find(q => q.kind === 'bus' && q.t < 1.6 && q.t > -0.2); return ln ? { x: ln.x, y: 450 } : null; } },
@@ -368,6 +373,7 @@ Object.assign(Missions, {
     },
     level() {
       const prey = (id, x, kind, o) => Object.assign({ id, kind, prey: true, off: true, x, y: 552, r: 175, ring: 26, verb: 'Pounce', pop: kind === 'mouse' ? 'Got the mouse!' : 'Slurp! A worm', fact: kind === 'mouse' ? 'pounce' : 'worm' }, o);
+      const toy = (id, x, name, o) => Object.assign({ id, kind: 'toy', x, y: 540, r: 40, ring: 22, verb: 'Take', name }, o);   // something to carry home to the cubs
       return {
         w: 4300, floor: 560, start: [120, 560],
         solids: [[900, 470, 44, 90, 'wall'], [1700, 300, 26, 210, 'fence'], [1860, 474, 60, 86, 'bin'], [1920, 474, 60, 86, 'bin'], [3400, 470, 220, 90, 'wall'], [4000, 380, 240, 130, 'denshed']],
@@ -376,7 +382,7 @@ Object.assign(Missions, {
         spots: [
           prey('w1', 380, 'snack'), prey('w2', 660, 'snack'),
           { id: 'fly', kind: 'snack', ax: 1300, ay: 436, x: 1300, y: 436, r: 42, moving: true, pop: 'Snap! A daddy-long-legs', fact: 'crane' },
-          { id: 'welly', kind: 'welly', x: 1520, y: 540, r: 46, verb: 'Nick', extra: true, pop: 'A welly for the cubs!', say: 'Oi! My welly!', sayAt: [1470, 330], fact: 'shoes' },
+          toy('ball', 774, 'ball'), toy('welly', 1520, 'welly', { r: 46, verb: 'Nick', say: 'Oi! My welly!', sayAt: [1470, 330] }), toy('chew', 1588, 'dog’s toy'), toy('teddy', 2219, 'teddy'),
           { id: 'post', kind: 'post', x: 2110, y: 540, r: 40, pop: 'Wee! That means: mine', fact: 'scent' },
           prey('mouse', 2520, 'mouse', { listen: 0.9 }),
           prey('w3', 3720, 'snack'),
@@ -393,6 +399,7 @@ Object.assign(Missions, {
     start(g) {
       g.hz.cat = { state: 'asleep', t: 3 };
       g.pounce = null; g.stillT = 0; g.kinds = ['car', 'bus', 'cab', 'car'];
+      g.toy = null; g.toysHome = 0; g.cubT = -9;
       // a train rattles over the viaduct now and then
       g.movers.push({ kind: 'vtrain', x: -999, y: 330, wait: 7, shown: false,
         update(g, dt) {
@@ -403,7 +410,44 @@ Object.assign(Missions, {
       for (const ln of g.level.road.lanes) { ln.kind = 'car'; ln.n = 0; }
     },
     busy(g) { return !!g.pounce; },
-    reset(g) { g.pounce = null; },
+    reset(g) { g.pounce = null; this.drop(g, 'That was close!'); },   // a near miss on the road (she is still where it happened)
+    // ---- toys for the cubs
+    TOYS: 4,
+    // Where a toy lies. The ball and the teddy are the level's discovery and its lost thing, which the engine draws
+    // where they are: they are moved, not drawn again (off the screen while she holds one).
+    place(g, s, x) {
+      s.x = x;
+      const thing = s.id === 'teddy' ? g.secret : s.id === 'ball' ? g.finds.find(d => d.key === 'd_ball') : null;
+      if (thing) thing.x = x;
+    },
+    take(g, s) {
+      const p = g.player, first = !s.taken;
+      s.taken = true; s.verb = 'Take'; g.toy = s; this.place(g, s, -9999);
+      Sound.play('pick'); Game.pop(p.x, p.y - 60, first && s.id === 'welly' ? 'A welly for the cubs!' : 'Got the ' + s.name + '!', '#ffd23f');
+      if (first && s.say) { Game.say(s.sayAt[0], s.sayAt[1] - 34, s.say); Sound.play('oi'); }
+      Game.fact('shoes');
+      if (!g.toldToy) { g.toldToy = true; g.toasts.unshift({ text: 'Take it home to the cubs under the shed. Mind the frights on the way!', kind: 'hint' }); g.toastT = 0; }
+    },
+    // A fright: it falls where she stands, a little clear of any wall or bin so it is never in the way of a jump
+    drop(g, why) {
+      const s = g.toy, p = g.player, L = g.level;
+      if (!s) return;
+      let x = clamp(p.x, 60, L.w - 60);
+      for (const q of L.solids) if (q[1] + q[3] >= L.floor - 20 && x > q[0] - 70 && x < q[0] + q[2] + 70) x = p.x < q[0] + q[2] / 2 ? q[0] - 70 : q[0] + q[2] + 70;
+      g.toy = null; s.lay = g.t; this.place(g, s, x);
+      Sound.play('yelp'); Game.pop(x, L.floor - 64, 'Dropped it!', '#fff');
+      if (!g.toldDrop) { g.toldDrop = true; g.toasts.unshift({ text: why + ' She dropped the ' + s.name + '! Trot back to it and press Take.', kind: 'hint' }); g.toastT = 0; }
+    },
+    // Home: a cub pops out and has it. The first one is a cheeky extra.
+    give(g) {
+      const s = g.toy, den = g.level.spots.find(q => q.id === 'den');
+      if (!s) return;
+      g.toy = null; s.home = true; g.toysHome++; g.cubT = g.t;
+      this.place(g, s, den.x - 60 - g.toysHome * 24);
+      Sound.play('score'); Game.pop(den.x - 60, den.y - 60, 'A new toy!', '#ffd23f');
+      if (g.toysHome === 1) { g.extras++; Game.pop(den.x - 60, den.y - 86, 'Cheeky! ★', '#ffd23f'); Game.burst(den.x - 60, den.y - 10, '#ffd23f', 18); }
+    },
+    endMore(g) { return ' Toys for the cubs: ' + g.toysHome + ' of ' + this.TOYS + '.'; },
     idle(g, input) {
       const p = g.player;
       setAction('Jump', p.onGround);
@@ -411,6 +455,7 @@ Object.assign(Missions, {
     },
     // A pounce is a leap first: up, over, and down on it from above
     complete(g, s) {
+      if (s.kind === 'toy') return this.take(g, s);   // a toy is never done: dropped, it can be taken again
       if (!s.prey) return this.finish(g, s);
       const p = g.player;
       g.pounce = { s, t: 0, x0: p.x, y0: p.y, x1: s.x - (s.x > p.x ? 12 : -12), h: s.kind === 'mouse' ? 150 : 70, dur: s.kind === 'mouse' ? 0.7 : 0.45 };
@@ -419,7 +464,7 @@ Object.assign(Missions, {
     done(g, s) {
       if (s.prey) Sound.play(s.kind === 'mouse' ? 'score' : 'slurp');
       if (s.kind === 'gnome') Sound.play('raspberry');
-      if (s.kind === 'den') g.player.carry = null;
+      if (s.kind === 'den') { g.player.carry = null; this.give(g); }
     },
     tick(g, dt, input) {
       const p = g.player, L = g.level, R = L.road;
@@ -447,11 +492,17 @@ Object.assign(Missions, {
         }
       }
       p.carry = g.counts.mouse && !g.homeSafe ? 'mouse' : null;
-      p.welly = !!g.counts.welly && !g.homeSafe;
-      // the dog behind the gate
-      if (Math.abs(p.x - L.dog.x) < 120 && !g.barked) {
+      // toys: one in her mouth at a time, so the others wait; home with one, and a cub has it
+      for (const q of L.spots) if (q.kind === 'toy') q.off = !!g.toy || !!q.home || !!g.homeSafe;
+      const den = L.spots.find(q => q.id === 'den');
+      if (g.toy && !g.homeSafe && !J && p.onGround && Math.abs(p.x - den.x) < 60) this.give(g);
+      if (g.toy && !g.toldFull && L.spots.some(q => q.kind === 'toy' && q !== g.toy && !q.home && Math.abs(q.x - p.x) < 30)) { g.toldFull = true; Game.hint('Her mouth is full. Take this one home first.'); }
+      // the dog behind the gate: he barks the first time she comes by, and the first time she comes by with a toy
+      const rex = Math.abs(p.x - L.dog.x);
+      if ((rex < 120 && !g.barked) || (rex < 70 && g.toy && !g.rexToy)) {
         g.barked = true; Sound.play('yelp'); Game.say(L.dog.x, 470, 'Woof! Woof!', 1.6);
         Game.later(1.3, () => Game.say(1470, 296, 'Quiet, Rex!', 1.8));
+        if (g.toy) { g.rexToy = true; this.drop(g, 'Rex made her jump!'); }
       }
     },
     hazards(g, dt) {
@@ -477,12 +528,12 @@ Object.assign(Missions, {
       else if (c.state === 'awake' && near && p.invuln <= 0) { c.state = 'alert'; c.t = 0.45; }
       else if (c.state === 'alert' && c.t <= 0) {
         c.state = 'swipe'; c.t = 0;
-        if (near) { ldnBlow(g, p.x < L.cat.x ? -1 : 1, 5200); Sound.play('yelp'); Game.say(L.cat.x, L.cat.y - 70, 'Hssss!', 1.4); Game.fact('cat'); Game.hint('The cat won’t let you by! Wait till it goes to sleep.'); }
+        if (near) { this.drop(g, 'The cat!'); ldnBlow(g, p.x < L.cat.x ? -1 : 1, 5200); Sound.play('yelp'); Game.say(L.cat.x, L.cat.y - 70, 'Hssss!', 1.4); Game.fact('cat'); Game.hint('The cat won’t let you by! Wait till it goes to sleep.'); }
       } else if (c.state === 'swipe') { c.t += dt; if (c.t > 0.8) { c.state = 'awake'; c.t = 2.5; } }
     },
     hud(g) {
       const sn = Math.min(3, g.counts.snack || 0), mo = g.counts.mouse ? 1 : 0;
-      setHud(sn < 3 || !mo ? 'Snacks: ' + sn + ' / 3 · Mouse: ' + mo + ' / 1' : 'Take the mouse home to the cubs!', this.stat(g));
+      setHud(sn < 3 || !mo ? 'Snacks: ' + sn + ' / 3 · Mouse: ' + mo + ' / 1' : 'Take the mouse home to the cubs!', 'Toys: ' + g.toysHome + ' / ' + this.TOYS + ' · ' + this.stat(g));
     },
   }),
 });

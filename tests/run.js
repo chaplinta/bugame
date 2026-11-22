@@ -247,7 +247,7 @@ test('female peacock spider: choose the standout, guard the eggs from ants, they
     const g = Game.g, p = g.player;
     let n = 0; while (!g.males.some(q => q.standout && q.state === 'dance') && n++ < 400) step(0.1);
     const star = g.males.find(q => q.standout);
-    p.x = star.x - 40; p.y = star.y;
+    p.x = star.x - 6; p.y = star.y;   // right beside him: Choose takes the nearest male, and another may be dancing close by
     step(1 / 60, { pressed: true, held: true });
     return { phase: g.phase, judge: g.seen.has('judge'), chosen: g.chosen === star, others: g.males.filter(q => q !== star).every(q => q.state === 'gone'), queue: g.queue.length };
   });
@@ -2235,7 +2235,7 @@ test('the pill woodlouse: Roll and uncurl, the sun dries her, two moults, bowlin
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
-test('the fox: jump, stand still for a worm and pounce, the daddy-long-legs, the mouse, the road, the cat, the welly and the gnome', async (b) => {
+test('the fox: jump, stand still for a worm and pounce, the daddy-long-legs, the mouse, the road, the cat, toys carried home to the cubs, and the gnome', async (b) => {
   const p = await openGame(b);
   await p.evaluate(LDN_SHOWN);
   await startMission(p, 'ldn_fox', { noNet: true });
@@ -2261,11 +2261,34 @@ test('the fox: jump, stand still for a worm and pounce, the daddy-long-legs, the
     // the cat on the wall: awake, it sends her back; asleep, she walks past
     cat.state = 'awake'; cat.t = 9; put(C.x - 60, C.y); const x0 = pl.x; lstep(0.8); out.hiss = [shown.includes('Hssss!'), g.lives, pl.x < x0 - 30, g.seen.has('cat')];
     lstep(1); cat.state = 'asleep'; cat.t = 9; g.shooed = 0; put(C.x - 60, C.y); lstep(0.7, { keys: ['arrowright'] }); out.asleep = pl.x > C.x + 30;
-    // the extras
-    const we = at('welly'); put(we.x, F); lstep(0.1); out.wellyBtn = btn(); lstep(0.05, { press: true }); lstep(0.05); out.welly = [g.extras, shown.includes('Oi! My welly!'), pl.welly, g.seen.has('shoes')];
+    // toys for the cubs. Nick the welly: in her mouth, no star yet; with her mouth full the others wait
+    g.barked = true;   // Rex has had his first bark
+    const we = at('welly'), ball = at('ball'), ted = at('teddy'), den = at('den'), find = g.finds.find(d => d.key === 'd_ball');
+    put(we.x - 10, F); lstep(0.1); out.wellyBtn = btn(); lstep(0.05, { press: true }); lstep(0.05);
+    out.welly = [g.toy === we, g.extras, shown.includes('Oi! My welly!'), g.seen.has('shoes'), we.x < 0, document.getElementById('hudExtra').textContent];
+    put(ball.x, F); lstep(0.2); out.full = [btn(), g.toy === we, !!g.toldFull];
+    // Rex barks as she comes by with it: it falls where she stands, and Take picks it up again. He does it once.
+    shown.length = 0; put(L.dog.x - 40, F); lstep(0.2); out.rex = [g.toy, Math.round(we.x), shown.includes('Dropped it!'), shown.some(t => /Rex made her jump/.test(t)), btn()];
+    lstep(0.05, { press: true }); lstep(0.05); out.again = [g.toy === we, shown.includes('Oi! My welly!')];
+    put(L.dog.x - 40, F); lstep(0.3); out.once = g.toy === we;
+    // the cat's swipe: dropped, and a little clear of the wall
+    cat.state = 'awake'; cat.t = 9; put(C.x - 60, C.y); lstep(0.8);
+    out.catDrop = [g.toy, Math.round(we.x), L.solids.some(q => q[1] + q[3] >= F - 20 && we.x > q[0] - 60 && we.x < q[0] + q[2] + 60)];
+    cat.state = 'asleep'; cat.t = 99; g.shooed = 0; lstep(0.6);
+    // a near miss on the road: it stays in the road
+    put(we.x, F); lstep(0.15); lstep(0.05, { press: true }); lstep(0.05); const hearts = g.lives;
+    put(R.lanes[1].x + 30, F); R.lanes[1].t = 0.3; lstep(0.4); out.roadDrop = [g.toy, Math.abs(we.x - (R.lanes[1].x + 30)) < 3, hearts - g.lives]; R.lanes[1].t = 99;
+    // the teddy is the level's lost thing, the ball its discovery: found as before, then taken, and they go with her
+    put(ted.x, F); lstep(0.15); out.tedFound = [g.secret.found, btn()]; lstep(0.05, { press: true }); lstep(0.05); out.ted = [g.toy === ted, g.secret.x < 0];
+    // home without dinner: a cub has it, the first one is a cheeky extra, and she can go back for another
+    shown.length = 0; put(den.x - 30, F); lstep(0.2);
+    out.give = [g.toy, g.toysHome, g.extras, ted.home, Math.abs(g.secret.x - den.x) < 160, shown.includes('A new toy!'), shown.includes('Cheeky! ★'), !!g.homeSafe, document.getElementById('hudExtra').textContent];
+    put(ball.x, F); lstep(0.15); out.ballFound = find.found; lstep(0.05, { press: true }); lstep(0.05); out.ball = [g.toy === ball, find.x < 0];
     const gn = at('gnome'); put(gn.x, F); lstep(1, { held: true }); out.gnome = [g.extras, g.seen.has('mark')];
-    // home, with three snacks and the mouse
-    const den = at('den'); put(den.x, F); lstep(0.2); out.early = !!g.homeSafe; g.counts.snack = 3; lstep(0.2); out.home = [!!g.homeSafe, m.stars(g), pl.carry];
+    // home with dinner and the ball: the toy counts first, then the level is won
+    shown.length = 0; g.counts.snack = 3; put(den.x, F); lstep(0.2);
+    out.home = [!!g.homeSafe, m.stars(g), pl.carry, g.toysHome, shown.includes('Cheeky! ★'), m.endLine(g), g.toy];
+    out.clear = L.spots.filter(q => q.kind === 'toy').every(q => !L.solids.some(k => k[1] + k[3] >= F - 20 && q.x > k[0] - 60 && q.x < k[0] + k[2] + 60));
     return out;
   });
   check(r.btn === 'Jump' && r.jump[0] && r.jump[1], 'the jump: ' + JSON.stringify(r));
@@ -2273,7 +2296,14 @@ test('the fox: jump, stand still for a worm and pounce, the daddy-long-legs, the
   check(r.leap[0] && r.leap[1] && r.leap[2] === 0 && r.air && r.worm[0] === 1 && r.worm[1] && r.worm[2] && r.worm[3], 'the pounce: ' + JSON.stringify(r));
   check(r.ground && r.fly[0] && r.fly[1] === 2 && r.quiet && r.squeak[0] && r.squeak[1] && r.mouse[0] === 1 && r.mouse[1] && r.mouse[2] === 'mouse', 'the daddy-long-legs and the mouse: ' + JSON.stringify(r));
   check(r.island === 3 && r.car === 2 && r.hiss[0] && r.hiss[1] === 2 && r.hiss[2] && r.hiss[3] && r.asleep, 'the road and the cat: ' + JSON.stringify(r));
-  check(r.wellyBtn === 'Nick' && r.welly[0] === 1 && r.welly[1] && r.welly[2] && r.welly[3] && r.gnome[0] === 2 && r.gnome[1] && !r.early && r.home[0] && r.home[1] === 3 && r.home[2] === null, 'extras and home: ' + JSON.stringify(r));
+  check(r.wellyBtn === 'Nick' && r.welly[0] && r.welly[1] === 0 && r.welly[2] && r.welly[3] && r.welly[4] && /Toys: 0 \/ 4/.test(r.welly[5]), 'taking the welly: ' + JSON.stringify(r.welly));
+  check(r.full[0] === 'Jump' && r.full[1] && r.full[2], 'a second toy with her mouth full: ' + JSON.stringify(r.full));
+  check(r.rex[0] === null && Math.abs(r.rex[1] - 1600) < 4 && r.rex[2] && r.rex[3] && r.rex[4] === 'Take' && r.again[0] && !r.again[1] && r.once, 'Rex’s bark: ' + JSON.stringify([r.rex, r.again, r.once]));
+  check(r.catDrop[0] === null && r.catDrop[1] === 3330 && !r.catDrop[2], 'the cat’s swipe: ' + JSON.stringify(r.catDrop));
+  check(r.roadDrop[0] === null && r.roadDrop[1] && r.roadDrop[2] === 1, 'a near miss: ' + JSON.stringify(r.roadDrop));
+  check(r.tedFound[0] && r.tedFound[1] === 'Take' && r.ted[0] && r.ted[1] && r.ballFound && r.ball[0] && r.ball[1], 'the teddy and the ball: ' + JSON.stringify([r.tedFound, r.ted, r.ballFound, r.ball]));
+  check(r.give[0] === null && r.give[1] === 1 && r.give[2] === 1 && r.give[3] && r.give[4] && r.give[5] && r.give[6] && !r.give[7] && /Toys: 1 \/ 4/.test(r.give[8]), 'a toy home without dinner: ' + JSON.stringify(r.give));
+  check(r.gnome[0] === 2 && r.gnome[1] && r.home[0] && r.home[1] === 3 && r.home[2] === null && r.home[3] === 2 && !r.home[4] && /Toys for the cubs: 2 of 4/.test(r.home[5]) && r.home[6] === null && r.clear, 'the gnome, and home with dinner and a toy: ' + JSON.stringify([r.gnome, r.home, r.clear]));
   check(p.errors.length === 0, p.errors.join('; '));
 });
 
